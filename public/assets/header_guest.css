@@ -1,0 +1,103 @@
+/* [SCOPO] Stile dell’header guest: sfondo nero, contenuto centrato,
+   logo a sinistra, azioni a destra (registrati, login, recupero). */
+
+/* ===== Variabili base per colori e spaziature ===== */
+:root{
+  --bg-900:#0a0a0b;         /* Nero principale header */
+  --text-100:#ffffff;       /* Testo chiaro (contrasto) */
+  --text-300:#e7e7e7;       /* Testo leggermente attenuato */
+  --text-600:#a7a7a7;       /* Testo per link piccoli */
+  --green:#00c074;          /* Colore bottone primario */
+  --green-700:#00a862;      /* Hover/active primario */
+  --line:rgba(255,255,255,.08); /* Linee sottili/separatori */
+  --container:1280px;       /* Larghezza massima contenuto */
+  --pad-x:clamp(16px,3vw,28px); /* Padding orizzontale fluido */
+  --radius-pill:9999px;     /* Bordi “pill” */
+  --h:64px;                 /* Altezza header desktop */
+}
+
+/* ===== Reset mirato dell’header ===== */
+.hdr, .hdr * { box-sizing: border-box; } /* Box model prevedibile */
+
+/* ===== Contenitore header ===== */
+.hdr{
+  background:var(--bg-900);       /* Sfondo nero */
+  color:var(--text-100);          /* Testo bianco */
+  position:sticky; top:0; z-index:1000; /* Rimane in alto mentre scrolli */
+  min-height:var(--h);            /* Altezza minima */
+  border-bottom:1px solid var(--line); /* Sottilissima linea inferiore */
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* Font neutro */
+}
+
+/* ===== Riga interna a 2 colonne ===== */
+.hdr__inner{
+  max-width:var(--container);     /* Larghezza massima */
+  margin:0 auto;                  /* Centra il contenitore */
+  padding:0 var(--pad-x);         /* Spazio laterale fluido */
+  display:flex;                   /* Attiva layout a fless */
+  align-items:center;             /* Allinea verticalmente al centro */
+  justify-content:space-between;  /* Sinistra vs destra */
+  min-height:var(--h);            /* Mantiene altezza riga */
+}
+
+/* ===== Colonna sinistra (logo) ===== */
+.logo{
+  display:inline-flex;            /* Allinea immagine + testo */
+  align-items:center;             /* Centra verticalmente */
+  gap:12px;                       /* Spazio tra logo e wordmark */
+  text-decoration:none;           /* Niente sottolineatura */
+  color:var(--text-100);          /* Colore testo */
+}
+.logo__img{ display:block; height:56px; width:auto; } /* Logo immagine */
+.logo__text{
+  font-weight:900;                /* Wordmark robusto */
+  letter-spacing:.02em;           /* Leggera spaziatura */
+  text-transform:uppercase;       /* Tutto maiuscolo */
+}
+
+/* ===== Colonna destra (azioni) ===== */
+.hdr__right{
+  display:flex;                   /* Allinea pulsanti e link */
+  align-items:center;             /* Centro verticale */
+  gap:10px;                       /* Spazio orizzontale tra elementi */
+  line-height:1;                  /* Compatta verticalmente */
+}
+
+/* ===== Bottoni ===== */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; /* Centra contenuto */
+  height:36px;                  /* Altezza pill */
+  padding:0 14px;               /* Spazio orizzontale */
+  border-radius:var(--radius-pill); /* Angoli “pill” */
+  font-size:13px; font-weight:800;  /* Tipografia decisa */
+  letter-spacing:.03em; text-decoration:none; /* Stile bottone */
+  border:1px solid transparent;       /* Bordo base invisibile */
+  cursor:pointer; transition:background-color .15s,border-color .15s; /* Transizioni morbide */
+  color:var(--text-100);              /* Testo chiaro */
+}
+.btn--primary{ background:var(--green); }              /* Registrati (primario) */
+.btn--primary:hover{ background:var(--green-700); }    /* Hover più scuro */
+.btn--outline{
+  background:transparent; border-color:var(--line);    /* Login (outline) */
+  color:var(--text-300);                                /* Testo meno acceso */
+}
+.btn--outline:hover{ border-color:var(--text-300); color:var(--text-100); } /* Hover outline */
+
+/* ===== Link “recupero password” sotto al Login ===== */
+.link--tiny{
+  display:block;                 /* Va su una riga sotto */
+  margin-left:auto;              /* Si allinea a destra sotto i bottoni */
+  font-size:12px;                /* Più piccolo dei bottoni */
+  color:var(--text-600);         /* Colore attenuato */
+  text-decoration:none;          /* Niente sottolineatura base */
+  margin-top:2px;                /* Distanza minima dai bottoni */
+}
+.link--tiny:hover{ color:var(--text-100); } /* Hover più chiaro */
+
+/* ===== Responsive (mobile) ===== */
+@media (max-width:860px){
+  .hdr__inner{ gap:12px; }         /* Un po’ di respiro */
+  .logo__img{ height:44px; }       /* Logo più compatto */
+  .btn{ height:32px; padding:0 12px; font-size:12px; } /* Bottoni più piccoli */
+  .link--tiny{ font-size:11px; }   /* Recupero ancora più piccolo */
+}
