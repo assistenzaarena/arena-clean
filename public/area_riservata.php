@@ -51,16 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ricarica'])) {
 </p>
 <!-- Motivo: separiamo la UX della ricarica su una pagina dedicata,
      così potremo integrare Stripe senza toccare l’area riservata -->
-    <!-- ======================================================
-     NUOVA SEZIONE: Form per ricaricare i crediti
-     ====================================================== -->
-<form method="post" action="">
-  <label>
-    Ricarica crediti:
-    <input type="number" name="ricarica" min="1" step="1">
-  </label>
-  <button type="submit">Ricarica</button>
-</form>
 <p><a href="/logout.php">Logout</a></p>
 </body>
 </html>
