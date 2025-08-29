@@ -104,8 +104,8 @@
 /* ===== Sub-header (barra sotto l'header) ===== */
 .subhdr {
   background:#0f1114;              /* Sfondo uguale al resto della pagina */
-  border-top:0.5px solid var(--line);/* Linea di separazione sopra */
-  border-bottom:0.5px solid var(--line); /* Linea di separazione sotto */
+  border-top:0.3px solid var(--line);/* Linea di separazione sopra */
+  border-bottom:0.3px solid var(--line); /* Linea di separazione sotto */
 }
 
 .subhdr__inner {
