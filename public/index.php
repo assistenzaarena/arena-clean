@@ -2,7 +2,7 @@
 // La home pubblica di Arena
 // Scopo: mostrare struttura base, includere header/footer, caricare CSS/JS
 
-// Non serve qui session.php perché header.php già la include
+// Non serve qui session.php perché header.php già la includ
 ?>
 <!DOCTYPE html> <!-- Dichiara HTML5 -->
 <html lang="it"> <!-- Impostiamo lingua italiana per accessibilità/SEO -->
