@@ -43,6 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ricarica'])) {
 <body>
 <h1>Ciao <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
 <p>Saldo crediti attuale: <strong><?php echo $crediti; ?></strong> 💰</p>
+    <!-- [NUOVO] Pulsante che porta alla pagina dedicata di ricarica -->
+<p>
+  <a href="/ricarica.php" style="display:inline-block;padding:8px 12px;background:#b00;color:#fff;text-decoration:none;border-radius:6px;">
+    Ricarica
+  </a>
+</p>
+<!-- Motivo: separiamo la UX della ricarica su una pagina dedicata,
+     così potremo integrare Stripe senza toccare l’area riservata -->
     <!-- ======================================================
      NUOVA SEZIONE: Form per ricaricare i crediti
      ====================================================== -->
