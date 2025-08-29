@@ -1,6 +1,6 @@
 <?php
 // ===============================================================
-// TEST DI CONNESSIONE AL DATABASE
+// TEST DI CONNESSIONE AL DATABAS
 // Questo file serve solo a verificare che le variabili d'ambiente 
 // siano lette correttamente e che la connessione MySQL funzioni.
 // ===============================================================
