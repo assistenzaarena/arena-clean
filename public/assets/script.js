@@ -7,7 +7,7 @@ function refreshCrediti() {
   const el = document.getElementById('creditiVal'); // target del valore
   if (!el) return; // Se non esiste (non loggato), non facciamo nulla
 
-  // Chiamiamo la route che restituisce il numero crediti corrente
+  // Chiamiamo la route che restituisce il numero crediti corrent
   fetch('/src/routes/get_crediti.php', { credentials: 'include' }) // credentials include: manda cookie di sessione
     .then(res => {
       // Controllo semplice dell'esito HTTP
