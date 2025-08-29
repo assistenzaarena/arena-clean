@@ -16,3 +16,13 @@
     </div>
   </div>
 </header>
+<!-- Sub-header di navigazione principale -->
+<nav class="subhdr" role="navigation" aria-label="Navigazione principale">
+  <div class="subhdr__inner">
+    <ul class="subhdr__menu">
+      <li class="subhdr__item"><a class="subhdr__link" href="/">Home</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/il-gioco">Il Gioco</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Contatti</a></li>
+    </ul>
+  </div>
+</nav>
