@@ -101,3 +101,38 @@
   .btn{ height:32px; padding:0 12px; font-size:12px; } /* Bottoni più piccoli */
   .link--tiny{ font-size:11px; }   /* Recupero ancora più piccolo */
 }
+/* ===== Sub-header (barra sotto l'header) ===== */
+.subhdr {
+  background:#0f1114;              /* Sfondo uguale al resto della pagina */
+  border-top:1px solid var(--line);/* Linea di separazione sopra */
+  border-bottom:1px solid var(--line); /* Linea di separazione sotto */
+}
+
+.subhdr__inner {
+  max-width:var(--container);      /* Larghezza massima centrata */
+  margin:0 auto;
+  padding:0 var(--pad-x);
+}
+
+.subhdr__menu {
+  display:flex;                    /* Voci in linea */
+  justify-content:center;          /* Centrate */
+  gap:36px;                        /* Spazio tra i link */
+  list-style:none;                 /* Nessun bullet */
+  margin:0; padding:8px 0;         /* Altezza barra */
+}
+
+.subhdr__link {
+  font-size:14px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  color:var(--text-300);           /* Colore attenuato */
+  text-decoration:none;
+}
+
+.subhdr__link:hover,
+.subhdr__link:focus-visible {
+  color:var(--text-100);           /* Hover bianco */
+  outline:none;
+}
