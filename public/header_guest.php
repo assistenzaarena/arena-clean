@@ -13,7 +13,6 @@
     <div class="hdr__right" aria-label="Azioni account">
       <a class="btn btn--primary" href="/registrazione">Registrati</a>
       <a class="btn btn--outline" href="/login.php">Login</a>
-      <a class="link--tiny" href="/recupero-password">Recupero password</a>
     </div>
   </div>
 </header>
