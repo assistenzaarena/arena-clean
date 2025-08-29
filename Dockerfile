@@ -5,7 +5,7 @@ RUN a2enmod rewrite
 
 WORKDIR /var/www/html
 
-# Copiamo i file pubblici (visibili sul web)
+# Copiamo i file pubblici (visibile sul web)
 COPY public/ /var/www/html/
 
 # Copiamo anche src/ e sql/ (necessari per config e DB)
