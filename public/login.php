@@ -1,3 +1,4 @@
+<?php require __DIR__ . '/header_guest.php'; ?>
 <?php
 // [SCOPO] Pagina di login: mostra un form e autentica l'utente demo (o futuri utenti da DB).
 
