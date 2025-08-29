@@ -1,47 +1,50 @@
 <?php
-// Questo partial stampa l'header comune a tutte le pagine
-// Scopo: mostrare logo, nav minima e pannello crediti (se utente loggato)
+// [SCOPO] Header comune. NON apriamo il DB se l'utente non è loggato,
+//         per evitare timeouts e blocchi dei worker Apache.
 
-// Includiamo sessione per accedere a eventuale utente loggato
-require_once __DIR__ . '/../session.php'; // Necessario per $_SESSION
+// [RIGA] Sessione per capire se c'è un utente
+require_once __DIR__ . '/../session.php'; // Serve per $_SESSION
 
-// Includiamo la connessione DB per poter leggere i crediti (se loggato)
-require_once __DIR__ . '/../db.php'; // Necessario per query crediti
+// [RIGA] Flag login + valore crediti (null = non mostrabile)
+$logged_in = isset($_SESSION['user_id']); // true se utente loggato
+$crediti   = null;                        // inizialmente ignoto
 
-// Prepariamo variabili di stato per la UI header
-$logged_in = isset($_SESSION['user_id']); // Vero se abbiamo un utente loggato
-$crediti = null;                          // Valore predefinito, sarà numerico se loggato
-
-// Se loggato, recuperiamo i crediti in modo sicuro (prepared statement)
+// [RIGA] SOLO SE loggato, allora carichiamo il DB e leggiamo i crediti
 if ($logged_in) {
-    // Query parametrica: preveniamo SQL injection
-    $stmt = $pdo->prepare('SELECT crediti FROM utenti WHERE id = :id'); // :id placeholder
-    $stmt->execute([':id' => $_SESSION['user_id']]);                    // Bind sicuro del parametro
-    $row = $stmt->fetch();                                              // Otteniamo il risultato
-    $crediti = $row ? (int)$row['crediti'] : 0;                         // Se non trovato, fallback 0
+  // Includiamo la connessione PDO SOLO quando serve
+  require_once __DIR__ . '/../db.php'; // Evita di connettersi per utenti guest
+
+  try {
+    // Query parametrica per i crediti
+    $stmt = $pdo->prepare('SELECT crediti FROM utenti WHERE id = :id'); // placeholder sicuro
+    $stmt->execute([':id' => $_SESSION['user_id']]);                    // bind parametro
+    $row = $stmt->fetch();                                              // leggi riga
+    $crediti = $row ? (int)$row['crediti'] : 0;                         // cast a int
+  } catch (Throwable $e) {
+    // In produzione non mostriamo errori: al massimo nascondiamo i crediti
+    $crediti = null; // fallback silenzioso
+  }
 }
 ?>
-<header class="site-header"><!-- Contenitore header per stile -->
-  <div class="header-inner"><!-- Wrapper interno per layout -->
-    <div class="logo"><!-- Area logo -->
-      <a href="/"><!-- Link alla home -->
-        ARENA <!-- Testo logo semplice (poi lo sostituiremo col tuo elmo SVG/PNG) -->
-      </a>
-    </div>
-    <nav class="main-nav"><!-- Navigazione principale -->
-      <a href="/">Home</a><!-- Link Home -->
-      <a href="/regole.php">Il Gioco</a><!-- Placeholder pagina regole (arriva dopo) -->
-      <a href="/contatti.php">Contatti</a><!-- Placeholder pagina contatti (arriva dopo) -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo"><a href="/">ARENA</a></div>
+    <nav class="main-nav">
+      <a href="/">Home</a>
+      <a href="/regole.php">Il Gioco</a>
+      <a href="/contatti.php">Contatti</a>
     </nav>
-    <div class="user-box"><!-- Box a destra per stato utente -->
-      <?php if ($logged_in): ?><!-- Se utente loggato, mostra crediti -->
-        <span class="crediti-label">Crediti:</span><!-- Etichetta -->
-        <span class="crediti-val" id="creditiVal"><?php echo htmlspecialchars((string)$crediti); ?></span><!-- Valore iniziale -->
-        <span class="crediti-icona">💰</span><!-- Icona semplice (sostituibile) -->
-      <?php else: ?><!-- Se non loggato, mostra link Auth -->
-        <a class="btn" href="/login.php">Login</a><!-- Link login (implementiamo dopo) -->
-        <a class="btn btn-primary" href="/registrati.php">Registrati</a><!-- Link registrazione -->
-      <?php endif; ?><!-- Fine condizione loggato -->
+    <div class="user-box">
+      <?php if ($logged_in): ?>
+        <span class="crediti-label">Crediti:</span>
+        <span class="crediti-val" id="creditiVal">
+          <?php echo $crediti === null ? '—' : htmlspecialchars((string)$crediti); ?>
+        </span>
+        <span class="crediti-icona">💰</span>
+      <?php else: ?>
+        <a class="btn" href="/login.php">Login</a>
+        <a class="btn btn-primary" href="/registrati.php">Registrati</a>
+      <?php endif; ?>
     </div>
   </div>
 </header>
