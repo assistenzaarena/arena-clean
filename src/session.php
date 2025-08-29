@@ -1,5 +1,5 @@
 <?php
-// Gestione sessioni in modo sicuro
+// Gestione sessioni in modo sicur
 
 // Importiamo costanti per il nome della sessione
 require_once __DIR__ . '/config.php'; // Serve SESSION_NAME
