@@ -3,7 +3,7 @@
 // Questo file deve essere incluso da altri (es. setup_schema.php) per avere $pdo pronto.
 
 // Importiamo la config (contiene le costanti DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS)
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . 'src/config.php';
 
 try {
     // DSN = stringa di connessione per MySQL
