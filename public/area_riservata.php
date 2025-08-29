@@ -1,4 +1,3 @@
-<?php require __DIR__ . '/header.php'; ?>  <!-- include header dinamico -->
 <?php
 // [SCOPO] Pagina protetta che mostra username + saldo crediti.
 
