@@ -1,0 +1,11 @@
+# Ignora file di ambiente con password/chiavi (le gestiremo su Railway come env)
+.env  # Non vogliamo mai salire su Git con segreti
+
+# Cache e file temporanei
+*.log  # Log non servono in repo
+*.cache # Cache varie
+
+# Mac & editor
+.DS_Store # File di sistema Mac, inutile
+.vscode/  # Config locali di VS Code
+.idea/    # Config JetBrains
