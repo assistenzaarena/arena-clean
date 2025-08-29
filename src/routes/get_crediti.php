@@ -1,5 +1,5 @@
 <?php
-// Endpoint che restituisce i crediti dell'utente loggato in JSON
+// Endpoint che restituisce i crediti dell'utente loggat in JSON
 // Motivazione: separiamo la lettura crediti dall'HTML per aggiornamenti dinamici
 
 // Header JSON per indicare il tipo di risposta al client
