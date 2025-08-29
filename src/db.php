@@ -1,28 +1,46 @@
 <?php
-// Importiamo la config per leggere parametri DB
-require_once __DIR__ . '/config.php'; // __DIR__ garantisce percorso corretto indipendente dalla CWD
+// [SCOPO] Creare un'istanza PDO riutilizzabile per parlare con MySQL in modo sicuro.
+
+// [RIGA] Importiamo le costanti di configurazione (host, port, name, user, pass, APP_ENV)
+require_once __DIR__ . '/config.php'; // __DIR__ = percorso fisso al file corrente, robusto agli include
 
 try {
-    // Creiamo DSN (Data Source Name) per PDO: definisce tipo DB, host e nome DB
-    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4'; // utf8mb4 per supportare emoji/caratteri completi
+    // [RIGA] Costruiamo il DSN (Data Source Name) nel formato corretto per PDO MySQL.
+    //        NOTA: la PORTA va indicata come parametro separato (;port=XXXX), NON dentro host.
+    //        In più impostiamo il charset a utf8mb4 per supportare pienamente emoji/caratteri estesi.
+    $dsn = 'mysql:host=' . DB_HOST
+         . ';port=' . DB_PORT
+         . ';dbname=' . DB_NAME
+         . ';charset=utf8mb4';
 
-    // Istanza PDO con opzioni di sicurezza e performance
+    // [RIGA] Creiamo l'oggetto PDO con opzioni sicure/performanti.
     $pdo = new PDO(
-        $dsn,                // Connessione al database
-        DB_USER,             // Username DB
-        DB_PASS,             // Password DB
+        $dsn,        // Stringa DSN (contiene host, port, dbname, charset)
+        DB_USER,     // Username per autenticarsi al DB
+        DB_PASS,     // Password per autenticarsi al DB
         [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,            // Errori come eccezioni: più sicuro per gestire problemi
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Fetch in array associativo: più leggibile
-            PDO::ATTR_EMULATE_PREPARES => false,                    // Disabilita prepare emulate: use real prepared statements
+            // [RIGA] Trasforma gli errori in eccezioni → gestione chiara, niente warning persi
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+
+            // [RIGA] I fetch restituiscono array associativi → più leggibili (es. $row['username'])
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+            // [RIGA] Disabilita l’emulazione delle prepared → usa prepared “reali” del driver (più sicure)
+            PDO::ATTR_EMULATE_PREPARES => false,
+
+            // [RIGA] Timeout breve della connessione (in secondi) → evita che la pagina “rimanga appesa”
+            PDO::ATTR_TIMEOUT => 3,
         ]
     );
+
 } catch (PDOException $e) {
-    // In produzione, non mostriamo dettagli sensibili; in dev potresti loggare.
+    // [RIGA] SE siamo in sviluppo (APP_ENV != production) mostriamo il motivo esatto per debuggare.
     if (APP_ENV !== 'production') {
-        die('Errore connessione DB: ' . htmlspecialchars($e->getMessage())); // Mostra errore solo in dev
+        // [RIGA] htmlspecialchars per non permettere injection di HTML nel browser
+        die('Errore connessione DB: ' . htmlspecialchars($e->getMessage()));
     }
-    // In produzione: messaggio generico per non dare info a potenziali attaccanti
-    http_response_code(500); // Status 500 per indicare errore server
-    die('Si è verificato un errore interno.'); // Messaggio generico
+
+    // [RIGA] IN produzione non esponiamo dettagli → status 500 + messaggio generico
+    http_response_code(500);                 // Imposta HTTP 500 (errore server)
+    die('Si è verificato un errore interno.'); // Messaggio neutro per non aiutare attaccanti
 }
