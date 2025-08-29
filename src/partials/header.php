@@ -1,5 +1,5 @@
 <?php
-// [SCOPO] Header comune. NON apriamo il DB se l'utente non è loggato,
+// [SCOPO] Header comune. NON apriamo il DB se l'utente non è logato,
 //         per evitare timeouts e blocchi dei worker Apache.
 
 // [RIGA] Sessione per capire se c'è un utente
