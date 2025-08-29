@@ -1,7 +1,4 @@
 <?php
-if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
-require __DIR__ . '/header_min.php';?>  // <-- usa il mini header per il test  <!-- include header dinamico -->
-<?php
 // [SCOPO] Pagina di login: mostra un form e autentica l'utente demo (o futuri utenti da DB).
 
 require_once __DIR__ . '/src/config.php'; // costanti APP_ENV, DB_*
