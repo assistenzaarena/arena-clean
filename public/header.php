@@ -5,7 +5,7 @@
 // [NOTE]  Ricalca struttura e comportamenti dei frammenti che mi hai passato // Coerenza con i tuoi file forniti
 
 // ========= STATO SESSIONE / RUOLO =========================================  // Sezione: determinazione stato utente
-session_start();                                                              // Apriamo/continuiamo la sessione per leggere stato utente
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }                                                             // Apriamo/continuiamo la sessione per leggere stato utente
 $logged_in = !empty($_SESSION['user_id']);                                    // Boolean: vero se c’è un utente autenticato
 $role      = $_SESSION['role'] ?? 'guest';                                    // Ruolo: 'admin' | 'user' | default 'guest'
 $username  = $_SESSION['username'] ?? '';                                     // Username da mostrare quando loggato
@@ -30,7 +30,7 @@ $roleClass = $role === 'admin' ? 'site-header--admin'                          /
 ?>
 <link rel="stylesheet" href="/assets/header.css">                               <!-- Collega il CSS unico per l’header -->
 <header role="banner" class="site-header <?php echo $roleClass; ?>"             <!-- Header: classe base + variante per ruolo -->
-        data-role="<?php echo htmlspecialchars($role); ?>">                     <!-- Data-attribute utile per JS/test -->
+        data-role="<?php echo htmlspecialchars((string)$role, ENT_QUOTES, 'UTF-8'); ?>">                   <!-- Data-attribute utile per JS/test -->
   <div class="site-header__inner">                                              <!-- Wrapper interno per layout 3 aree -->
 
     <div class="site-header__left">                                             <!-- Colonna sinistra: toggle (mobile) + logo -->
