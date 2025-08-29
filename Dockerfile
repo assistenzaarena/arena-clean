@@ -1,15 +1,12 @@
-FROM php:8.2-apache
+FROM php:8.2-apache                         # Base PHP + Apache stabile
 
-RUN docker-php-ext-install pdo pdo_mysql
-RUN a2enmod rewrite
+RUN docker-php-ext-install pdo pdo_mysql    # Estensioni DB che useremo
+RUN a2enmod rewrite                         # Mod_rewrite (ci servirà dopo)
 
-WORKDIR /var/www/html
+WORKDIR /var/www/html                       # Docroot di Apache
 
-# Copiamo i file pubblici (visibile sul web)
-COPY public/ /var/www/html/
+COPY public/ /var/www/html/                 # Copia i file pubblici
+COPY src/ /var/www/html/src/                # *** Copia il codice PHP condiviso (config.php, ecc.)
+COPY sql/ /var/www/html/sql/                # *** Copia gli SQL (non eseguiti, solo presenti)
 
-# Copiamo anche src/ e sql/ (necessari per config e DB)
-COPY src/ /var/www/html/src/
-COPY sql/ /var/www/html/sql/
-
-CMD ["apache2-foreground"]
+CMD ["apache2-foreground"]                  # Avvia Apache in foreground
