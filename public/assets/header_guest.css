@@ -104,8 +104,8 @@
 /* ===== Sub-header (barra sotto l'header) ===== */
 .subhdr {
   background:#0f1114;              /* Sfondo uguale al resto della pagina */
-  border-top:1px solid var(--line);/* Linea di separazione sopra */
-  border-bottom:1px solid var(--line); /* Linea di separazione sotto */
+  border-top:0.5px solid var(--line);/* Linea di separazione sopra */
+  border-bottom:0.5px solid var(--line); /* Linea di separazione sotto */
 }
 
 .subhdr__inner {
@@ -123,11 +123,12 @@
 }
 
 .subhdr__link {
+  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* stesso font header */
   font-size:14px;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:.03em;
-  color:var(--text-300);           /* Colore attenuato */
+  color:var(--text-300);
   text-decoration:none;
 }
 
