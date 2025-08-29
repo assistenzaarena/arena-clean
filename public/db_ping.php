@@ -2,7 +2,7 @@
 // [SCOPO] Testare la connessione al DB tramite PDO.
 // Questo file va eliminato appena confermiamo che funziona (sicurezza).
 
-require_once __DIR__ . '/../src/config.php'; // carica le costanti DB_*
+require_once __DIR__ . '/src/config.php'; // carica le costanti DB_*
 
 header('Content-Type: text/plain; charset=utf-8'); // output testuale
 
