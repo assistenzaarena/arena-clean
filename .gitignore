@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Dipendenze comuni (se in futuro userai npm/composer)
+node_modules/
+vendor/
+
+# Log temporanei
+*.log
