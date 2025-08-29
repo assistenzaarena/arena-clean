@@ -1,5 +1,5 @@
 <?php
-// Footer comune, sempre presente
+// Footer comune, sempre present
 ?>
 <footer class="site-footer"><!-- Contenitore footer -->
   <div class="footer-inner"><!-- Wrapper per layout -->
