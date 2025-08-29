@@ -1,4 +1,4 @@
--- Creiamo database e tabella utenti di base
+-- Creiamo database e tabella utenti di bas
 -- NOTA: su Railway creerai un DB MySQL e imposterai le variabili d'ambiente. Questo file è documentazione + base da eseguire nel tuo DB.
 
 -- Tabella utenti (semplice, estendibile)
