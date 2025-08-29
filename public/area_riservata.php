@@ -15,6 +15,27 @@ $stmt = $pdo->prepare("SELECT crediti FROM utenti WHERE id = :id");
 $stmt->execute([':id' => $_SESSION['user_id']]);
 $user = $stmt->fetch();
 $crediti = $user ? $user['crediti'] : 0;
+// ======================================================
+// NUOVA FUNZIONE: Gestione ricarica crediti
+// ======================================================
+
+// [RIGA] Se il form è stato inviato (metodo POST con campo "ricarica")
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ricarica'])) {
+    // [RIGA] Convertiamo il valore ricevuto in numero intero (evita injection tipo "10; DROP TABLE")
+    $ricarica = (int) $_POST['ricarica'];
+
+    // [RIGA] Aggiorniamo i crediti nel DB SOLO se > 0
+    if ($ricarica > 0) {
+        $stmt = $pdo->prepare("UPDATE utenti SET crediti = crediti + :r WHERE id = :id");
+        $stmt->execute([
+            ':r' => $ricarica,
+            ':id' => $_SESSION['user_id']
+        ]);
+
+        // [RIGA] Aggiorniamo anche la variabile locale, così vediamo subito il saldo aggiornato
+        $crediti += $ricarica;
+    }
+}
 ?>
 <!doctype html>
 <html lang="it">
@@ -22,6 +43,16 @@ $crediti = $user ? $user['crediti'] : 0;
 <body>
 <h1>Ciao <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
 <p>Saldo crediti attuale: <strong><?php echo $crediti; ?></strong> 💰</p>
+    <!-- ======================================================
+     NUOVA SEZIONE: Form per ricaricare i crediti
+     ====================================================== -->
+<form method="post" action="">
+  <label>
+    Ricarica crediti:
+    <input type="number" name="ricarica" min="1" step="1">
+  </label>
+  <button type="submit">Ricarica</button>
+</form>
 <p><a href="/logout.php">Logout</a></p>
 </body>
 </html>
