@@ -6,7 +6,7 @@ require __DIR__ . '/header_guest.php';?>
 
 require_once __DIR__ . '/src/config.php'; // costanti APP_ENV, DB_*
 require_once __DIR__ . '/src/db.php';     // connessione PDO
-session_start();                          // abilitiamo sessioni
+                         // abilitiamo sessioni
 
 // Se l'utente ha inviato il form (metodo POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
