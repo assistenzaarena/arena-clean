@@ -1,0 +1,113 @@
+<!--
+  HEADER USER — top bar + nav mobile + sub-nav desktop (fuori dall’header)
+  Stile e variabili riusano quelle del guest (header_guest.css).
+  Questo file è un FRAMMENTO: includilo nella pagina dove ti serve l'header utente.
+-->
+
+<header role="banner" class="site-header site-header--user" data-role="user">
+
+  <!-- ====== TOP BAR (riga 1) — logo sx, azioni dx ====== -->
+  <div class="site-header__inner">
+
+    <!-- SINISTRA: toggle (solo mobile) + logo -->
+    <div class="site-header__left">
+      <!-- Il JS sotto usa aria-controls per aprire/chiudere la tendina -->
+      <button class="site-header__toggle" aria-controls="mobile-menu" aria-expanded="false">
+        Menu
+      </button>
+
+      <!-- Logo + wordmark (coerenti col guest) -->
+      <a href="/" class="site-header__logo" aria-label="Vai alla Home">
+        <img class="logo__img" src="assets/logo_arena.png" alt="Arena — elmo" width="56" height="56" />
+        <span class="logo__text" aria-hidden="true">ARENA</span>
+      </a>
+    </div>
+
+    <!-- DESTRA: azioni utente (pill tutte allineate) -->
+    <div class="site-header__auth" aria-label="Area utente">
+
+      <!-- Ricarica -->
+      <a class="btn btn--primary" href="/ricarica" title="Ricarica crediti">Ricarica</a>
+
+      <!-- Crediti + refresh -->
+      <div class="user-credits" aria-label="Saldo crediti">
+        <span class="user-credits__label">Crediti</span>
+        <span class="user-credits__value" data-value="0">0</span>
+
+        <!-- Tasto refresh tondo -->
+        <button class="credits-refresh" type="button" aria-label="Aggiorna saldo crediti">
+          <svg class="credits-refresh__icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor"
+              d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1a6 6 0 1 1-1.9-6.1L14 10h6V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Avatar (link) + nome: in desktop restano qui;
+           in mobile li nascondiamo (li riproponiamo nella tendina) -->
+      <div class="user-display" aria-label="Profilo utente">
+        <!-- SOLO l’avatar è il link (richiesta: lettera “L” cliccabile) -->
+        <a class="user-avatar__link" href="/profilo"
+           aria-label="Apri il profilo utente" title="Apri il profilo utente">
+          <span class="user-avatar__circle">L</span>
+        </a>
+        <span class="user-display__name" data-username="Lorenzo">Lorenzo</span>
+      </div>
+
+      <!-- Logout (pill più piccola, testo “Logout” con sola L maiuscola) -->
+      <form class="logout-form" action="/logout" method="post">
+        <button class="btn btn--outline" type="submit">Logout</button>
+      </form>
+    </div><!-- /site-header__auth -->
+  </div><!-- /site-header__inner -->
+
+
+  <!-- ====== NAV MOBILE (tendina) — visibile <980px ======
+       Rimane DENTRO l’header. Di default è chiusa (display:none da CSS).
+       Il toggle aggiunge .menu-open su .site-header--user e la apre. -->
+  <nav class="site-header__nav" aria-label="Navigazione principale">
+  <ul class="primary-menu" id="mobile-menu">
+
+    <!-- USER in cima -->
+    <li class="primary-menu__item user-mobile">
+      <a class="user-avatar__link" href="/profilo" title="Vai al profilo">
+        <span class="user-avatar__circle">L</span>
+        <span class="user-display__name">Lorenzo</span>
+      </a>
+    </li>
+
+    <!-- Voci di navigazione -->
+    <li class="primary-menu__item"><a class="primary-menu__link" href="/lobby">Lobby</a></li>
+    <li class="primary-menu__item"><a class="primary-menu__link" href="/storico-tornei">Storico Tornei</a></li>
+    <li class="primary-menu__item"><a class="primary-menu__link" href="/regolamento">Regolamento</a></li>
+    <li class="primary-menu__item"><a class="primary-menu__link" href="/movimenti">Lista Movimenti</a></li>
+
+    <!-- LOGOUT in fondo -->
+    <li class="primary-menu__item logout-mobile">
+      <form class="logout-form" action="/logout" method="post">
+        <button class="btn btn--outline" type="submit">Logout</button>
+      </form>
+    </li>
+
+  </ul>
+</nav>
+
+
+<!-- ====== JS MINI per il toggle mobile (idempotente, inline per comodità)
+     Se preferisci esterno, copialo in /js/main.js e richiamalo in fondo pagina. -->
+<script>
+  (function () {
+    const header = document.querySelector('.site-header--user');
+    const btn = header?.querySelector('.site-header__toggle');
+    if (!header || !btn) return;
+
+    const menuId = btn.getAttribute('aria-controls') || 'mobile-menu';
+    const menu = header.querySelector('#' + menuId);
+
+    btn.addEventListener('click', () => {
+      const open = header.classList.toggle('menu-open');   // apre/chiude
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open && menu && typeof menu.focus === 'function') menu.focus();
+    });
+  })();
+</script>

@@ -1,0 +1,95 @@
+/* ==========================================================================
+   FOOTER — Sottile, coerente con header scuro
+   Dipende dalle variabili già presenti nel progetto:
+   --container-w, --pad-x, --text-300/500/700, --line-700, ecc.
+   Se mancano, i fallback qui sotto garantiscono un look decente.
+   ========================================================================== */
+
+/* Fallback variabili (se non definiti altrove) */
+:root{
+  --container-w: var(--container-w, 1280px);
+  --pad-x: var(--pad-x, 24px);
+  --text-100: var(--text-100, #fff);
+  --text-300: var(--text-300, #e6e6e6);
+  --text-500: var(--text-500, #c9c9c9);
+  --text-700: var(--text-700, #9a9a9a);
+  --line-700: var(--line-700, rgba(255,255,255,.06));
+}
+
+/* Contenitore footer */
+.site-footer{
+  background:#0a0a0b;                 /* stesso nero header */
+  border-top:1px solid var(--line-700);
+  color: var(--text-500);
+  font-family: inherit;
+}
+
+/* Wrapper interno sottile */
+.site-footer__inner{
+  max-width: var(--container-w);
+  margin: 0 auto;
+  padding: 10px var(--pad-x);         /* sottile */
+  display: flex;
+  flex-direction: column;             /* nav sopra, meta sotto */
+  gap: 8px;
+}
+
+/* Menu link legali/info */
+.site-footer__nav{ order:0; }
+
+.footer-menu{
+  display: flex;
+  flex-wrap: wrap;                    /* va a capo se serve */
+  gap: 10px 18px;                     /* riga/colonna */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Link */
+.footer-menu a{
+  color: var(--text-500);
+  text-decoration: none;
+  font-size: 12px;                    /* sottile */
+  line-height: 1.2;
+}
+.footer-menu a:hover,
+.footer-menu a:focus-visible{
+  color: var(--text-300);
+  outline: none;
+  text-decoration: underline;
+}
+
+/* Riga meta: © e “torna su” */
+.site-footer__meta{
+  order: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--text-700);
+}
+
+/* “Torna su” (semplice freccia) */
+.site-footer__meta .back-to-top{
+  color: var(--text-500);
+  text-decoration: none;
+  font-weight: 800;
+}
+.site-footer__meta .back-to-top:hover,
+.site-footer__meta .back-to-top:focus-visible{
+  color: var(--text-300);
+  outline: none;
+}
+
+/* Mobile: ancora più compatto */
+@media (max-width:980px){
+  .site-footer__inner{
+    padding: 10px var(--pad-x);
+    gap: 8px;
+  }
+  .footer-menu{
+    gap: 10px 14px;
+  }
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview — Header Guest</title>
+
+  <!-- CSS del guest -->
+  <link rel="stylesheet" href="css/header_guest.css" />
+
+  <!-- SOLO per la preview: stile pagina neutro -->
+  <style>
+    body{ margin:0; background:#0f1114; color:#cfcfcf; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .page{ max-width: 960px; margin: 0 auto; padding: 24px; }
+  </style>
+</head>
+<body>
+
+  <!-- ============= HEADER GUEST (UNICO) ============= -->
+  <header role="banner" class="site-header site-header--guest" data-role="guest">
+    <div class="site-header__inner">
+
+      <!-- SINISTRA — Toggle + Logo -->
+      <div class="site-header__left">
+        <button class="site-header__toggle"
+                aria-controls="guest-mobile-menu"
+                aria-expanded="false">Menu</button>
+
+        <a href="/" class="site-header__logo" aria-label="Vai alla Home">
+          <img class="logo__img" src="assets/logo_arena.png" alt="Arena — elmo" width="56" height="56" />
+          <span class="logo__text" aria-hidden="true">ARENA</span>
+        </a>
+      </div>
+
+      <!-- DESTRA — CTA account -->
+      <div class="site-header__auth" aria-label="Azioni account">
+        <a class="btn btn--primary" href="/registrazione">Registrati</a>
+        <a class="btn btn--outline" href="/login">Login</a>
+        <a class="auth__recovery" href="/recupero-password" rel="nofollow">Recupero password</a>
+      </div>
+    </div>
+
+    <!-- NAV MOBILE (tendina) -->
+    <nav class="site-header__nav" aria-label="Navigazione mobile">
+      <ul class="primary-menu" id="guest-mobile-menu">
+        <li class="primary-menu__item"><a class="primary-menu__link" href="/">Home</a></li>
+        <li class="primary-menu__item"><a class="primary-menu__link" href="/il-gioco">Il Gioco</a></li>
+        <li class="primary-menu__item"><a class="primary-menu__link" href="/contatti">Contatti</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- SUB-NAV DESKTOP (fuori dall’header) -->
+  <nav class="site-subnav" aria-label="Navigazione principale">
+    <div class="subnav__inner">
+      <ul class="subnav-menu">
+        <li class="subnav-menu__item"><a class="subnav-menu__link" href="/">Home</a></li>
+        <li class="subnav-menu__item"><a class="subnav-menu__link" href="/il-gioco">Il Gioco</a></li>
+        <li class="subnav-menu__item"><a class="subnav-menu__link" href="/contatti">Contatti</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Preview Header Guest</h1>
+    <p>Desktop: top-bar + sub-nav sotto. Mobile: sub-nav nascosta; “Menu” apre la tendina con Home / Il Gioco / Contatti.</p>
+    <div style="height:100vh"></div>
+  </main>
+
+  <!-- JS toggle: aggiunge/rimuove .menu-open all’header CORRETTO -->
+  <script>
+    (function(){
+      document.querySelectorAll('.site-header--guest').forEach(function(header){
+        const btn = header.querySelector('.site-header__toggle');
+        if (!btn) return;
+
+        const menuId = btn.getAttribute('aria-controls') || 'guest-mobile-menu';
+        const menu   = header.querySelector('#' + menuId);
+
+        btn.addEventListener('click', function(){
+          const h = btn.closest('.site-header--guest') || header;
+          const open = h.classList.toggle('menu-open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          if (open && menu && typeof menu.focus === 'function') menu.focus();
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
