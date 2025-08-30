@@ -96,75 +96,86 @@ if ($action === 'toggle_active' && $user_id > 0) {
     exit;
 }
 
-    // ==========================================================
-    // 2. UPDATE DATI UTENTE (nome, cognome, email, telefono, saldo, password)
-    // ==========================================================
-    if ($action === 'update_user' && $user_id > 0) {
-        // [INPUT] Recupero i campi dal form
-        $nome      = trim($_POST['nome'] ?? '');
-        $cognome   = trim($_POST['cognome'] ?? '');
-        $email     = trim($_POST['email'] ?? '');
-        $phone     = trim($_POST['phone'] ?? '');
-        $is_active = isset($_POST['is_active']) ? 1 : 0;  // compatibilità: se c’è ancora il vecchio checkbox
-        $saldo     = $_POST['crediti'] ?? '';
-        $new_pass  = $_POST['new_password'] ?? '';
+// ==========================================================
+// 2. UPDATE DATI UTENTE (nome, cognome, email, telefono, saldo, password)
+//    NOTA: qui NON modifichiamo is_active! (si modifica solo con toggle_active)
+// ==========================================================
+if ($action === 'update_user' && $user_id > 0) {
+    // [INPUT] Recupero i campi dal form
+    $nome     = trim($_POST['nome'] ?? '');
+    $cognome  = trim($_POST['cognome'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $phone    = trim($_POST['phone'] ?? '');
+    // $is_active = ...  // ⛔️ rimosso: non gestiamo più is_active da questo ramo
+    $saldo    = $_POST['crediti'] ?? '';
+    $new_pass = $_POST['new_password'] ?? '';
 
-        // [SICUREZZA] Se sto aggiornando l'utente "valenzo2313", forzo is_active=1 (sempre attivo)
-$chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1"); // prendo username
-$chk->execute([':id' => $user_id]);
-if ($chk->fetchColumn() === 'valenzo2313') { $is_active = 1; }              // non permetto di portarlo a 0
+    // [VALIDAZIONI]
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Email non valida.';
+    }
+    if ($phone !== '' && !preg_match('/^\+?[0-9\- ]{7,20}$/', $phone)) {
+        $errors[] = 'Numero di telefono non valido.';
+    }
+    if ($saldo === '' || !is_numeric($saldo)) {
+        $errors[] = 'Saldo non valido.';
+    }
+    if ($new_pass !== '' && strlen($new_pass) < 8) {
+        $errors[] = 'La nuova password deve avere almeno 8 caratteri.';
+    }
 
-        // [VALIDAZIONI]
-        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Email non valida.';
-        }
-        if ($phone !== '' && !preg_match('/^\+?[0-9\- ]{7,20}$/', $phone)) {
-            $errors[] = 'Numero di telefono non valido.';
-        }
-        if ($saldo === '' || !is_numeric($saldo)) {
-            $errors[] = 'Saldo non valido.';
-        }
-        if ($new_pass !== '' && strlen($new_pass) < 8) {
-            $errors[] = 'La nuova password deve avere almeno 8 caratteri.';
-        }
+    // [UPDATE] Se non ci sono errori → aggiorno DB
+    if (!$errors) {
+        // [SQL BASE] Aggiorno SOLO i campi testuali + saldo (SENZA is_active)
+        $sql = "UPDATE utenti 
+                   SET nome    = :nome,
+                       cognome = :cognome,
+                       email   = :email,
+                       phone   = :phone,
+                       crediti = :crediti
+                 WHERE id = :id";
+        $params = [
+            ':nome'    => $nome,
+            ':cognome' => $cognome,
+            ':email'   => $email,
+            ':phone'   => $phone,
+            ':crediti' => (float)$saldo,
+            ':id'      => $user_id,
+        ];
 
-        // [UPDATE] Se non ci sono errori → aggiorno DB
-        if (!$errors) {
+        // [PASSWORD] Se admin ha chiesto reset password → rigenero hash e includo il campo
+        if ($new_pass !== '') {
+            $hash = password_hash($new_pass, PASSWORD_DEFAULT);   // hash sicuro
             $sql = "UPDATE utenti 
-                    SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti 
-                    WHERE id = :id";
-            $params = [
-                ':nome'    => $nome,
-                ':cognome' => $cognome,
-                ':email'   => $email,
-                ':phone'   => $phone,
-                ':active'  => $is_active,
-                ':crediti' => (float)$saldo,
-                ':id'      => $user_id,
-            ];
-
-            // [PASSWORD] Se admin ha chiesto reset password → rigenero hash
-            if ($new_pass !== '') {
-                $hash = password_hash($new_pass, PASSWORD_DEFAULT);
-                $sql = "UPDATE utenti 
-                        SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti, password_hash = :hash 
-                        WHERE id = :id";
-                $params[':hash'] = $hash;
-            }
-
-            // [SQL] Eseguo l’update
-            $up = $pdo->prepare($sql);
-            $up->execute($params);
-
-            // [UX] Messaggio di conferma
-            $flash = 'Modifiche salvate.';
-
-            // [PRG] Redirect per ricaricare la pagina e riflettere i dati aggiornati
-            $_SESSION['flash'] = $flash;
-            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
-            header("Location: /admin/dashboard.php?$query");
-            exit;
+                       SET nome          = :nome,
+                           cognome       = :cognome,
+                           email         = :email,
+                           phone         = :phone,
+                           crediti       = :crediti,
+                           password_hash = :hash
+                     WHERE id = :id";
+            $params[':hash'] = $hash;                             // aggiungo il parametro
         }
+
+        // [SQL] Eseguo l’UPDATE
+        $up = $pdo->prepare($sql);
+        $up->execute($params);
+
+        // [UX] Messaggio di conferma
+        $flash = 'Modifiche salvate.';
+
+        // [PRG] Redirect per ricaricare la pagina e riflettere i dati aggiornati
+        $_SESSION['flash'] = $flash;
+        $query = http_build_query([
+            'page' => (int)($_GET['page'] ?? 1),
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
+    }
+}
     }
 
     // ==========================================================
