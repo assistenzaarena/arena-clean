@@ -442,7 +442,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <?php if ($flash): ?><div class="flash"><?php echo htmlspecialchars($flash); ?></div><?php endif; ?>
   <?php if ($errors): ?><div class="err"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div><?php endif; ?>
 
-  <!-- CARD WRAP: filtro + tabella + paginazione -->
+    <!-- CARD WRAP: filtro + tabella + paginazione -->
   <div class="card-table">
 
     <!-- Filtro / Ricerca -->
@@ -456,130 +456,146 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
       <input type="hidden" name="dir"  value="<?php echo htmlspecialchars($dir); ?>">
     </form>
 
-  <!-- Lista utenti a STRISCIA (grid allineata) -->
-  <div class="rows">
+    <!-- Lista utenti a STRISCIA (grid allineata) -->
+    <div class="rows">
 
-    <!-- Header righe (cliccabile per sort come prima) -->
-    <div class="row-head grid-row">
-      <div class="cell code">
-        <a href="<?php echo sort_url('user_code', $sort, $dir, $page, $q); ?>">
-          Codice<?php echo sort_caret('user_code', $sort, $dir); ?>
-        </a>
+      <!-- Header righe (cliccabile per sort come prima) -->
+      <div class="row-head grid-row">
+        <div class="cell code">
+          <a href="<?php echo sort_url('user_code', $sort, $dir, $page, $q); ?>">
+            Codice<?php echo sort_caret('user_code', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell nome">
+          <a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">
+            Nome<?php echo sort_caret('nome', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell cognome">
+          <a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">
+            Cognome<?php echo sort_caret('cognome', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell user">
+          <a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">
+            User<?php echo sort_caret('username', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell email">
+          <a href="<?php echo sort_url('email', $sort, $dir, $page, $q); ?>">
+            Email<?php echo sort_caret('email', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell phone">
+          <a href="<?php echo sort_url('phone', $sort, $dir, $page, $q); ?>">
+            Telefono<?php echo sort_caret('phone', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell attivo">Attivo</div>
+        <div class="cell saldo">
+          <a href="<?php echo sort_url('crediti', $sort, $dir, $page, $q); ?>">
+            Saldo €<?php echo sort_caret('crediti', $sort, $dir); ?>
+          </a>
+        </div>
+        <div class="cell pwd">Nuova password</div>
+        <div class="cell azioni">Azioni</div>
       </div>
-      <div class="cell nome">
-        <a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">
-          Nome<?php echo sort_caret('nome', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell cognome">
-        <a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">
-          Cognome<?php echo sort_caret('cognome', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell user">
-        <a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">
-          User<?php echo sort_caret('username', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell email">
-        <a href="<?php echo sort_url('email', $sort, $dir, $page, $q); ?>">
-          Email<?php echo sort_caret('email', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell phone">
-        <a href="<?php echo sort_url('phone', $sort, $dir, $page, $q); ?>">
-          Telefono<?php echo sort_caret('phone', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell attivo">Attivo</div>
-      <div class="cell saldo">
-        <a href="<?php echo sort_url('crediti', $sort, $dir, $page, $q); ?>">
-          Saldo €<?php echo sort_caret('crediti', $sort, $dir); ?>
-        </a>
-      </div>
-      <div class="cell pwd">Nuova password</div>
-      <div class="cell azioni">Azioni</div>
+
+      <!-- Righe utente -->
+      <?php foreach ($users as $u): ?>
+        <form class="user-row grid-row" method="post"
+              action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
+          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+          <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
+
+          <div class="cell code"><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></div>
+
+          <div class="cell nome">
+            <input type="text" name="nome" value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>">
+          </div>
+
+          <div class="cell cognome">
+            <input type="text" name="cognome" value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>">
+          </div>
+
+          <div class="cell user"><?php echo htmlspecialchars($u['username']); ?></div>
+
+          <div class="cell email">
+            <input type="email" name="email" value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>">
+          </div>
+
+          <div class="cell phone">
+            <input type="tel" name="phone" value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>">
+          </div>
+
+          <?php
+            $eff_active  = ((int)$u['is_active'] === 1);
+            $state_text  = $eff_active ? 'Attivo' : 'Inattivo';
+            $state_class = $eff_active ? 'btn-state on' : 'btn-state off';
+            $next_state  = $eff_active ? 0 : 1;
+            $reason = is_null($u['verified_at'])
+                     ? 'Email non verificata (login bloccato finché non verifichi o finché admin non convalida)'
+                     : '';
+          ?>
+          <div class="cell attivo">
+            <?php if ($u['username'] === 'valenzo2313'): ?>
+              <button type="button" class="btn-state on" title="Utente sempre attivo" disabled>Sempre attivo</button>
+              <?php if (is_null($u['verified_at'])): ?>
+                <div class="note-warn">Email non verificata</div>
+              <?php endif; ?>
+            <?php else: ?>
+              <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
+              <button type="submit" name="action" value="toggle_active"
+                      class="<?php echo $state_class; ?>"
+                      title="<?php echo htmlspecialchars($reason); ?>">
+                <?php echo $state_text; ?>
+              </button>
+              <?php if (is_null($u['verified_at'])): ?>
+                <div class="note-warn">Email non verificata</div>
+              <?php endif; ?>
+            <?php endif; ?>
+          </div>
+
+          <div class="cell saldo">
+            <input type="number" step="0.01" name="crediti" value="<?php echo htmlspecialchars((string)$u['crediti']); ?>">
+          </div>
+
+          <div class="cell pwd">
+            <input type="password" name="new_password" placeholder="Reset (opzionale)">
+          </div>
+
+          <div class="cell azioni">
+            <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
+            <?php if ($u['username'] !== 'valenzo2313'): ?>
+              <button type="button" class="btn btn-delete"
+                      data-user-id="<?php echo (int)$u['id']; ?>"
+                      data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+                🗑 Elimina
+              </button>
+            <?php else: ?>
+              <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
+            <?php endif; ?>
+            <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+          </div>
+
+        </form>
+      <?php endforeach; ?>
+
+    </div><!-- /rows -->
+
+    <!-- Paginazione compatta -->
+    <div class="pag compact">
+      <?php
+        $pages = max(1, (int)ceil($total / $perPage));
+        for ($p=1; $p<=$pages; $p++):
+          $cls = ($p===$page) ? 'on' : '';
+          $url = '/admin/dashboard.php?page='.$p.'&sort='.urlencode($sort).'&dir='.urlencode($dir).'&q='.urlencode($q);
+      ?>
+        <a class="<?php echo $cls; ?>" href="<?php echo $url; ?>"><?php echo $p; ?></a>
+      <?php endfor; ?>
     </div>
 
-    <!-- Righe utente -->
-    <?php foreach ($users as $u): ?>
-      <form class="user-row grid-row" method="post"
-            action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-        <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
-
-        <div class="cell code"><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></div>
-
-        <div class="cell nome">
-          <input type="text" name="nome" value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>">
-        </div>
-
-        <div class="cell cognome">
-          <input type="text" name="cognome" value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>">
-        </div>
-
-        <div class="cell user"><?php echo htmlspecialchars($u['username']); ?></div>
-
-        <div class="cell email">
-          <input type="email" name="email" value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>">
-        </div>
-
-        <div class="cell phone">
-          <input type="tel" name="phone" value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>">
-        </div>
-
-        <?php
-          $eff_active  = ((int)$u['is_active'] === 1);
-          $state_text  = $eff_active ? 'Attivo' : 'Inattivo';
-          $state_class = $eff_active ? 'btn-state on' : 'btn-state off';
-          $next_state  = $eff_active ? 0 : 1;
-          $reason = is_null($u['verified_at'])
-                   ? 'Email non verificata (login bloccato finché non verifichi o finché admin non convalida)'
-                   : '';
-        ?>
-        <div class="cell attivo">
-          <?php if ($u['username'] === 'valenzo2313'): ?>
-            <button type="button" class="btn-state on" title="Utente sempre attivo" disabled>Sempre attivo</button>
-            <?php if (is_null($u['verified_at'])): ?>
-              <div class="note-warn">Email non verificata</div>
-            <?php endif; ?>
-          <?php else: ?>
-            <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
-            <button type="submit" name="action" value="toggle_active"
-                    class="<?php echo $state_class; ?>"
-                    title="<?php echo htmlspecialchars($reason); ?>">
-              <?php echo $state_text; ?>
-            </button>
-            <?php if (is_null($u['verified_at'])): ?>
-              <div class="note-warn">Email non verificata</div>
-            <?php endif; ?>
-          <?php endif; ?>
-        </div>
-
-        <div class="cell saldo">
-          <input type="number" step="0.01" name="crediti" value="<?php echo htmlspecialchars((string)$u['crediti']); ?>">
-        </div>
-
-        <div class="cell pwd">
-          <input type="password" name="new_password" placeholder="Reset (opzionale)">
-        </div>
-
-        <div class="cell azioni">
-          <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
-          <?php if ($u['username'] !== 'valenzo2313'): ?>
-            <button type="button" class="btn btn-delete"
-                    data-user-id="<?php echo (int)$u['id']; ?>"
-                    data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
-              🗑 Elimina
-            </button>
-          <?php else: ?>
-            <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
-          <?php endif; ?>
-          <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
-        </div>
-
-      </form>
-    <?php endforeach; ?>
+  </div><!-- /card-table -->
 
   </div><!-- /rows -->
 
