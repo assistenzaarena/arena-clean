@@ -29,6 +29,12 @@ $csrf = $_SESSION['csrf'];                            // copiamo il token da usa
 $flash = null;                                        // messaggi flash informativi
 $errors = [];                                         // lista errori operativi
 
+// [FIX FLASH] Se c'è un messaggio flash in sessione (post-redirect), lo recuperiamo e lo puliamo.
+if (isset($_SESSION['flash'])) {                      // ← aggiunta minima per conservare il messaggio dopo il redirect
+    $flash = $_SESSION['flash'];
+    unset($_SESSION['flash']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic su "Applica modifiche")
     // [RIGA] Verifica CSRF
     $posted_csrf = $_POST['csrf'] ?? '';              // token inviato nel form
@@ -55,6 +61,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic
 
         // [UX] Messaggio flash
         $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
+
+        // [PRG] Redirect per ricaricare la lista aggiornata e riflettere SUBITO il cambio di colore
+        $_SESSION['flash'] = $flash; // conserva il messaggio dopo il redirect
+        $query = http_build_query([
+            'page' => (int)($_GET['page'] ?? 1),
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
     }
 
     if ($action === 'update_user' && $user_id > 0) {  // se è un update e abbiamo un id valido…
@@ -69,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic
 
         // (⚠️) PRIMA qui avevi di nuovo un ramo toggle_active duplicato.
         // FIX: rimosso il duplicato per evitare confusione. Il toggle viene gestito
-        //      nel ramo dedicato *fuori* da update_user (vedi sopra). // FIX
+        //      nel ramo dedicato *fuori* da update_user (vedi sopra).
 
         // [RIGA] Validazioni semplici (puoi rafforzarle se vuoi)
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {      // email formale
@@ -112,6 +129,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic
             $up->execute($params);                                             // esecuzione
 
             $flash = 'Modifiche salvate.';                                     // messaggio di conferma
+
+            // [PRG] Redirect per ricaricare la lista aggiornata e riflettere SUBITO le modifiche
+            $_SESSION['flash'] = $flash; // conserva il messaggio dopo il redirect
+            $query = http_build_query([
+                'page' => (int)($_GET['page'] ?? 1),
+                'sort' => $_GET['sort'] ?? 'cognome',
+                'dir'  => $_GET['dir']  ?? 'asc',
+                'q'    => $_GET['q']    ?? '',
+            ]);
+            header("Location: /admin/dashboard.php?$query");
+            exit;
         }
     }
 }
@@ -150,14 +178,12 @@ if ($q !== '') {                                                                
 }
 
 // [RIGA] Conteggio totale per paginazione
-// FIX: usa uno statement singolo (prima veniva preparato/eseguito due volte) // FIX
 $countSql = "SELECT COUNT(*) FROM utenti WHERE $where";
 $countStmt = $pdo->prepare($countSql);
 $countStmt->execute($params);
 $total = (int)$countStmt->fetchColumn();
 
 // [RIGA] Lista utenti con ordinamento e paginazione — NOTA: sort/dir sono whitelisted sopra
-// DOPO (aggiungo verified_at)
 $listSql = "SELECT id, nome, cognome, username, email, phone, crediti, is_active, verified_at
             FROM utenti
             WHERE $where
