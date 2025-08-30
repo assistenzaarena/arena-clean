@@ -146,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="/assets/registrazione.css?v=1">
   <style>
     /* [RIGA] Micro differenza: titolo e bottone "Registrati" */
-    .auth__submit { background:#e62329; }                  /* rosso brand per "Registrati" */
-    .auth__submit:hover { background:#c61e28; }
+    .auth__submit { background:#00c074; }       /* verde */
+.auth__submit:hover { background:#00a862; }
   </style>
 </head>
 <body>
