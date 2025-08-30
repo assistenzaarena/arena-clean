@@ -582,8 +582,6 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     <?php endforeach; ?>
 
   </div><!-- /rows -->
-    </tbody>
-  </table>
 
     <!-- Paginazione compatta -->
     <div class="pag compact">
