@@ -54,7 +54,7 @@
   border-bottom:0.5px solid rgba(255,255,255,.08);
 }
 .subhdr__inner { max-width:1280px; margin:0 auto; padding:0 20px; }
-.subhdr__menu { display:flex; justify-content:center; gap:36px; list-style:none; margin:0; padding:8px 0; }
+.subhdr__menu { display:flex; justify-content:center; gap:36px; list-style:none; margin:0; padding:4px 0; }
 .subhdr__link { font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
                 font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
                 color:#c9c9c9; text-decoration:none; }
