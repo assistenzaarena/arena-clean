@@ -442,7 +442,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <?php if ($flash): ?><div class="flash"><?php echo htmlspecialchars($flash); ?></div><?php endif; ?>
   <?php if ($errors): ?><div class="err"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div><?php endif; ?>
 
-    <!-- CARD WRAP: filtro + tabella + paginazione -->
+  <!-- CARD WRAP: filtro + tabella + paginazione -->
   <div class="card-table">
 
     <!-- Filtro / Ricerca -->
@@ -594,22 +594,6 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         <a class="<?php echo $cls; ?>" href="<?php echo $url; ?>"><?php echo $p; ?></a>
       <?php endfor; ?>
     </div>
-
-  </div><!-- /card-table -->
-
-  </div><!-- /rows -->
-
-    <!-- Paginazione compatta -->
-    <div class="pag compact">
-    <?php
-      $pages = max(1, (int)ceil($total / $perPage));                       // numero pagine
-      for ($p=1; $p<=$pages; $p++):
-        $cls = ($p===$page) ? 'on' : '';
-        $url = '/admin/dashboard.php?page='.$p.'&sort='.urlencode($sort).'&dir='.urlencode($dir).'&q='.urlencode($q);
-    ?>
-      <a class="<?php echo $cls; ?>" href="<?php echo $url; ?>"><?php echo $p; ?></a>
-    <?php endfor; ?>
-  </div>
 
   </div><!-- /card-table -->
 
