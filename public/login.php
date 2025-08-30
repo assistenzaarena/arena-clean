@@ -14,8 +14,8 @@ require_once __DIR__ . '/src/db.php';     // connessione PDO
 // Se l'utente ha inviato il form (metodo POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {                          // [RIGA] Eseguiamo solo quando il form viene inviato
     $username = trim($_POST['username'] ?? '');                       // [RIGA] Username/email (riduciamo spazi ai lati)
-    $password = $_POST['password'] ?? '';                             // [RIGA] Password (non usiamo trim)
-
+    $password = $_POST['password'] ?? '';                            // [RIGA] Password (non usiamo trim)
+?>
 <?php
 // [RIGA] Query pulita: cerca sia per username che per email
 $stmt = $pdo->prepare(
