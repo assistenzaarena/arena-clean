@@ -73,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($pass1 !== $pass2) {
         $errors['password2'] = 'Le password non coincidono.';
     }
-    <?php
 // [FUNZIONE] Genera una stringa di 5 cifre (con zeri davanti se servono), es: "04219"
 function make_user_code_5(): string {
     // numeri da 0 a 99999, poi zero-pad a 5 cifre
