@@ -124,28 +124,14 @@ tbody td input[type=password] {
 }
 
 /* Pulsante stato ON/OFF */
-.btn-state {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
-  border: 0;
-  cursor: pointer;
+.btn-state{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:28px; padding:0 12px; border-radius:9999px;
+  font-size:12px; font-weight:800; color:#fff; border:0; cursor:pointer;
 }
-.btn-state.on {
-  background: #00c074; /* verde attivo */
-}
-.btn-state.off {
-  background: #e62329; /* rosso inattivo */
-}
-.btn-state:hover {
-  filter: brightness(1.05);
-}
+.btn-state.on  { background:#00c074; } /* verde = attivo */
+.btn-state.off { background:#e62329; } /* rosso = inattivo */
+.btn-state:hover{ filter:brightness(1.05); }
 
 /* Azioni multiple in cella */
 .actions {
