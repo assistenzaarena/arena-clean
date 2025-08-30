@@ -143,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_login.css">
   <link rel="stylesheet" href="/assets/login.css?v=7"><!-- riuso layout/card login -->
+    <link rel="stylesheet" href="/assets/registrazione.css?v=1">
   <style>
     /* [RIGA] Micro differenza: titolo e bottone "Registrati" */
     .auth__submit { background:#e62329; }                  /* rosso brand per "Registrati" */
