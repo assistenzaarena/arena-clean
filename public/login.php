@@ -135,3 +135,4 @@ require __DIR__ . '/header_login.php';
 <?php require __DIR__ . '/footer.php'; ?>
 </body>
 </html>
+}
