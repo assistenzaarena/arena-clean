@@ -51,10 +51,10 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
 <nav class="subhdr" role="navigation" aria-label="Navigazione principale">
   <div class="subhdr__inner">
     <ul class="subhdr__menu">
-      <li class="subhdr__item"><a class="subhdr__link" href="/">Lobby</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/il-gioco">Storico Tornei</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">lista movimenti</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Dati Utente</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/">Players</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/il-gioco">Crea Tornei</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Gestisci Tornei</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Amministrazione</a></li>
     </ul>
   </div>
 </nav>
