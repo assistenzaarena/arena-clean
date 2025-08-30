@@ -391,16 +391,16 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <?php if ($errors): ?><div class="err"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div><?php endif; ?>
 
   <!-- Filtro / Ricerca / Ordinamento -->
- <!-- Filtro / Ricerca -->
-<form class="filters" method="get" action="/admin/dashboard.php">
-  <input type="text"
-         name="q"
-         placeholder="Cerca (nome, cognome, user, email, telefono, crediti)"
-         value="<?php echo htmlspecialchars($q); ?>"><!-- ricerca -->
-  <!-- Manteniamo ordinamento e direzione correnti come hidden -->
-  <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
-  <input type="hidden" name="dir"  value="<?php echo htmlspecialchars($dir); ?>">
-</form>
+  <!-- Filtro / Ricerca -->
+  <form class="filters" method="get" action="/admin/dashboard.php">
+    <input type="text"
+           name="q"
+           placeholder="Cerca (nome, cognome, user, email, telefono, crediti)"
+           value="<?php echo htmlspecialchars($q); ?>">
+    <!-- Manteniamo ordinamento e direzione correnti come hidden -->
+    <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
+    <input type="hidden" name="dir"  value="<?php echo htmlspecialchars($dir); ?>">
+  </form>
 
   <!-- Tabella utenti -->
   <table>
