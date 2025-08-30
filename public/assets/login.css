@@ -18,7 +18,7 @@
 }
 /* Controlla TU lo spazio tra card e CTA */
 .auth {
-  row-gap: 6px;      /* <-- distanza reale tra .auth__card e .auth__cta */
+  row-gap: 1px;      /* <-- distanza reale tra .auth__card e .auth__cta */
 }
 
 /* Neutralizza il margine del blocco sotto (non serve più) */
