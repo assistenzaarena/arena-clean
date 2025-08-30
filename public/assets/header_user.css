@@ -6,13 +6,13 @@
   font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
 }
 .hdr__inner {
-  max-width:1280px;
-  margin:0 auto;
-  padding:0 20px;
+  max-width:1280px;        /* limite massimo di larghezza */
+  margin:0 auto;           /* centrato orizzontalmente */
+  padding:0 20px;          /* respiro a sx/dx */
   display:flex;
   align-items:center;
   justify-content:space-between;
-  height:50px;
+  height:45px;             /* altezza barra */
 }
 
 /* Logo */
