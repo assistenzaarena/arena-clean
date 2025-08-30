@@ -6,7 +6,7 @@ $username  = $_SESSION['username'] ?? 'DemoUser';          // username fittizio 
 $crediti   = $_SESSION['crediti']  ?? 100;                 // saldo fittizio per test
 $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’avatar
 ?>
-<link rel="stylesheet" href="/assets/header_user.css">
+<link rel="stylesheet" href="/assets/header_admin.css">
 
 <header class="hdr" role="banner">
   <div class="hdr__inner">
