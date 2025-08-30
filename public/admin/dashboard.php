@@ -463,12 +463,6 @@ $reason = is_null($u['verified_at'])
           <td>
             <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
           </td>
-
-          <td class="actions">
-            <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a><!-- link lista movimenti -->
-            <!-- Salvataggio campi della riga -->
-            <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
-          </td>
             <td class="actions">
   <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
   <!-- NUOVO: cestino che apre il popup -->
