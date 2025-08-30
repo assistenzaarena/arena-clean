@@ -249,49 +249,80 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     </thead>
     <tbody>
     <?php foreach ($users as $u): ?>
-      <tr>
-        <!-- Ogni riga è un form indipendente: così "Applica modifiche" agisce solo su quel record -->
-        <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
-          <input type="hidden" name="action" value="update_user"><!-- azione -->
-          <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
+  <tr>
+    <!-- Ogni riga è un form indipendente:
+         - submit con name="action" value="toggle_active" per cambiare stato
+         - submit con name="action" value="update_user" per salvare i campi -->
+    <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
+      <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
 
-          <td><input type="text" name="nome" value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"></td><!-- nome editabile -->
-          <td><input type="text" name="cognome" value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"></td><!-- cognome editabile -->
-          <td><?php echo htmlspecialchars($u['username']); ?></td><!-- username non editabile -->
-          <td><input type="email" name="email" value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"></td><!-- email editabile -->
-          <td><input type="tel" name="phone" value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"></td><!-- telefono editabile -->
+      <td>
+        <input type="text" name="nome"
+               value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
+      </td>
+
+      <td>
+        <input type="text" name="cognome"
+               value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
+      </td>
+
+      <td>
+        <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
+      </td>
+
+      <td>
+        <input type="email" name="email"
+               value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
+      </td>
+
+      <td>
+        <input type="tel" name="phone"
+               value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
+      </td>
 
       <?php
-// Stato effettivo: attivo SOLO se is_active=1 E verified_at NON è NULL
-$eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']);
-$state_text  = $eff_active ? 'Attivo' : 'Inattivo';
-$state_class = $eff_active ? 'btn-state on' : 'btn-state off';
-$next_state  = $eff_active ? 0 : 1;
-?>
-<td>
-  <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>" style="display:inline">
-    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-    <input type="hidden" name="action" value="toggle_active">
-    <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
-    <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
-    <button type="submit" class="<?php echo $state_class; ?>"><?php echo $state_text; ?></button>
-  </form>
-  <?php if (is_null($u['verified_at'])): ?>
-    <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
-  <?php endif; ?>
-</td>
+        // Stato effettivo:
+        //  - "Attivo" SOLO se is_active=1 **e** verified_at NON è NULL (email verificata)
+        //  - Altrimenti "Inattivo" (bottone rosso)
+        $eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']); // true/false
+        $state_text  = $eff_active ? 'Attivo' : 'Inattivo';                        // label
+        $state_class = $eff_active ? 'btn-state on' : 'btn-state off';             // classe CSS
+        $next_state  = $eff_active ? 0 : 1;                                        // nuovo stato dopo click
+        $reason      = $eff_active ? '' : (is_null($u['verified_at']) ? 'Email non verificata' : 'Disattivato'); // tooltip
+      ?>
+      <td>
+        <!-- hidden con il nuovo stato da applicare al toggle -->
+        <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
+        <!-- Pulsante stato: submit con action specifica -->
+        <button type="submit"
+                name="action" value="toggle_active"
+                class="<?php echo $state_class; ?>"
+                title="<?php echo htmlspecialchars($reason); ?>">
+          <?php echo $state_text; ?>
+        </button>
+        <?php if (is_null($u['verified_at'])): ?>
+          <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
+        <?php endif; ?>
+      </td>
 
-          <td><input type="number" step="0.01" name="crediti" value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"></td><!-- saldo editabile -->
+      <td>
+        <input type="number" step="0.01" name="crediti"
+               value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"><!-- saldo editabile -->
+      </td>
 
-          <td><input type="password" name="new_password" placeholder="Reset (opzionale)"></td><!-- reset password -->
+      <td>
+        <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
+      </td>
 
-          <td class="actions">
-            <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a><!-- link lista movimenti -->
-            <button class="btn btn-apply" type="submit">Applica modifiche</button><!-- applica SOLO questa riga -->
-          </td>
-        </form>
-      </tr>
+      <td class="actions">
+        <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a><!-- link lista movimenti -->
+        <!-- Salvataggio campi della riga -->
+        <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+      </td>
+    </form>
+  </tr>
+<?php endforeach; ?>
     <?php endforeach; ?>
     </tbody>
   </table>
