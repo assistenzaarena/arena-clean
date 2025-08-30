@@ -17,15 +17,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {                          // [RIGA] 
     $password = $_POST['password'] ?? '';                            // [RIGA] Password (non usiamo trim)
 ?>
 <?php
-// [RIGA] Query pulita: cerca sia per username che per email
+<?php
+// [RIGA] Query pulita: CERCA sia per username che per email
+//        NOTA IMPORTANTISSIMA: usiamo DUE segnaposto diversi (:u1 e :u2) perché
+//        MySQL + PDO con prepared reali NON accetta lo stesso nome placeholder ripetuto.
+//
+//        Esempio sbagliato (causa HY093):
+//        WHERE username = :u OR email = :u
+//
+//        Esempio corretto (due nomi distinti):
+//        WHERE username = :u1 OR email = :u2
+//
 $stmt = $pdo->prepare(
     "SELECT id, password_hash, role, totp_enabled
      FROM utenti
-     WHERE username = :u OR email = :u
+     WHERE username = :u1 OR email = :u2
      LIMIT 1"
-); // [RIGA] Così se l’utente scrive l’email funziona uguale
-$stmt->execute([':u' => $username]); // [RIGA] Bind unico: usiamo lo stesso dato per username/email
-$user = $stmt->fetch();              // [RIGA] Riga utente (o false se non trovata)
+); // [RIGA] Prepared statement sicuro
+
+// [RIGA] Bind dei DUE parametri: passiamo lo stesso valore (quello digitato)
+//        sia a :u1 (per il match su username) sia a :u2 (per il match su email).
+$stmt->execute([
+    ':u1' => $username,  // [RIGA] Valore per il controllo su username
+    ':u2' => $username   // [RIGA] Valore per il controllo su email
+]); // [RIGA] Esecuzione della query con i parametri corretti
+
+$user = $stmt->fetch();  // [RIGA] Recuperiamo la riga trovata (o false se nessuna)
 
     // [RIGA] Verifica credenziali
     if ($user && password_verify($password, $user['password_hash'])) {// [RIGA] Hash combacia → credenziali ok
