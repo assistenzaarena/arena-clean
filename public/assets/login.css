@@ -56,16 +56,24 @@
 .auth__cta {
   width: 100%;
   max-width: 420px;
-  margin: 16px auto 0;
+  margin: 12px auto 0;   /* prima era 16px → ridotto lo spazio */
   text-align: center;
   color:#fff;
 }
-.auth__cta p { margin: 0 0 10px; font-size:13px; color:#c9c9c9; }
+
+.auth__cta p {
+  margin: 0 0 8px;        /* meno spazio sotto */
+  font-size: 15px;        /* più grande rispetto a prima (era 13px) */
+  font-weight: 700;       /* più marcata */
+  color:#fff;
+}
+
 .auth__register {
   display:inline-flex; align-items:center; justify-content:center;
   height: 44px; padding: 0 18px;
   border:1px solid rgba(255,255,255,.35);
-  border-radius:9999px; color:#fff; text-decoration:none; font-weight:800;
+  border-radius:9999px;
+  color:#fff; text-decoration:none; font-weight:800;
 }
 .auth__register:hover { border-color:#fff; }
 
