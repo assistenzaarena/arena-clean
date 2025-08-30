@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {                          // [RIGA] 
     $password = $_POST['password'] ?? '';                            // [RIGA] Password (non usiamo trim)
 ?>
 <?php
-<?php
 // [RIGA] Query pulita: CERCA sia per username che per email
 //        NOTA IMPORTANTISSIMA: usiamo DUE segnaposto diversi (:u1 e :u2) perché
 //        MySQL + PDO con prepared reali NON accetta lo stesso nome placeholder ripetuto.
