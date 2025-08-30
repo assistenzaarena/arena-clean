@@ -41,24 +41,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic
     $action  = $_POST['action']  ?? '';
     $user_id = (int)($_POST['user_id'] ?? 0);         // id utente da modificare (hidden nel form)
 
+    // ------------------------------------------
+    // NUOVO RAMO: toggle stato attivo/inattivo
+    // ------------------------------------------
+    // [SCOPO] Cambiare il flag is_active a 1 (attivo) o 0 (disattivo)
+    // [SICUREZZA] Richiede csrf valido (già verificato nel tuo POST) e id > 0
+    if ($action === 'toggle_active' && $user_id > 0) {
+        $new_state = (int)($_POST['new_state'] ?? 0);        // 1 = attivo, 0 = disattivo
+
+        // [SQL] Aggiorna il flag
+        $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");
+        $up->execute([':a' => $new_state, ':id' => $user_id]);
+
+        // [UX] Messaggio flash
+        $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
+    }
+
     if ($action === 'update_user' && $user_id > 0) {  // se è un update e abbiamo un id valido…
         // [RIGA] Prendiamo i campi modificabili
         $nome      = trim($_POST['nome'] ?? '');      // nome (può essere vuoto)
         $cognome   = trim($_POST['cognome'] ?? '');   // cognome (può essere vuoto)
         $email     = trim($_POST['email'] ?? '');     // email (validazione base sotto)
         $phone     = trim($_POST['phone'] ?? '');     // telefono (validazione base sotto)
-        $is_active = isset($_POST['is_active']) ? 1 : 0; // checkbox on/off → 1/0
+        $is_active = isset($_POST['is_active']) ? 1 : 0; // checkbox on/off → 1/0 (lasciata per compatibilità; non usata se hai solo bottone)
         $saldo     = $_POST['crediti'] ?? '';         // saldo attuale (string, lo validiamo a numero)
         $new_pass  = $_POST['new_password'] ?? '';    // nuovo valore password (se vogliamo resettarla)
-    // ------------------------------------------
-// NUOVO RAMO: toggle stato attivo/inattivo
-// ------------------------------------------
-if ($action === 'toggle_active' && $user_id > 0) {               // [RIGA] Se è una richiesta di toggle
-    $new_state = (int)($_POST['new_state'] ?? 0);                // [RIGA] Nuovo stato richiesto: 1=attivo, 0=disattivo
-    $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id"); // [RIGA] Update solo del flag
-    $up->execute([':a' => $new_state, ':id' => $user_id]);       // [RIGA] Esecuzione
-    $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.'; // [RIGA] Messaggio di conferma
-}                                           
+
+        // (⚠️) PRIMA qui avevi di nuovo un ramo toggle_active duplicato.
+        // FIX: rimosso il duplicato per evitare confusione. Il toggle viene gestito
+        //      nel ramo dedicato *fuori* da update_user (vedi sopra). // FIX
 
         // [RIGA] Validazioni semplici (puoi rafforzarle se vuoi)
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {      // email formale
@@ -139,8 +150,11 @@ if ($q !== '') {                                                                
 }
 
 // [RIGA] Conteggio totale per paginazione
+// FIX: usa uno statement singolo (prima veniva preparato/eseguito due volte) // FIX
 $countSql = "SELECT COUNT(*) FROM utenti WHERE $where";
-$total = (int)$pdo->prepare($countSql)->execute($params) ? (int)$pdo->prepare($countSql)->fetchColumn() : 0;
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$total = (int)$countStmt->fetchColumn();
 
 // [RIGA] Lista utenti con ordinamento e paginazione — NOTA: sort/dir sono whitelisted sopra
 // DOPO (aggiungo verified_at)
@@ -168,7 +182,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <!-- [RIGA] CSS condivisi -->
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
-<link rel="stylesheet" href="/assets/dashboard.css">
+  <link rel="stylesheet" href="/assets/dashboard.css">
 </head>
 <body>
 
@@ -221,80 +235,80 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     </thead>
     <tbody>
     <?php foreach ($users as $u): ?>
-  <tr>
-    <!-- Ogni riga è un form indipendente:
-         - submit con name="action" value="toggle_active" per cambiare stato
-         - submit con name="action" value="update_user" per salvare i campi -->
-    <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
-      <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
+      <tr>
+        <!-- Ogni riga è un form indipendente:
+             - submit con name="action" value="toggle_active" per cambiare stato
+             - submit con name="action" value="update_user" per salvare i campi -->
+        <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
+          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
+          <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
 
-      <td>
-        <input type="text" name="nome"
-               value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
-      </td>
+          <td>
+            <input type="text" name="nome"
+                   value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
+          </td>
 
-      <td>
-        <input type="text" name="cognome"
-               value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
-      </td>
+          <td>
+            <input type="text" name="cognome"
+                   value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
+          </td>
 
-      <td>
-        <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
-      </td>
+          <td>
+            <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
+          </td>
 
-      <td>
-        <input type="email" name="email"
-               value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
-      </td>
+          <td>
+            <input type="email" name="email"
+                   value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
+          </td>
 
-      <td>
-        <input type="tel" name="phone"
-               value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
-      </td>
+          <td>
+            <input type="tel" name="phone"
+                   value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
+          </td>
 
-      <?php
-        // Stato effettivo:
-        //  - "Attivo" SOLO se is_active=1 **e** verified_at NON è NULL (email verificata)
-        //  - Altrimenti "Inattivo" (bottone rosso)
-        $eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']); // true/false
-        $state_text  = $eff_active ? 'Attivo' : 'Inattivo';                        // label
-        $state_class = $eff_active ? 'btn-state on' : 'btn-state off';             // classe CSS
-        $next_state  = $eff_active ? 0 : 1;                                        // nuovo stato dopo click
-        $reason      = $eff_active ? '' : (is_null($u['verified_at']) ? 'Email non verificata' : 'Disattivato'); // tooltip
-      ?>
-      <td>
-        <!-- hidden con il nuovo stato da applicare al toggle -->
-        <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
-        <!-- Pulsante stato: submit con action specifica -->
-        <button type="submit"
-                name="action" value="toggle_active"
-                class="<?php echo $state_class; ?>"
-                title="<?php echo htmlspecialchars($reason); ?>">
-          <?php echo $state_text; ?>
-        </button>
-        <?php if (is_null($u['verified_at'])): ?>
-          <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
-        <?php endif; ?>
-      </td>
+          <?php
+            // Stato effettivo:
+            //  - "Attivo" SOLO se is_active=1 **e** verified_at NON è NULL (email verificata)
+            //  - Altrimenti "Inattivo" (bottone rosso)
+            $eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']); // true/false
+            $state_text  = $eff_active ? 'Attivo' : 'Inattivo';                        // label
+            $state_class = $eff_active ? 'btn-state on' : 'btn-state off';             // classe CSS
+            $next_state  = $eff_active ? 0 : 1;                                        // nuovo stato dopo click
+            $reason      = $eff_active ? '' : (is_null($u['verified_at']) ? 'Email non verificata' : 'Disattivato'); // tooltip
+          ?>
+          <td>
+            <!-- hidden con il nuovo stato da applicare al toggle -->
+            <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
+            <!-- Pulsante stato: submit con action specifica -->
+            <button type="submit"
+                    name="action" value="toggle_active"
+                    class="<?php echo $state_class; ?>"
+                    title="<?php echo htmlspecialchars($reason); ?>">
+              <?php echo $state_text; ?>
+            </button>
+            <?php if (is_null($u['verified_at'])): ?>
+              <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
+            <?php endif; ?>
+          </td>
 
-      <td>
-        <input type="number" step="0.01" name="crediti"
-               value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"><!-- saldo editabile -->
-      </td>
+          <td>
+            <input type="number" step="0.01" name="crediti"
+                   value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"><!-- saldo editabile -->
+          </td>
 
-      <td>
-        <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
-      </td>
+          <td>
+            <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
+          </td>
 
-      <td class="actions">
-        <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a><!-- link lista movimenti -->
-        <!-- Salvataggio campi della riga -->
-        <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
-      </td>
-    </form>
-  </tr>
-<?php endforeach; ?>
+          <td class="actions">
+            <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a><!-- link lista movimenti -->
+            <!-- Salvataggio campi della riga -->
+            <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+          </td>
+        </form>
+      </tr>
+    <?php endforeach; ?>
     </tbody>
   </table>
 
