@@ -405,19 +405,39 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
   <!-- Tabella utenti -->
   <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Cognome</th>
-        <th>User</th>
-        <th>Email</th>
-        <th>Telefono</th>
-        <th>Attivo</th>
-        <th style="width:120px;">Saldo €</th>
-        <th style="width:160px;">Nuova password</th>
-        <th>Azioni</th>
-      </tr>
-    </thead>
+<thead>
+  <?php
+    // Funzione helper inline: costruisce URL con sort/dir aggiornati e mantiene page/q
+    function sort_url($field, $currentSort, $currentDir, $page, $q) {
+        // Se clicco la colonna già attiva, inverto la direzione; altrimenti metto ASC
+        $dir = ($currentSort === $field)
+             ? (strtolower($currentDir) === 'asc' ? 'desc' : 'asc')
+             : 'asc';
+        return '/admin/dashboard.php?' . http_build_query([
+            'page' => (int)$page,
+            'sort' => $field,
+            'dir'  => $dir,
+            'q'    => $q,
+        ]);
+    }
+    // Helper per mostrare una piccola freccia ↑↓ sulla colonna attiva
+    function sort_caret($field, $currentSort, $currentDir) {
+        if ($currentSort !== $field) return '';
+        return strtolower($currentDir) === 'asc' ? ' ↑' : ' ↓';
+    }
+  ?>
+  <tr>
+    <th><a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">Nome<?php echo sort_caret('nome', $sort, $dir); ?></a></th>
+    <th><a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">Cognome<?php echo sort_caret('cognome', $sort, $dir); ?></a></th>
+    <th><a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">User<?php echo sort_caret('username', $sort, $dir); ?></a></th>
+    <th><a href="<?php echo sort_url('email', $sort, $dir, $page, $q); ?>">Email<?php echo sort_caret('email', $sort, $dir); ?></a></th>
+    <th><a href="<?php echo sort_url('phone', $sort, $dir, $page, $q); ?>">Telefono<?php echo sort_caret('phone', $sort, $dir); ?></a></th>
+    <th>Attivo</th>
+    <th><a href="<?php echo sort_url('crediti', $sort, $dir, $page, $q); ?>">Saldo €<?php echo sort_caret('crediti', $sort, $dir); ?></a></th>
+    <th>Nuova password</th>
+    <th>Azioni</th>
+  </tr>
+</thead>
     <tbody>
  <?php foreach ($users as $u): ?>
   <tr>
