@@ -73,6 +73,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($pass1 !== $pass2) {
         $errors['password2'] = 'Le password non coincidono.';
     }
+    <?php
+// [FUNZIONE] Genera una stringa di 5 cifre (con zeri davanti se servono), es: "04219"
+function make_user_code_5(): string {
+    // numeri da 0 a 99999, poi zero-pad a 5 cifre
+    return str_pad((string)random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+}
+
+// [LOGICA] Tenta di generare un codice univoco (max 10 tentativi)
+$user_code = null;                                            // inizialmente nessuno
+for ($i = 0; $i < 10; $i++) {                                 // al massimo 10 tentativi
+    $try = make_user_code_5();                                // genero un candidato
+    $chk = $pdo->prepare("SELECT 1 FROM utenti WHERE user_code = :c LIMIT 1"); // controllo collisione
+    $chk->execute([':c' => $try]);                            // eseguo
+    if (!$chk->fetch()) {                                     // se non esiste già…
+        $user_code = $try;                                    // lo accetto
+        break;                                                // e finisco
+    }
+}
+
+if ($user_code === null) {                                    // se per caso 10 tentativi falliscono
+    http_response_code(500);
+    die('Impossibile generare un codice utente univoco al momento. Riprova.'); // messaggio chiaro
+}
 
     // ============== UNICITÀ (DB) =================
 
