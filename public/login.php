@@ -9,7 +9,7 @@ require __DIR__ . '/header_login.php';?>
 require_once __DIR__ . '/src/config.php'; // costanti APP_ENV, DB_*
 require_once __DIR__ . '/src/db.php';     // connessione PDO
                          // abilitiamo sessioni
-
+?>
 <?php
 // Se l'utente ha inviato il form (metodo POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {                      // [RIGA] Eseguiamo la logica solo quando arriva una POST (submit del form)
