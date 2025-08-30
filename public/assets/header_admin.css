@@ -1,1 +1,74 @@
+/* ===== Header user ===== */
+.hdr {
+  background:#0a0a0b;
+  color:#fff;
+  position:sticky; top:0; z-index:1000;
+  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+}
+.hdr__inner {
+  max-width:1280px;
+  margin:0 auto;
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:64px;
+}
+
+/* Logo */
+.logo { display:inline-flex; align-items:center; gap:12px; text-decoration:none; color:#fff; }
+.logo__img { height:56px; width:auto; display:block; }
+.logo__text { font-weight:900; font-size:26px; text-transform:uppercase; letter-spacing:.05em; }
+
+/* Azioni a destra */
+.hdr__right { display:flex; align-items:center; gap:14px; }
+
+/* Bottoni */
+.btn { display:inline-flex; align-items:center; justify-content:center;
+       padding:6px 14px; border-radius:9999px; font-size:13px; font-weight:800;
+       text-decoration:none; cursor:pointer; }
+.btn--primary { background:#00c074; color:#fff; }
+.btn--primary:hover { background:#00a862; }
+.btn--outline { border:1px solid rgba(255,255,255,.2); color:#ccc; background:transparent; }
+.btn--outline:hover { color:#fff; border-color:#fff; }
+
+/* Crediti */
+.user-credits { display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
+                border:1px solid rgba(255,255,255,.2); border-radius:9999px; font-weight:700; }
+.credits-refresh { background:transparent; border:none; color:#ccc; cursor:pointer; font-size:12px; }
+.credits-refresh:hover { color:#fff; }
+
+/* Avatar + nome */
+.user-display { display:inline-flex; align-items:center; gap:6px; color:#fff; }
+.user-avatar__circle { width:28px; height:28px; border-radius:50%; background:#222;
+                       display:inline-flex; align-items:center; justify-content:center; font-weight:900; }
+.user-display__name { font-size:14px; font-weight:600; }
+
+/* Logout: deve stare allineato come gli altri bottoni */
+.logout-form {
+  display:flex;                /* come gli altri elementi della hdr__right */
+  align-items:center;          /* centrato verticalmente */
+  margin:0; padding:0;         /* rimuovi margini strani */
+}
+
+.logout-form .btn {
+  height:30px;                 /* stessa altezza degli altri bottoni */
+  padding:0 12px;              /* stesso padding */
+  font-size:12px;
+  font-weight:800;
+  border-radius:9999px;
+}
+
+/* Sub-header */
+.subhdr {
+  background:#0f1114;
+  border-top:0.5px solid rgba(255,255,255,.08);
+  border-bottom:0.5px solid rgba(255,255,255,.08);
+}
+.subhdr__inner { max-width:1280px; margin:0 auto; padding:0 20px; }
+.subhdr__menu { display:flex; justify-content:center; gap:36px; list-style:none; margin:0; padding:8px 0; }
+.subhdr__link { font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+                font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+                color:#c9c9c9; text-decoration:none; }
+.subhdr__link:hover { color:#fff; }
 
