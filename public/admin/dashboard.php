@@ -372,7 +372,7 @@ $countStmt->execute();
 $total = (int)$countStmt->fetchColumn();
 
 // [RIGA] Lista utenti (bind q1..q5 se presenti, e SEMPRE :lim / :off)
-$listSql  = "SELECT id, nome, cognome, username, email, phone, crediti, is_active, verified_at
+$listSql  = "SELECT id, 'user_code', nome, cognome, username, email, phone, crediti, is_active, verified_at
              FROM utenti
              WHERE $where
              ORDER BY $sort " . strtoupper($dir) . "
@@ -451,6 +451,9 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     }
   ?>
   <tr>
+      <th><a href="<?php echo sort_url('user_code', $sort, $dir, $page, $q); ?>">
+  Codice<?php echo sort_caret('user_code', $sort, $dir); ?>
+</a></th>
     <th><a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">Nome<?php echo sort_caret('nome', $sort, $dir); ?></a></th>
     <th><a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">Cognome<?php echo sort_caret('cognome', $sort, $dir); ?></a></th>
     <th><a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">User<?php echo sort_caret('username', $sort, $dir); ?></a></th>
@@ -471,7 +474,8 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
       <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
       <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
-
+        
+      <td><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></td><!-- codice utente (solo lettura) -->
       <td>
         <input type="text" name="nome"
                value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
