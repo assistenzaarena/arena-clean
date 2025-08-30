@@ -197,7 +197,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
         $cognome   = trim($_POST['cognome'] ?? '');   // cognome (può essere vuoto)
         $email     = trim($_POST['email'] ?? '');     // email (validazione base sotto)
         $phone     = trim($_POST['phone'] ?? '');     // telefono (validazione base sotto)
-        $is_active = isset($_POST['is_active']) ? 1 : 0; // checkbox on/off → 1/0 (lasciata per compatibilità; non usata se hai solo bottone)
         $saldo     = $_POST['crediti'] ?? '';         // saldo attuale (string, lo validiamo a numero)
         $new_pass  = $_POST['new_password'] ?? '';    // nuovo valore password (se vogliamo resettarla)
 
@@ -223,23 +222,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
         if (!$errors) {                                                         // se non ci sono errori…
             // [RIGA] Prepariamo UPDATE dinamico in base a cosa è stato cambiato
             // Costruiamo SET con soli campi rilevanti; password la gestiamo a parte
-            $sql = "UPDATE utenti SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti WHERE id = :id";
-            $params = [
-                ':nome'    => $nome,
-                ':cognome' => $cognome,
-                ':email'   => $email,
-                ':phone'   => $phone,
-                ':active'  => $is_active,
-                ':crediti' => (float)$saldo,                                     // cast a float
-                ':id'      => $user_id,
-            ];
+         $sql = "UPDATE utenti 
+        SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, crediti = :crediti 
+        WHERE id = :id";
+$params = [
+    ':nome'    => $nome,
+    ':cognome' => $cognome,
+    ':email'   => $email,
+    ':phone'   => $phone,
+    ':crediti' => (float)$saldo,
+    ':id'      => $user_id,
+];
 
             // [RIGA] Se è stato immesso un reset password → generiamo hash
-            if ($new_pass !== '') {
-                $hash = password_hash($new_pass, PASSWORD_DEFAULT);             // hash sicuro
-                $sql = "UPDATE utenti SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti, password_hash = :hash WHERE id = :id";
-                $params[':hash'] = $hash;                                       // aggiungiamo param
-            }
+     $sql = "UPDATE utenti 
+        SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, crediti = :crediti, password_hash = :hash 
+        WHERE id = :id";
+$params[':hash'] = $hash;
 
             // [RIGA] Eseguiamo l’UPDATE
             $up = $pdo->prepare($sql);                                         // prepared
@@ -410,14 +409,16 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
           </td>
 
           <?php
-            // Stato effettivo:
-            //  - "Attivo" SOLO se is_active=1 **e** verified_at NON è NULL (email verificata)
-            //  - Altrimenti "Inattivo" (bottone rosso)
-            $eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']); // true/false
-            $state_text  = $eff_active ? 'Attivo' : 'Inattivo';                        // label
-            $state_class = $eff_active ? 'btn-state on' : 'btn-state off';             // classe CSS
-            $next_state  = $eff_active ? 0 : 1;                                        // nuovo stato dopo click
-            $reason      = $eff_active ? '' : (is_null($u['verified_at']) ? 'Email non verificata' : 'Disattivato'); // tooltip
+            // Stato bottone = SOLO is_active (verde/rosso). La verifica email NON influenza il colore del bottone.
+// N.B. Il LOGIN resta comunque bloccato se verified_at è NULL (controllo in login.php).
+$eff_active  = ((int)$u['is_active'] === 1);                 // true se attivo, false se disattivo
+$state_text  = $eff_active ? 'Attivo' : 'Inattivo';          // label bottone
+$state_class = $eff_active ? 'btn-state on' : 'btn-state off'; // classe CSS bottone
+$next_state  = $eff_active ? 0 : 1;                          // nuovo stato al click
+// Tooltip: se l'email non è verificata, lo spieghiamo ma NON influenziamo il colore
+$reason = is_null($u['verified_at'])
+          ? 'Email non verificata (login bloccato finché non verifichi o finché admin non convalida)'
+          : '';
           ?>
           <td>
             <!-- hidden con il nuovo stato da applicare al toggle -->
