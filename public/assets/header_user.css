@@ -1,14 +1,26 @@
-/* ===== Header base ===== */
-.hdr { background:#0a0a0b; color:#fff; position:sticky; top:0; z-index:1000; }
-.hdr__inner { max-width:1280px; margin:0 auto; padding:0 20px;
-              display:flex; align-items:center; justify-content:space-between; height:64px; }
+/* ===== Header user ===== */
+.hdr {
+  background:#0a0a0b;
+  color:#fff;
+  position:sticky; top:0; z-index:1000;
+  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+}
+.hdr__inner {
+  max-width:1280px;
+  margin:0 auto;
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:64px;
+}
 
-/* ===== Logo ===== */
+/* Logo */
 .logo { display:inline-flex; align-items:center; gap:12px; text-decoration:none; color:#fff; }
 .logo__img { height:56px; width:auto; display:block; }
 .logo__text { font-weight:900; font-size:26px; text-transform:uppercase; letter-spacing:.05em; }
 
-/* ===== Sezione destra ===== */
+/* Azioni a destra */
 .hdr__right { display:flex; align-items:center; gap:14px; }
 
 /* Bottoni */
@@ -34,3 +46,16 @@
 
 /* Logout */
 .logout-form { display:inline; }
+
+/* Sub-header */
+.subhdr {
+  background:#0f1114;
+  border-top:0.5px solid rgba(255,255,255,.08);
+  border-bottom:0.5px solid rgba(255,255,255,.08);
+}
+.subhdr__inner { max-width:1280px; margin:0 auto; padding:0 20px; }
+.subhdr__menu { display:flex; justify-content:center; gap:36px; list-style:none; margin:0; padding:8px 0; }
+.subhdr__link { font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+                font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+                color:#c9c9c9; text-decoration:none; }
+.subhdr__link:hover { color:#fff; }
