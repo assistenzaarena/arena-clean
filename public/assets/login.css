@@ -16,7 +16,15 @@
   box-shadow: 0 8px 28px rgba(0,0,0,.2);
   padding: 20px;
 }
+/* Controlla TU lo spazio tra card e CTA */
+.auth {
+  row-gap: 6px;      /* <-- distanza reale tra .auth__card e .auth__cta */
+}
 
+/* Neutralizza il margine del blocco sotto (non serve più) */
+.auth__cta {
+  margin: 0 auto 0;  /* <-- niente top margin */
+}
 /* Titolo */
 .auth__title {
   margin: 0 0 14px 0;
