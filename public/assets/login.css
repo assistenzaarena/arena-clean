@@ -1,10 +1,13 @@
 /* Layout pagina login */
+/* Layout pagina login */
 .auth {
-  min-height: calc(100vh - 120px);
-  display: grid;
-  place-items: start center;
+  min-height: calc(100vh - 120px);   /* spazio per header+footer */
+  display: flex;                     /* <— FLEX invece di grid */
+  flex-direction: column;            /* impila verticalmente card + cta */
+  align-items: center;               /* centra orizzontalmente i blocchi */
+  justify-content: flex-start;       /* tutto in alto, niente distribuzione strana */
   padding: 32px 16px;
-  row-gap: 1px;  /* distanza tra card e blocco sotto */
+  gap: 6px;                          /* <— distanza REALE tra card e cta (prova 4–8px) */
 }
 
 /* Card */
@@ -57,13 +60,13 @@
 .auth__cta {
   width: 100%;
   max-width: 420px;
-  margin: 0 auto 0;   /* zero margine sopra */
+  margin: 0 auto;   /* zero margine sopra */
   text-align: center;
   color:#fff;
 }
 
 .auth__cta p {
-  margin: 0 0 8px;        /* meno spazio sotto */
+  margin: 0 0 6px;        /* meno spazio sotto */
   font-size: 18px;        /* più grande rispetto a prima (era 13px) */
   font-weight: 700;       /* più marcata */
   color:#fff;
@@ -77,8 +80,6 @@
   color:#fff; text-decoration:none; font-weight:800;
 }
 .auth__register:hover { border-color:#fff; }
-.auth__card { outline: 1px solid red; }
-.auth__cta  { outline: 1px solid cyan; }
 
 /* Piccolo: stringi un filo */
 @media (max-width: 420px) {
