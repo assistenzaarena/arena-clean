@@ -295,7 +295,6 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     </form>
   </tr>
 <?php endforeach; ?>
-    <?php endforeach; ?>
     </tbody>
   </table>
 
