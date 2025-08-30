@@ -104,10 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // [RIGA] Insert nuovo utente con NOME e COGNOME inclusi
 //        NOTA: prima non li salvavamo, per questo risultavano vuoti in dashboard.
+// [RIGA] Insert nuovo utente con NOME e COGNOME inclusi
+//        e con is_active = 0 (disattivo finché non verifica l’email o lo attiva admin)
 $ins = $pdo->prepare('
     INSERT INTO utenti (
-        nome,              -- [NEW] nome dell’utente
-        cognome,           -- [NEW] cognome dell’utente
+        nome,              -- nome dell’utente
+        cognome,           -- cognome dell’utente
         username,          -- username univoco
         password_hash,     -- hash della password
         email,             -- email univoca
@@ -115,6 +117,7 @@ $ins = $pdo->prepare('
         crediti,           -- saldo iniziale (0)
         verification_token,-- token verifica email
         verified_at,       -- NULL finché non verifica
+        is_active,         -- [NEW] 0 = disattivo
         created_at         -- timestamp creazione
     )
     VALUES (
@@ -127,6 +130,7 @@ $ins = $pdo->prepare('
         0,                 -- crediti iniziali
         :t,                -- bind token verifica
         NULL,              -- non verificato all’inizio
+        0,                 -- [NEW] disattivo all’inizio
         NOW()              -- creato ora
     )
 ');
