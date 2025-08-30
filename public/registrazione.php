@@ -209,12 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input class="auth__input" type="password" name="password2" autocomplete="new-password">
       </div>
 
-      <div class="auth__group" style="display:flex; align-items:center; gap:8px;"><!-- [RIGA] Termini -->
-        <input id="accept_tc" type="checkbox" name="accept_tc" <?php echo isset($_POST['accept_tc'])?'checked':''; ?>>
-        <label for="accept_tc" class="auth__label" style="margin:0; color:#fff; font-size:13px;">
-          Accetto i <a href="/termini-e-condizioni" target="_blank" style="color:#fff; text-decoration:underline;">Termini e Condizioni</a>
-        </label>
-      </div>
+     <div class="auth__group" style="display:flex; align-items:center; gap:8px;">
+  <input id="accept_tc" type="checkbox" name="accept_tc" <?php echo isset($_POST['accept_tc'])?'checked':''; ?>>
+  <label for="accept_tc" class="auth__label" style="margin:0; font-size:13px;">
+    Accetto i <a href="/termini-e-condizioni" target="_blank">Termini e Condizioni</a>
+  </label>
+</div>
 
       <button class="auth__submit" type="submit">Registrati</button><!-- [RIGA] CTA -->
     </form>
