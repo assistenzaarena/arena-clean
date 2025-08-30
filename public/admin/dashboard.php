@@ -259,7 +259,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
             exit;
         }
     }
-}
 
 // ------------------------
 // Ricerca / Ordinamento / Paginazione (GET)
