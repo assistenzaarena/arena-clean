@@ -7,13 +7,13 @@
   font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
 }
 .hdr__inner {
-  max-width:1280px;
-  margin:0 auto;
-  padding:0 20px;
+  max-width:1280px;        /* limite massimo di larghezza */
+  margin:0 auto;           /* centrato orizzontalmente */
+  padding:0 20px;          /* respiro a sx/dx */
   display:flex;
   align-items:center;
   justify-content:space-between;
-  height:50px;
+  height:50px;             /* altezza barra */
 }
 
 /* Logo */
@@ -57,4 +57,9 @@
                 font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
                 color:#c9c9c9; text-decoration:none; }
 .subhdr__link:hover { color:#fff; }
+html, body {
+  margin:0;
+  padding:0;
+  background:#0f1114;
+}
 
