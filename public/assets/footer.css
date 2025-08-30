@@ -8,61 +8,63 @@
   --text-500: var(--text-500, #c9c9c9);
   --text-700: var(--text-700, #9a9a9a);
   --line-700: var(--line-700, rgba(255,255,255,.06));
-}
-
+/* Contenitore footer */
 .site-footer{
-  background:#0a0a0b;                 /* stesso nero header */
+  background:#0a0a0b;               /* nero come header */
   border-top:1px solid var(--line-700);
-  color: var(--text-500);
   font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  color:#fff;                       /* colore base bianco */
 }
 
+/* Wrapper */
 .site-footer__inner{
-  max-width: var(--container-w);
-  margin: 0 auto;
-  padding: 10px var(--pad-x);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  max-width:1280px;
+  margin:0 auto;
+  padding:10px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
 
-/* Link nel footer */
+/* Menu link legali/info */
+.footer-menu{
+  display:flex;                     /* elementi in linea */
+  flex-wrap:wrap;                   /* vanno a capo solo se serve */
+  gap:18px;                         /* spazio tra i link */
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+
+/* Link */
 .footer-menu a{
-  color: var(--text-100); /* bianco */
-  text-decoration: none;
-  font-size: 12px;
-  line-height: 1.2;
-  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* stesso font header */
+  color:#fff;                       /* bianchi */
+  text-decoration:none;
+  font-size:12px;
+  line-height:1.2;
 }
-.footer-menu a:hover,
-.footer-menu a:focus-visible{
-  color: var(--text-300); /* grigio chiaro all'hover */
-  text-decoration: underline;
-  outline: none;
+.footer-menu a:hover{
+  color:#e6e6e6;                    /* grigio chiaro all'hover */
+  text-decoration:underline;
 }
 
-/* Riga meta: © e “torna su” */
+/* Riga meta */
 .site-footer__meta{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  line-height: 1.2;
-  color: var(--text-100); /* bianco */
-  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* stesso font header */
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:12px;
+  line-height:1.2;
+  color:#e6e6e6;
 }
-
 .site-footer__meta .back-to-top{
-  color: var(--text-100); /* freccia bianca */
-  text-decoration: none;
-  font-weight: 800;
+  color:#fff;
+  text-decoration:none;
+  font-weight:800;
 }
-.site-footer__meta .back-to-top:hover,
-.site-footer__meta .back-to-top:focus-visible{
-  color: var(--text-300);
-  outline: none;
+.site-footer__meta .back-to-top:hover{
+  color:#e6e6e6;
 }
-
 /* Mobile */
 @media (max-width:980px){
   .footer-menu{ gap: 10px 14px; }
