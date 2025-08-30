@@ -22,16 +22,6 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
     <!-- Azioni a destra -->
     <div class="hdr__right">
 
-      <!-- Pulsante ricarica -->
-      <a class="btn btn--primary" href="/ricarica.php">Ricarica</a>
-
-      <!-- Saldo crediti -->
-      <div class="user-credits">
-        <span class="user-credits__label">Crediti:</span>
-        <span class="user-credits__value" id="headerCrediti"><?php echo htmlspecialchars((string)$crediti); ?></span>
-        <button class="credits-refresh" type="button" aria-label="Aggiorna saldo">&#x21bb;</button>
-      </div>
-
       <!-- Avatar + username -->
       <div class="user-display">
         <span class="user-avatar__circle"><?php echo htmlspecialchars($avatarChr); ?></span>
