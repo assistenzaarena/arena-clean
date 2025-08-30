@@ -83,6 +83,14 @@
   font-weight:800;
 }
 .auth__register:hover { border-color:#fff; }
+/* Label checkbox in nero/grigio dentro la card */
+.auth__group label[for="accept_tc"] {
+  color:#111;           /* testo scuro leggibile */
+}
+.auth__group label[for="accept_tc"] a {
+  color:#111;           /* anche il link diventa scuro */
+  text-decoration: underline;
+}
 
 /* Responsive */
 @media (max-width: 480px){
