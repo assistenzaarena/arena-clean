@@ -6,3 +6,4 @@ define('DB_PORT', getenv('DB_PORT') ?: '3306');       // [RIGA] Porta del DB (se
 define('DB_NAME', getenv('DB_NAME') ?: 'arena');      // [RIGA] Nome del database
 define('DB_USER', getenv('DB_USER') ?: 'root');       // [RIGA] Username del database
 define('DB_PASS', getenv('DB_PASS') ?: '');           // [RIGA] Password del database
+define('API_FOOTBALL_KEY', getenv('API_FOOTBALL_KEY') ?: '0ae0df75f9c2401537ea2ad2076992c8'); // imposta dal pannello Railway/Variables
