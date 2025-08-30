@@ -500,7 +500,9 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         <div class="cell pwd">Nuova password</div>
         <div class="cell azioni">Azioni</div>
       </div>
-
+<?php if (empty($users)) : ?>
+  <div style="color:#ff6b6b; padding:8px 0;">(debug) Nessun utente trovato per questi filtri.</div>
+<?php endif; ?>
       <!-- Righe utente -->
       <?php foreach ($users as $u): ?>
         <form class="user-row grid-row" method="post"
