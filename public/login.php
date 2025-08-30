@@ -17,49 +17,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {             // esegui solo a submit
     $username = trim($_POST['username'] ?? '');          // normalizza input
     $password = $_POST['password'] ?? '';
 
-    // [RIGA] Query: cerca sia per username sia per email
-    $stmt = $pdo->prepare(
-        "SELECT id, password_hash, role, totp_enabled
-         FROM utenti
-         WHERE username = :u1 OR email = :u2
-         LIMIT 1"
-    );
-    $stmt->execute([
-        ':u1' => $username, // match su username
-        ':u2' => $username  // match su email
-    ]);
-    $user = $stmt->fetch(); // riga trovata (o false)
+// [RIGA] CERCA per username O email e leggi TUTTI i campi utili al flusso:
+//        - password_hash  → verifica password
+//        - role, totp_enabled → ramo admin (2FA)
+//        - is_active      → blocco login se disabilitato
+//        - verified_at    → blocco login se email non verificata
+$stmt = $pdo->prepare(
+    "SELECT id, password_hash, role, totp_enabled, is_active, verified_at
+     FROM utenti
+     WHERE username = :u1 OR email = :u2
+     LIMIT 1"
+); // prepared sicuro
+$stmt->execute([
+    ':u1' => $username,   // stesso dato per il match su username
+    ':u2' => $username    // e per il match su email
+]); // esecuzione
+$user = $stmt->fetch();   // riga utente (o false)
 
-    // [RIGA] Verifica credenziali
-    if ($user && password_verify($password, $user['password_hash'])) {
-        // [RIGA] Sicurezza: rigenera l'ID sessione dopo login
-        session_regenerate_id(true);
+<?php
+if ($user && password_verify($password, $user['password_hash'])) {   // [RIGA] credenziali ok
 
-        // [RIGA] Branch ADMIN con 2FA attiva → chiedi codice
+    // --------------- BARRIERE DI STATO (ROSSO = LOGIN BLOCCATO) ---------------
+    // [RIGA] 1) Account disabilitato dall'admin → stop login
+    if ((int)$user['is_active'] !== 1) {                              // se flag is_active = 0
+        $error = "Account disabilitato. Contatta il supporto.";       // messaggio chiaro all'utente
+        // Nessun redirect, nessun session_regenerate_id: si limita a mostrare l'errore
+    }
+    // [RIGA] 2) Email non verificata → stop login
+    elseif (is_null($user['verified_at'])) {                          // se non ha confermato l'email
+        $error = "Email non verificata. Controlla la posta e clicca il link di attivazione."; 
+    }
+    // ---------------------------------------------------------------------------
+
+    // [RIGA] Se abbiamo impostato $error sopra, NON proseguire con il login
+    if (!empty($error)) {
+        // Esci dal ramo senza eseguire session_regenerate_id() né redirect
+        // (la pagina mostrerà il messaggio sopra il form)
+    } else {
+        // Da qui in poi login consentito: credenziali OK + attivo + email verificata
+        session_regenerate_id(true);                                  // anti session fixation
+
+        // --- admin con 2FA già attiva → chiedi codice
         if (($user['role'] ?? 'user') === 'admin' && !empty($user['totp_enabled'])) {
-            $_SESSION['admin_pending_id'] = (int)$user['id'];         // metti in pending
-            unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']); // non completare login
-            header("Location: /admin/2fa_verify.php"); exit;          // redirect e STOP
+            $_SESSION['admin_pending_id'] = (int)$user['id'];         // id in pending per verifica 2FA
+            unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']); // non completare ora
+            header("Location: /admin/2fa_verify.php"); exit;          // vai alla verifica 2FA
         }
 
-        // [RIGA] Branch ADMIN senza 2FA → forza setup
+        // --- admin senza 2FA → forza setup
         if (($user['role'] ?? 'user') === 'admin') {
-            $_SESSION['user_id']  = (int)$user['id'];  // completa login per permettere setup
+            $_SESSION['user_id']  = (int)$user['id'];                 // consenti setup
             $_SESSION['username'] = $username;
             $_SESSION['role']     = 'admin';
-            header("Location: /admin/2fa_setup.php"); exit;           // redirect e STOP
+            header("Location: /admin/2fa_setup.php"); exit;           // vai al QR
         }
 
-        // [RIGA] Branch UTENTE normale → login completo
+        // --- utente normale → area riservata
         $_SESSION['user_id']  = (int)$user['id'];
         $_SESSION['username'] = $username;
         $_SESSION['role']     = 'user';
-        header("Location: /area_riservata.php"); exit;                // redirect e STOP
-
-    } else {
-        // [RIGA] Credenziali errate → memorizza messaggio, ma NON fare output qui
-        $error = "Credenziali errate";
+        header("Location: /area_riservata.php"); exit;                // dentro
     }
+
+} else {
+    $error = "Credenziali errate";                                    // credenziali sbagliate
 }
 
 // [RIGA] 4) Da qui in poi puoi stampare HTML (header incluso): non ci sono più header() o session_regenerate_id()
