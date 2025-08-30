@@ -399,7 +399,7 @@ $countStmt->execute();
 $total = (int)$countStmt->fetchColumn();
 
 // [RIGA] Lista utenti (bind q1..q5 se presenti, e SEMPRE :lim / :off)
-$listSql  = "SELECT id, 'user_code', nome, cognome, username, email, phone, crediti, is_active, verified_at
+$listSql  = "SELECT id, user_code, nome, cognome, username, email, phone, crediti, is_active, verified_at
              FROM utenti
              WHERE $where
              ORDER BY $sort " . strtoupper($dir) . "
