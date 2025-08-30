@@ -44,8 +44,20 @@
                        display:inline-flex; align-items:center; justify-content:center; font-weight:900; }
 .user-display__name { font-size:14px; font-weight:600; }
 
-/* Logout */
-.logout-form { display:inline; }
+/* Logout: deve stare allineato come gli altri bottoni */
+.logout-form {
+  display:flex;                /* come gli altri elementi della hdr__right */
+  align-items:center;          /* centrato verticalmente */
+  margin:0; padding:0;         /* rimuovi margini strani */
+}
+
+.logout-form .btn {
+  height:36px;                 /* stessa altezza degli altri bottoni */
+  padding:0 14px;              /* stesso padding */
+  font-size:13px;
+  font-weight:800;
+  border-radius:9999px;
+}
 
 /* Sub-header */
 .subhdr {
