@@ -6,6 +6,7 @@
   width:100%;
   margin:0;
   padding:0;
+  height:50px;
   font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
 }
 .hdr__inner {
@@ -59,5 +60,3 @@
                 font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
                 color:#c9c9c9; text-decoration:none; }
 .subhdr__link:hover { color:#fff; }
-
-
