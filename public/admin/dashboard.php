@@ -159,7 +159,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
         exit;
     }
 }
+    // ==========================================================
+    // 4. ELIMINA UTENTE (nuovo)
+    // ==========================================================
+    if ($action === 'admin_delete_user' && $user_id > 0) {
+        // [SICUREZZA] Evita che l'admin si cancelli da solo
+        if (!empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $user_id) {
+            $_SESSION['flash'] = 'Non puoi eliminare il tuo stesso account.';
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query"); exit;
+        }
 
+        // [SQL] Cancella l'utente dal DB
+        $del = $pdo->prepare("DELETE FROM utenti WHERE id = :id");
+        $del->execute([':id' => $user_id]);
+
+        // [UX] Messaggio e PRG redirect
+        $_SESSION['flash'] = 'Utente eliminato definitivamente.';
+        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
+    }
     // [RIGA] Prendiamo l’azione (per estensioni future) — qui gestiamo "update_user"
     $action  = $_POST['action']  ?? '';
     $user_id = (int)($_POST['user_id'] ?? 0);         // id utente da modificare (hidden nel form)
