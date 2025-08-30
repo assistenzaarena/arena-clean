@@ -34,7 +34,6 @@ $stmt->execute([
 ]); // esecuzione
 $user = $stmt->fetch();   // riga utente (o false)
 
-<?php
 if ($user && password_verify($password, $user['password_hash'])) {   // [RIGA] credenziali ok
 
     // --------------- BARRIERE DI STATO (ROSSO = LOGIN BLOCCATO) ---------------
