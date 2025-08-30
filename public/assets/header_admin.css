@@ -59,9 +59,17 @@
                 font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
                 color:#c9c9c9; text-decoration:none; }
 .subhdr__link:hover { color:#fff; }
-html, body {
-  margin:0;
+body { 
+  margin:0; 
+  padding:0; 
+  background:#0a0a0b;   /* stesso colore dell’header */
+}
+body, html {
+  margin:0; 
   padding:0;
-  background:#0f1114;
+  background:#0a0a0b;
+}
+.hdr {
+  width:100vw;
 }
 
