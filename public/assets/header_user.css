@@ -53,7 +53,7 @@
 
 .logout-form .btn {
   height:36px;                 /* stessa altezza degli altri bottoni */
-  padding:0 10px;              /* stesso padding */
+  padding:-2 12px;              /* stesso padding */
   font-size:12px;
   font-weight:800;
   border-radius:9999px;
