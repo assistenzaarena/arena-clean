@@ -198,27 +198,54 @@ if ($action === 'update_user' && $user_id > 0) {
         exit;
     }
 
-    // ==========================================================
-    // 4. ELIMINA UTENTE (nuovo)
-    // ==========================================================
-    if ($action === 'admin_delete_user' && $user_id > 0) {
-        // [SICUREZZA] Evita che l'admin si cancelli da solo
-        if (!empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $user_id) {
-            $_SESSION['flash'] = 'Non puoi eliminare il tuo stesso account.';
-            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
-            header("Location: /admin/dashboard.php?$query"); exit;
-        }
+ // ==========================================================
+// 4. ELIMINA UTENTE (nuovo)
+// ==========================================================
+if ($action === 'admin_delete_user' && $user_id > 0) {
+    // [SICUREZZA] Evita che l'admin si cancelli da solo
+    if (!empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $user_id) {
+        $_SESSION['flash'] = 'Non puoi eliminare il tuo stesso account.';
+        $query = http_build_query([
+            'page' => $_GET['page'] ?? 1,
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
+        header("Location: /admin/dashboard.php?$query"); 
+        exit;
+    }
 
-        // [SQL] Cancella l'utente dal DB
-        $del = $pdo->prepare("DELETE FROM utenti WHERE id = :id");
-        $del->execute([':id' => $user_id]);
-
-        // [UX] Messaggio e PRG redirect
-        $_SESSION['flash'] = 'Utente eliminato definitivamente.';
-        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+    // [SICUREZZA] Utente speciale "valenzo2313": non eliminabile
+    $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1");
+    $chk->execute([':id' => $user_id]);
+    $uname = $chk->fetchColumn();
+    if ($uname === 'valenzo2313') {
+        $_SESSION['flash'] = 'L’utente speciale non può essere eliminato.';
+        $query = http_build_query([
+            'page' => $_GET['page'] ?? 1,
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
         header("Location: /admin/dashboard.php?$query");
         exit;
     }
+
+    // [SQL] Cancella l'utente dal DB (solo se non è admin stesso e non è speciale)
+    $del = $pdo->prepare("DELETE FROM utenti WHERE id = :id");
+    $del->execute([':id' => $user_id]);
+
+    // [UX] Messaggio e PRG redirect
+    $_SESSION['flash'] = 'Utente eliminato definitivamente.';
+    $query = http_build_query([
+        'page' => $_GET['page'] ?? 1,
+        'sort' => $_GET['sort'] ?? 'cognome',
+        'dir'  => $_GET['dir']  ?? 'asc',
+        'q'    => $_GET['q']    ?? '',
+    ]);
+    header("Location: /admin/dashboard.php?$query");
+    exit;
+}
     // [RIGA] Prendiamo l’azione (per estensioni future) — qui gestiamo "update_user"
     $action  = $_POST['action']  ?? '';
     $user_id = (int)($_POST['user_id'] ?? 0);         // id utente da modificare (hidden nel form)
@@ -544,20 +571,31 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
       </td>
 
-    <td class="actions">
+<td class="actions">
   <!-- Link Movimenti -->
-  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
+  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">
+    Movimenti
+  </a>
 
-  <!-- Cestino: apre il popup di conferma -->
-  <button type="button"
-          class="btn btn-delete"
-          data-user-id="<?php echo (int)$u['id']; ?>"
-          data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
-    🗑 Elimina
-  </button>
+  <?php if ($u['username'] !== 'valenzo2313'): ?>
+    <!-- Cestino: apre il popup di conferma (solo se NON è utente speciale) -->
+    <button type="button"
+            class="btn btn-delete"
+            data-user-id="<?php echo (int)$u['id']; ?>"
+            data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+      🗑 Elimina
+    </button>
+  <?php else: ?>
+    <!-- Utente speciale: niente cestino, bottone disabilitato visivamente -->
+    <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">
+      Protetto
+    </button>
+  <?php endif; ?>
 
   <!-- Salvataggio campi della riga -->
-  <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+  <button class="btn btn-apply" type="submit" name="action" value="update_user">
+    Applica modifiche
+  </button>
 </td>
     </form>
   </tr>
