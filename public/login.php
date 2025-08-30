@@ -41,5 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <label>Password: <input type="password" name="password"></label><br>
   <button type="submit">Accedi</button>
 </form>
+  <?php require __DIR__ . '/footer.php'; ?>
 </body>
 </html>
