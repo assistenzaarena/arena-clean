@@ -134,7 +134,8 @@ $countSql = "SELECT COUNT(*) FROM utenti WHERE $where";
 $total = (int)$pdo->prepare($countSql)->execute($params) ? (int)$pdo->prepare($countSql)->fetchColumn() : 0;
 
 // [RIGA] Lista utenti con ordinamento e paginazione — NOTA: sort/dir sono whitelisted sopra
-$listSql = "SELECT id, nome, cognome, username, email, phone, crediti, is_active
+// DOPO (aggiungo verified_at)
+$listSql = "SELECT id, nome, cognome, username, email, phone, crediti, is_active, verified_at
             FROM utenti
             WHERE $where
             ORDER BY $sort " . strtoupper($dir) . "
