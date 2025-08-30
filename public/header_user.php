@@ -1,14 +1,10 @@
 <?php
-// [SCOPO] Header per utente loggato (USER).
-// [STRUTTURA] Logo + scritta ARENA a sinistra.
-//             A destra: tasto "Ricarica", saldo crediti con refresh, avatar + username, bottone Logout.
-// [USO]       Includilo nelle pagine dell’utente: <?php require __DIR__ . '/header_user.php'; ?>
-
-// Qui non carichiamo il DB, usiamo valori fittizi per il test
+// [HEAD USER] Avvio sessione e variabili di test (qui non tocchiamo il DB)
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
-$username = $_SESSION['username'] ?? 'DemoUser';   // username di test
-$crediti  = $_SESSION['crediti'] ?? 100;           // saldo fittizio
-$avatarChr = mb_strtoupper(mb_substr($username, 0, 1)); // prima lettera come avatar
+
+$username  = $_SESSION['username'] ?? 'DemoUser';          // username fittizio per test
+$crediti   = $_SESSION['crediti']  ?? 100;                 // saldo fittizio per test
+$avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’avatar
 ?>
 <link rel="stylesheet" href="/assets/header_user.css">
 
