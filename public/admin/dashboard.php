@@ -382,26 +382,16 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <?php if ($errors): ?><div class="err"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div><?php endif; ?>
 
   <!-- Filtro / Ricerca / Ordinamento -->
-  <form class="filters" method="get" action="/admin/dashboard.php">
-    <input type="text" name="q" placeholder="Cerca (nome, cognome, user, email, telefono)" value="<?php echo htmlspecialchars($q); ?>"><!-- ricerca -->
-    <label>Ordina per:
-      <select name="sort">
-        <option value="cognome"  <?php if($sort==='cognome') echo 'selected'; ?>>Cognome</option>
-        <option value="nome"     <?php if($sort==='nome') echo 'selected'; ?>>Nome</option>
-        <option value="username" <?php if($sort==='username') echo 'selected'; ?>>Username</option>
-        <option value="email"    <?php if($sort==='email') echo 'selected'; ?>>Email</option>
-        <option value="phone"    <?php if($sort==='phone') echo 'selected'; ?>>Telefono</option>
-        <option value="crediti"  <?php if($sort==='crediti') echo 'selected'; ?>>Saldo</option>
-      </select>
-    </label>
-    <label>Direzione:
-      <select name="dir">
-        <option value="asc"  <?php if($dir==='asc')  echo 'selected'; ?>>Asc</option>
-        <option value="desc" <?php if($dir==='desc') echo 'selected'; ?>>Desc</option>
-      </select>
-    </label>
-    <button class="btn" type="submit">Applica filtri</button>
-  </form>
+ <!-- Filtro / Ricerca -->
+<form class="filters" method="get" action="/admin/dashboard.php">
+  <input type="text"
+         name="q"
+         placeholder="Cerca (nome, cognome, user, email, telefono, crediti)"
+         value="<?php echo htmlspecialchars($q); ?>"><!-- ricerca -->
+  <!-- Manteniamo ordinamento e direzione correnti come hidden -->
+  <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
+  <input type="hidden" name="dir"  value="<?php echo htmlspecialchars($dir); ?>">
+</form>
 
   <!-- Tabella utenti -->
   <table>
@@ -617,6 +607,14 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     if (e.key === 'Escape' && modal.style.display === 'flex') closeDelete();
   });
 </script>
-
+    <script>
+  const f = document.querySelector('form.filters');
+  const q = f.querySelector('input[name="q"]');
+  let t = null;
+  q.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => f.submit(), 400); // invia dopo 400ms che smetti di scrivere
+  });
+</script>
 </body>
 </html>
