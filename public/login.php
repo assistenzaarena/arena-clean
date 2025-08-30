@@ -12,52 +12,53 @@ require_once __DIR__ . '/src/db.php';     // connessione PDO
 ?>
 <?php
 // Se l'utente ha inviato il form (metodo POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {                      // [RIGA] Eseguiamo la logica solo quando arriva una POST (submit del form)
-    $username = trim($_POST['username'] ?? '');                   // [RIGA] Prendiamo lo username (o email/username), togliendo spazi ai lati
-    $password = $_POST['password'] ?? '';                         // [RIGA] Prendiamo la password così com’è (niente trim per non alterare)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {                          // [RIGA] Eseguiamo solo quando il form viene inviato
+    $username = trim($_POST['username'] ?? '');                       // [RIGA] Username/email (riduciamo spazi ai lati)
+    $password = $_POST['password'] ?? '';                             // [RIGA] Password (non usiamo trim)
 
-    // Cerchiamo l'utente nel DB (con ruolo e stato 2FA)
-    $stmt = $pdo->prepare(                                        // [RIGA] Prepared statement per sicurezza (anti-SQL injection)
-        "SELECT id, password_hash, role, totp_enabled             // [RIGA] Oltre a id e hash, leggiamo anche role (user/admin) e totp_enabled (0/1)
+    // [RIGA] Query pulita: NIENTE commenti dentro gli apici!
+    //       Leggiamo id, hash password, ruolo e stato 2FA
+    $stmt = $pdo->prepare(
+        "SELECT id, password_hash, role, totp_enabled
          FROM utenti
          WHERE username = :u
          LIMIT 1"
-    );
-    $stmt->execute([':u' => $username]);                          // [RIGA] Bind sicuro del parametro :u
-    $user = $stmt->fetch();                                       // [RIGA] Recuperiamo la riga (o false se non trovata)
+    );                                                                // [RIGA] Prepared statement (sicuro)
+    $stmt->execute([':u' => $username]);                              // [RIGA] Bind del parametro :u
+    $user = $stmt->fetch();                                           // [RIGA] Riga utente o false
 
-    // Verifica credenziali
-    if ($user && password_verify($password, $user['password_hash'])) { // [RIGA] Se utente esiste e l’hash combacia → password corretta
-        session_regenerate_id(true);                              // [RIGA] Anti session fixation: nuovo ID sessione dopo login
+    // [RIGA] Verifica credenziali
+    if ($user && password_verify($password, $user['password_hash'])) {// [RIGA] Hash combacia → credenziali ok
+        session_regenerate_id(true);                                  // [RIGA] Anti session fixation
 
-        // --- Caso ADMIN con 2FA già attiva: chiedo il codice TOTP prima di completare il login
-        if (($user['role'] ?? 'user') === 'admin' && !empty($user['totp_enabled'])) { // [RIGA] Se è admin e ha 2FA abilitata (1)…
-            $_SESSION['admin_pending_id'] = (int)$user['id'];     // [RIGA] Mettiamo l’ID in sessione *temporanea* per la verifica 2FA
-            unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']); // [RIGA] Non completiamo il login ora: puliamo eventuali dati
-            header("Location: /admin/2fa_verify.php");            // [RIGA] Reindirizziamo alla pagina che chiede il codice a 6 cifre
-            exit;                                                 // [RIGA] Stop esecuzione
+        // [RIGA] Caso ADMIN con 2FA già attiva → chiedi codice a 6 cifre
+        if (($user['role'] ?? 'user') === 'admin' && !empty($user['totp_enabled'])) {
+            $_SESSION['admin_pending_id'] = (int)$user['id'];         // [RIGA] Mettiamo l'id in “pending”
+            unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']); // [RIGA] Non completiamo il login ora
+            header("Location: /admin/2fa_verify.php");                // [RIGA] Vai alla pagina di verifica TOTP
+            exit;
         }
 
-        // --- Caso ADMIN ma 2FA NON attiva: obbligo setup 2FA
-        if (($user['role'] ?? 'user') === 'admin') {              // [RIGA] Se è admin ma non ha totp_enabled=1…
-            $_SESSION['user_id']  = (int)$user['id'];             // [RIGA] Logghiamo l’admin per permettere il setup
-            $_SESSION['username'] = $username;                    // [RIGA] Nome da mostrare
-            $_SESSION['role']     = 'admin';                      // [RIGA] Ruolo esplicito
-            header("Location: /admin/2fa_setup.php");             // [RIGA] Lo portiamo alla pagina per generare QR e attivare 2FA
-            exit;                                                 // [RIGA] Stop esecuzione
+        // [RIGA] Caso ADMIN ma 2FA NON attiva → forza setup 2FA
+        if (($user['role'] ?? 'user') === 'admin') {
+            $_SESSION['user_id']  = (int)$user['id'];                 // [RIGA] Logghiamo l’admin per permettere il setup
+            $_SESSION['username'] = $username;
+            $_SESSION['role']     = 'admin';
+            header("Location: /admin/2fa_setup.php");                 // [RIGA] Vai a generare QR e attivare 2FA
+            exit;
         }
 
-        // --- Caso UTENTE NORMALE: login completo e redirect all’area riservata
-        $_SESSION['user_id']  = (int)$user['id'];                 // [RIGA] Salviamo l’ID utente autenticato
-        $_SESSION['username'] = $username;                        // [RIGA] Salviamo lo username per l’header/UX
-        $_SESSION['role']     = 'user';                           // [RIGA] Ruolo standard
-        header("Location: /area_riservata.php");                  // [RIGA] Portiamo l’utente nell’area privata
-        exit;                                                     // [RIGA] Stop esecuzione
+        // [RIGA] Caso UTENTE normale → login completo
+        $_SESSION['user_id']  = (int)$user['id'];                     // [RIGA] Salviamo id
+        $_SESSION['username'] = $username;                            // [RIGA] Salviamo username
+        $_SESSION['role']     = 'user';                               // [RIGA] Ruolo standard
+        header("Location: /area_riservata.php");                      // [RIGA] Vai all’area privata
+        exit;
 
-    } else {                                                      // [RIGA] Se non passa la verifica dell’hash…
-        $error = "Credenziali errate";                            // [RIGA] Mostriamo errore generico (sicurezza: non dire cosa è sbagliato)
+    } else {
+        $error = "Credenziali errate";                                // [RIGA] Errore generico per sicurezza
     }
-}                                                                 // [RIGA] Fine gestione POST
+} // fine POST
 ?>
 <!doctype html>
 <html lang="it">
