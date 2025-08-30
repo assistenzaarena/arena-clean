@@ -63,7 +63,7 @@
 
 .auth__cta p {
   margin: 0 0 8px;        /* meno spazio sotto */
-  font-size: 15px;        /* più grande rispetto a prima (era 13px) */
+  font-size: 18px;        /* più grande rispetto a prima (era 13px) */
   font-weight: 700;       /* più marcata */
   color:#fff;
 }
