@@ -37,15 +37,32 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
   </div>
 </header>
 
-<!-- Sub-header (uguale al guest) -->
-<nav class="subhdr" role="navigation" aria-label="Navigazione principale">
+<!-- Sub-header (solo per admin) -->
+<?php if (!empty($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+<nav class="subhdr" role="navigation" aria-label="Navigazione amministrazione">
   <div class="subhdr__inner">
     <ul class="subhdr__menu">
-      <li class="subhdr__item"><a class="subhdr__link" href="/">Players</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/il-gioco">Crea Tornei</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Gestisci Tornei</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Amministrazione</a></li>
+      <!-- Players: punta alla tua lista utenti admin (o dove preferisci) -->
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/dashboard.php">Players</a>
+      </li>
+
+      <!-- Crea Tornei -->
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/crea_torneo.php">Crea Tornei</a>
+      </li>
+
+      <!-- Gestisci Tornei (separeremo in una pagina dedicata in futuro; per ora può coincidere con crea_torneo) -->
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/crea_torneo.php">Gestisci Tornei</a>
+      </li>
+
+      <!-- Amministrazione (home admin o altra pagina riassuntiva) -->
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/dashboard.php">Amministrazione</a>
+      </li>
     </ul>
   </div>
 </nav>
+<?php endif; ?>
 
