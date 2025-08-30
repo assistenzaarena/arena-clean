@@ -1,5 +1,7 @@
 <?php
-if (session_status() !== PHP_SESSION_NONE) { session_start(); } // avvia sessione prima di ogni output
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
+}// avvia sessione prima di ogni output
 require __DIR__ . '/header_login.php';?>
 <?php
 // [SCOPO] Pagina di login: mostra un form e autentica l'utente demo (o futuri utenti da DB).
@@ -39,13 +41,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="stylesheet" href="/assets/login.css">
 </head>
 <body>
-<h1>Login</h1>
-<?php if (!empty($error)) echo "<p style='color:red'>$error</p>"; ?>
-<form method="post" action="">
-  <label>Username: <input type="text" name="username"></label><br>
-  <label>Password: <input type="password" name="password"></label><br>
-  <button type="submit">Accedi</button>
-</form>
+<main class="auth">
+  <div class="auth__card">
+    <h1 class="auth__title">Accedi</h1>
+
+    <?php if (!empty($error)): ?>
+      <p style="color:#c01818; margin:8px 0 12px;"><?php echo htmlspecialchars($error); ?></p>
+    <?php endif; ?>
+
+    <form method="post" action="">
+      <div class="auth__group">
+        <label class="auth__label">Email / Username</label>
+        <input class="auth__input" type="text" name="username" autocomplete="username">
+      </div>
+
+      <div class="auth__group">
+        <label class="auth__label">Password</label>
+        <input class="auth__input" type="password" name="password" autocomplete="current-password">
+      </div>
+
+      <a class="auth__forgot" href="/recupero-password">Hai dimenticato la password?</a>
+
+      <button class="auth__submit" type="submit">Accedi</button>
+    </form>
+  </div>
+
+  <div class="auth__cta">
+    <p>Non hai un account?</p>
+    <a class="auth__register" href="/registrazione.php">Registrati</a>
+  </div>
+</main>
   <?php require __DIR__ . '/footer.php'; ?>
 </body>
 </html>
