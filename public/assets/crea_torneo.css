@@ -1,1 +1,75 @@
+/* ===========================
+   Stile pagina: Crea Tornei
+   =========================== */
 
+/* wrapper centrale (coerente con dashboard) */
+.admin-wrap{
+  max-width: 1280px;
+  margin: 24px auto;
+  padding: 0 20px;
+  color: #fff;
+}
+
+/* titolo pagina */
+.page-title{
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+/* card scura con bordi arrotondati */
+.card{
+  background:#111;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18);
+}
+
+/* griglia del form a 2 colonne (mobile: 1 colonna) */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:12px;
+}
+@media (max-width: 860px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* campo singolo */
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field label{ font-size:13px; color:#c9c9c9; }
+.field .hint{ font-size:12px; color:#aaa; }
+
+/* inputs coerenti col tema */
+.field input, .field select{
+  height:36px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#0a0a0b;
+  color:#fff;
+  padding:0 10px;
+}
+
+/* pulsanti */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:32px;
+  padding:0 12px;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:8px;
+  color:#fff;
+  text-decoration:none;
+  font-weight:800;
+}
+.btn:hover{ border-color:#fff; }
+.btn-primary{ background:#00c074; border-color:#00c074; }
+
+/* cta bottom */
+.actions{ margin-top:12px; display:flex; gap:8px; }
+
+/* messaggi */
+.flash{ color:#00d07e; margin: 8px 0; }
+.err{ color:#ff6b6b; margin: 8px 0; }
