@@ -45,175 +45,126 @@ $errors = [];      // [RIGA] Eventuali errori di validazione
 $action  = '';         // azione corrente (vuota in GET)
 $user_id = 0;          // id utente corrente (0 in GET)
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta POST (click pulsante)
-    // [RIGA] Verifica token CSRF
-    $posted_csrf = $_POST['csrf'] ?? '';       // recupero il token inviato nel form
-    if (!hash_equals($_SESSION['csrf'], $posted_csrf)) { // confronto sicuro contro quello in sessione
-        http_response_code(400);               // risposta HTTP 400 = bad request
-        die('CSRF non valido');                // blocco l’esecuzione
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [POST] azioni dashboard
+    // --- CSRF ---
+    $posted_csrf = $_POST['csrf'] ?? '';
+    if (!hash_equals($_SESSION['csrf'], $posted_csrf)) {
+        http_response_code(400);
+        die('CSRF non valido');
     }
 
-    // [RIGA] Recupero azione richiesta e ID utente
-    $action  = $_POST['action']  ?? '';        // es. "toggle_active", "update_user", "admin_verify_email"
-    $user_id = (int)($_POST['user_id'] ?? 0);  // id utente coinvolto
+    // --- action & user_id ---
+    $action  = $_POST['action']  ?? '';
+    $user_id = (int)($_POST['user_id'] ?? 0);
 
     // ==========================================================
-    // 1. TOGGLE ATTIVO/DISATTIVO
+    // 1) TOGGLE ATTIVO/DISATTIVO
     // ==========================================================
-if ($action === 'toggle_active' && $user_id > 0) {
-    // [SICUREZZA] Prelevo lo username della riga che sto toccando
-    $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1"); // prepared per sicurezza
-    $chk->execute([':id' => $user_id]);                                         // eseguo bind id
-    $uname = $chk->fetchColumn();                                               // prendo solo lo username
-
-    // [REGOLA] L'utente speciale *valenzo2313* non può MAI essere disattivato.
-    if ($uname === 'valenzo2313') {                                             // se è lui...
-        $_SESSION['flash'] = 'Questo utente non può essere disattivato.';       // messaggio per l’admin
-        // PRG redirect: ricarico la dashboard con i filtri correnti e STOP.
-        $query = http_build_query([
-            'page' => (int)($_GET['page'] ?? 1),
-            'sort' => $_GET['sort'] ?? 'cognome',
-            'dir'  => $_GET['dir']  ?? 'asc',
-            'q'    => $_GET['q']    ?? '',
-        ]);
-        header("Location: /admin/dashboard.php?$query");
-        exit;
-    }
-
-    // [SE ARRIVO QUI] Posso procedere col toggle
-    $new_state = (int)($_POST['new_state'] ?? 0);                                // 1=attivo, 0=disattivo
-    $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");     // aggiorno flag
-    $up->execute([':a' => $new_state, ':id' => $user_id]);                       // esecuzione
-
-    $_SESSION['flash'] = $new_state ? 'Utente attivato.' : 'Utente disattivato.';// feedback
-    $query = http_build_query([
-        'page' => (int)($_GET['page'] ?? 1),
-        'sort' => $_GET['sort'] ?? 'cognome',
-        'dir'  => $_GET['dir']  ?? 'asc',
-        'q'    => $_GET['q']    ?? '',
-    ]);
-    header("Location: /admin/dashboard.php?$query");
-    exit;
-}
-
-// ==========================================================
-// 2. UPDATE DATI UTENTE (nome, cognome, email, telefono, saldo, password)
-//    NOTA: qui NON modifichiamo is_active! (si modifica solo con toggle_active)
-// ==========================================================
-if ($action === 'update_user' && $user_id > 0) {
-    // [INPUT] Recupero i campi dal form
-    $nome     = trim($_POST['nome'] ?? '');
-    $cognome  = trim($_POST['cognome'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $phone    = trim($_POST['phone'] ?? '');
-    // $is_active = ...  // ⛔️ rimosso: non gestiamo più is_active da questo ramo
-    $saldo    = $_POST['crediti'] ?? '';
-    $new_pass = $_POST['new_password'] ?? '';
-
-    // [VALIDAZIONI]
-    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Email non valida.';
-    }
-    if ($phone !== '' && !preg_match('/^\+?[0-9\- ]{7,20}$/', $phone)) {
-        $errors[] = 'Numero di telefono non valido.';
-    }
-    if ($saldo === '' || !is_numeric($saldo)) {
-        $errors[] = 'Saldo non valido.';
-    }
-    if ($new_pass !== '' && strlen($new_pass) < 8) {
-        $errors[] = 'La nuova password deve avere almeno 8 caratteri.';
-    }
-
-    // [UPDATE] Se non ci sono errori → aggiorno DB
-    if (!$errors) {
-        // [SQL BASE] Aggiorno SOLO i campi testuali + saldo (SENZA is_active)
-        $sql = "UPDATE utenti 
-                   SET nome    = :nome,
-                       cognome = :cognome,
-                       email   = :email,
-                       phone   = :phone,
-                       crediti = :crediti
-                 WHERE id = :id";
-        $params = [
-            ':nome'    => $nome,
-            ':cognome' => $cognome,
-            ':email'   => $email,
-            ':phone'   => $phone,
-            ':crediti' => (float)$saldo,
-            ':id'      => $user_id,
-        ];
-
-        // [PASSWORD] Se admin ha chiesto reset password → rigenero hash e includo il campo
-        if ($new_pass !== '') {
-            $hash = password_hash($new_pass, PASSWORD_DEFAULT);   // hash sicuro
-            $sql = "UPDATE utenti 
-                       SET nome          = :nome,
-                           cognome       = :cognome,
-                           email         = :email,
-                           phone         = :phone,
-                           crediti       = :crediti,
-                           password_hash = :hash
-                     WHERE id = :id";
-            $params[':hash'] = $hash;                             // aggiungo il parametro
+    if ($action === 'toggle_active' && $user_id > 0) {
+        // blocco utente speciale
+        $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1");
+        $chk->execute([':id' => $user_id]);
+        if ($chk->fetchColumn() === 'valenzo2313') {
+            $_SESSION['flash'] = 'Questo utente non può essere disattivato.';
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query"); exit;
         }
 
-        // [SQL] Eseguo l’UPDATE
-        $up = $pdo->prepare($sql);
-        $up->execute($params);
+        $new_state = (int)($_POST['new_state'] ?? 0);
+        $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");
+        $up->execute([':a'=>$new_state, ':id'=>$user_id]);
 
-        // [UX] Messaggio di conferma
-        $flash = 'Modifiche salvate.';
-
-        // [PRG] Redirect per ricaricare la pagina e riflettere i dati aggiornati
-        $_SESSION['flash'] = $flash;
-        $query = http_build_query([
-            'page' => (int)($_GET['page'] ?? 1),
-            'sort' => $_GET['sort'] ?? 'cognome',
-            'dir'  => $_GET['dir']  ?? 'asc',
-            'q'    => $_GET['q']    ?? '',
-        ]);
-        header("Location: /admin/dashboard.php?$query");
-        exit;
-    }
-}
+        $_SESSION['flash'] = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
+        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+        header("Location: /admin/dashboard.php?$query"); exit;
     }
 
     // ==========================================================
-    // 3. ADMIN VERIFY EMAIL (nuovo)
+    // 2) UPDATE DATI UTENTE (NO is_active qui!)
+    // ==========================================================
+    if ($action === 'update_user' && $user_id > 0) {
+        $nome     = trim($_POST['nome'] ?? '');
+        $cognome  = trim($_POST['cognome'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
+        $phone    = trim($_POST['phone'] ?? '');
+        $saldo    = $_POST['crediti'] ?? '';
+        $new_pass = $_POST['new_password'] ?? '';
+
+        // validazioni
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) { $errors[] = 'Email non valida.'; }
+        if ($phone !== '' && !preg_match('/^\+?[0-9\- ]{7,20}$/', $phone)) { $errors[] = 'Numero di telefono non valido.'; }
+        if ($saldo === '' || !is_numeric($saldo)) { $errors[] = 'Saldo non valido.'; }
+        if ($new_pass !== '' && strlen($new_pass) < 8) { $errors[] = 'La nuova password deve avere almeno 8 caratteri.'; }
+
+        if (!$errors) {
+            // base
+            $sql = "UPDATE utenti
+                       SET nome=:nome, cognome=:cognome, email=:email, phone=:phone, crediti=:crediti
+                     WHERE id=:id";
+            $params = [
+                ':nome'=>$nome, ':cognome'=>$cognome, ':email'=>$email,
+                ':phone'=>$phone, ':crediti'=>(float)$saldo, ':id'=>$user_id
+            ];
+
+            // reset password opzionale
+            if ($new_pass !== '') {
+                $hash = password_hash($new_pass, PASSWORD_DEFAULT);
+                $sql = "UPDATE utenti
+                           SET nome=:nome, cognome=:cognome, email=:email, phone=:phone, crediti=:crediti, password_hash=:hash
+                         WHERE id=:id";
+                $params[':hash'] = $hash;
+            }
+
+            $up = $pdo->prepare($sql);
+            $up->execute($params);
+
+            $_SESSION['flash'] = 'Modifiche salvate.';
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query"); exit;
+        }
+    }
+
+    // ==========================================================
+    // 3) ADMIN VERIFY EMAIL (convalida manuale)
     // ==========================================================
     if ($action === 'admin_verify_email' && $user_id > 0) {
-        // [SQL] Segno verified_at, pulisco il token e attivo l’utente
-        $up = $pdo->prepare("UPDATE utenti 
-                             SET verified_at = NOW(), verification_token = NULL, is_active = 1 
+        $up = $pdo->prepare("UPDATE utenti
+                             SET verified_at = NOW(), verification_token = NULL, is_active = 1
                              WHERE id = :id");
-        $up->execute([':id' => $user_id]);
+        $up->execute([':id'=>$user_id]);
 
-        // [UX] Messaggio flash
-        $flash = 'Email convalidata e utente attivato.';
-
-        // [PRG] Redirect per ricaricare la lista aggiornata
-        $_SESSION['flash'] = $flash;
+        $_SESSION['flash'] = 'Email convalidata e utente attivato.';
         $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
-        header("Location: /admin/dashboard.php?$query");
-        exit;
+        header("Location: /admin/dashboard.php?$query"); exit;
     }
 
- // ==========================================================
-// 4. ELIMINA UTENTE (nuovo)
-// ==========================================================
-if ($action === 'admin_delete_user' && $user_id > 0) {
-    // [SICUREZZA] Evita che l'admin si cancelli da solo
-    if (!empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $user_id) {
-        $_SESSION['flash'] = 'Non puoi eliminare il tuo stesso account.';
-        $query = http_build_query([
-            'page' => $_GET['page'] ?? 1,
-            'sort' => $_GET['sort'] ?? 'cognome',
-            'dir'  => $_GET['dir']  ?? 'asc',
-            'q'    => $_GET['q']    ?? '',
-        ]);
-        header("Location: /admin/dashboard.php?$query"); 
-        exit;
+    // ==========================================================
+    // 4) ELIMINA UTENTE (con protezioni)
+    // ==========================================================
+    if ($action === 'admin_delete_user' && $user_id > 0) {
+        // non posso eliminare me stesso
+        if (!empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $user_id) {
+            $_SESSION['flash'] = 'Non puoi eliminare il tuo stesso account.';
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query"); exit;
+        }
+        // non posso eliminare l’utente speciale
+        $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1");
+        $chk->execute([':id'=>$user_id]);
+        if ($chk->fetchColumn() === 'valenzo2313') {
+            $_SESSION['flash'] = 'L’utente speciale non può essere eliminato.';
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query"); exit;
+        }
+
+        $del = $pdo->prepare("DELETE FROM utenti WHERE id = :id");
+        $del->execute([':id'=>$user_id]);
+
+        $_SESSION['flash'] = 'Utente eliminato definitivamente.';
+        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+        header("Location: /admin/dashboard.php?$query"); exit;
     }
+} // <-- unica graffa di chiusura del blocco POST
 
     // [SICUREZZA] Utente speciale "valenzo2313": non eliminabile
     $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1");
