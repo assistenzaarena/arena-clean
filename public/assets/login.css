@@ -70,7 +70,7 @@
 
 .auth__register {
   display:inline-flex; align-items:center; justify-content:center;
-  height: 44px; padding: 0 18px;
+  height: 20px; padding: 0 18px;
   border:1px solid rgba(255,255,255,.35);
   border-radius:9999px;
   color:#fff; text-decoration:none; font-weight:800;
