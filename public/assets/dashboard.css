@@ -166,3 +166,9 @@ tbody td input[type=password] {
   color: #00d07e;
   margin-bottom: 8px;
 }
+.btn-delete{
+  background:#222; border-color:#444;
+}
+.btn-delete:hover{
+  border-color:#fff;
+}
