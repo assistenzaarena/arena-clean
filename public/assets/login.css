@@ -7,7 +7,7 @@
   align-items: center;               /* centra orizzontalmente i blocchi */
   justify-content: flex-start;       /* tutto in alto, niente distribuzione strana */
   padding: 32px 16px;
-  gap: 10px;                          /* <— distanza REALE tra card e cta (prova 4–8px) */
+  gap: 20px;                          /* <— distanza REALE tra card e cta (prova 4–8px) */
 }
 
 /* Card */
