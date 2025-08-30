@@ -6,7 +6,6 @@
   width:100%;
   margin:0;
   padding:0;
-  height:20px;
   font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
 }
 .hdr__inner {
@@ -16,13 +15,13 @@
   display:flex;
   align-items:center;
   justify-content:space-between;
-  height:20px;             /* altezza barra */
+  height:50px;             /* altezza barra */
 }
 
 /* Logo */
 .logo { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:#fff; }
 .logo__img { height:40px; width:auto; display:block; }
-.logo__text { font-weight:900; font-size:15px; text-transform:uppercase; letter-spacing:.05em; }
+.logo__text { font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:.05em; }
 
 /* Azioni a destra */
 .hdr__right { display:flex; align-items:center; gap:14px; }
