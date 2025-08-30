@@ -56,22 +56,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
     // ==========================================================
     // 1. TOGGLE ATTIVO/DISATTIVO
     // ==========================================================
-    if ($action === 'toggle_active' && $user_id > 0) {
-        $new_state = (int)($_POST['new_state'] ?? 0);   // 1 = attivo, 0 = disattivo
+if ($action === 'toggle_active' && $user_id > 0) {
+    // [SICUREZZA] Prelevo lo username della riga che sto toccando
+    $chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1"); // prepared per sicurezza
+    $chk->execute([':id' => $user_id]);                                         // eseguo bind id
+    $uname = $chk->fetchColumn();                                               // prendo solo lo username
 
-        // [SQL] Aggiorno il campo is_active
-        $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");
-        $up->execute([':a' => $new_state, ':id' => $user_id]);
-
-        // [UX] Messaggio di conferma
-        $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
-
-        // [PRG] Redirect per ricaricare la pagina e mostrare il nuovo stato subito
-        $_SESSION['flash'] = $flash;
-        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+    // [REGOLA] L'utente speciale *valenzo2313* non può MAI essere disattivato.
+    if ($uname === 'valenzo2313') {                                             // se è lui...
+        $_SESSION['flash'] = 'Questo utente non può essere disattivato.';       // messaggio per l’admin
+        // PRG redirect: ricarico la dashboard con i filtri correnti e STOP.
+        $query = http_build_query([
+            'page' => (int)($_GET['page'] ?? 1),
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
         header("Location: /admin/dashboard.php?$query");
         exit;
     }
+
+    // [SE ARRIVO QUI] Posso procedere col toggle
+    $new_state = (int)($_POST['new_state'] ?? 0);                                // 1=attivo, 0=disattivo
+    $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");     // aggiorno flag
+    $up->execute([':a' => $new_state, ':id' => $user_id]);                       // esecuzione
+
+    $_SESSION['flash'] = $new_state ? 'Utente attivato.' : 'Utente disattivato.';// feedback
+    $query = http_build_query([
+        'page' => (int)($_GET['page'] ?? 1),
+        'sort' => $_GET['sort'] ?? 'cognome',
+        'dir'  => $_GET['dir']  ?? 'asc',
+        'q'    => $_GET['q']    ?? '',
+    ]);
+    header("Location: /admin/dashboard.php?$query");
+    exit;
+}
 
     // ==========================================================
     // 2. UPDATE DATI UTENTE (nome, cognome, email, telefono, saldo, password)
@@ -85,6 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta
         $is_active = isset($_POST['is_active']) ? 1 : 0;  // compatibilità: se c’è ancora il vecchio checkbox
         $saldo     = $_POST['crediti'] ?? '';
         $new_pass  = $_POST['new_password'] ?? '';
+
+        // [SICUREZZA] Se sto aggiornando l'utente "valenzo2313", forzo is_active=1 (sempre attivo)
+$chk = $pdo->prepare("SELECT username FROM utenti WHERE id = :id LIMIT 1"); // prendo username
+$chk->execute([':id' => $user_id]);
+if ($chk->fetchColumn() === 'valenzo2313') { $is_active = 1; }              // non permetto di portarlo a 0
 
         // [VALIDAZIONI]
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -395,89 +419,91 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
       </tr>
     </thead>
     <tbody>
-    <?php foreach ($users as $u): ?>
-      <tr>
-        <!-- Ogni riga è un form indipendente:
-             - submit con name="action" value="toggle_active" per cambiare stato
-             - submit con name="action" value="update_user" per salvare i campi -->
-        <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
-          <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
+ <?php foreach ($users as $u): ?>
+  <tr>
+    <!-- Ogni riga è un form indipendente:
+         - submit con name="action" value="toggle_active" per cambiare stato
+         - submit con name="action" value="update_user" per salvare i campi -->
+    <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
+      <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
 
-          <td>
-            <input type="text" name="nome"
-                   value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
-          </td>
+      <td>
+        <input type="text" name="nome"
+               value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
+      </td>
 
-          <td>
-            <input type="text" name="cognome"
-                   value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
-          </td>
+      <td>
+        <input type="text" name="cognome"
+               value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
+      </td>
 
-          <td>
-            <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
-          </td>
+      <td>
+        <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
+      </td>
 
-          <td>
-            <input type="email" name="email"
-                   value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
-          </td>
+      <td>
+        <input type="email" name="email"
+               value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
+      </td>
 
-          <td>
-            <input type="tel" name="phone"
-                   value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
-          </td>
+      <td>
+        <input type="tel" name="phone"
+               value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
+      </td>
 
-          <?php
-            // Stato bottone = SOLO is_active (verde/rosso). La verifica email NON influenza il colore del bottone.
-// N.B. Il LOGIN resta comunque bloccato se verified_at è NULL (controllo in login.php).
-$eff_active  = ((int)$u['is_active'] === 1);                 // true se attivo, false se disattivo
-$state_text  = $eff_active ? 'Attivo' : 'Inattivo';          // label bottone
-$state_class = $eff_active ? 'btn-state on' : 'btn-state off'; // classe CSS bottone
-$next_state  = $eff_active ? 0 : 1;                          // nuovo stato al click
-// Tooltip: se l'email non è verificata, lo spieghiamo ma NON influenziamo il colore
-$reason = is_null($u['verified_at'])
-          ? 'Email non verificata (login bloccato finché non verifichi o finché admin non convalida)'
-          : '';
-          ?>
-          <td>
-            <!-- hidden con il nuovo stato da applicare al toggle -->
-            <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
-            <!-- Pulsante stato: submit con action specifica -->
-            <button type="submit"
-                    name="action" value="toggle_active"
-                    class="<?php echo $state_class; ?>"
-                    title="<?php echo htmlspecialchars($reason); ?>">
-              <?php echo $state_text; ?>
-            </button>
-            <?php if (is_null($u['verified_at'])): ?>
-              <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
-            <?php endif; ?>
-          </td>
+      <?php
+        // Stato bottone = SOLO is_active (verde/rosso). La verifica email NON influenza il colore del bottone.
+        // N.B. Il LOGIN resta comunque bloccato se verified_at è NULL (controllo in login.php).
+        $eff_active  = ((int)$u['is_active'] === 1);                 // true se attivo, false se disattivo
+        $state_text  = $eff_active ? 'Attivo' : 'Inattivo';          // label bottone
+        $state_class = $eff_active ? 'btn-state on' : 'btn-state off'; // classe CSS bottone
+        $next_state  = $eff_active ? 0 : 1;                          // nuovo stato al click
+        // Tooltip: se l'email non è verificata, lo spieghiamo ma NON influenziamo il colore
+        $reason = is_null($u['verified_at'])
+                  ? 'Email non verificata (login bloccato finché non verifichi o finché admin non convalida)'
+                  : '';
+      ?>
+      <td>
+        <?php if ($u['username'] === 'valenzo2313'): ?>
+          <!-- UTENTE SPECIALE: sempre attivo, toggle disabilitato in UI -->
+          <button type="button" class="btn-state on" title="Utente sempre attivo" disabled>Sempre attivo</button>
+          <?php if (is_null($u['verified_at'])): ?>
+            <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
+          <?php endif; ?>
+        <?php else: ?>
+          <!-- hidden con il nuovo stato da applicare al toggle -->
+          <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
+          <!-- Pulsante stato: submit con action specifica -->
+          <button type="submit"
+                  name="action" value="toggle_active"
+                  class="<?php echo $state_class; ?>"
+                  title="<?php echo htmlspecialchars($reason); ?>">
+            <?php echo $state_text; ?>
+          </button>
+          <?php if (is_null($u['verified_at'])): ?>
+            <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
+          <?php endif; ?>
+        <?php endif; ?>
+      </td>
 
-          <td>
-            <input type="number" step="0.01" name="crediti"
-                   value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"><!-- saldo editabile -->
-          </td>
+      <td>
+        <input type="number" step="0.01" name="crediti"
+               value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"><!-- saldo editabile -->
+      </td>
 
-          <td>
-            <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
-          </td>
-            <td class="actions">
-  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
-  <!-- NUOVO: cestino che apre il popup -->
-  <button type="button"
-          class="btn btn-delete"
-          data-user-id="<?php echo (int)$u['id']; ?>"
-          data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
-    🗑 Elimina
-  </button>
-  <!-- Salvataggio campi della riga -->
-  <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
-</td>
-        </form>
-      </tr>
-    <?php endforeach; ?>
+      <td>
+        <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
+      </td>
+
+      <td class="actions">
+        <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
+        <!-- Salvataggio campi della riga -->
+        <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+      </td>
+    </form>
+  </tr>
+<?php endforeach; ?>
     </tbody>
   </table>
 
