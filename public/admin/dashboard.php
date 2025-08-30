@@ -332,37 +332,49 @@ $offset = ($page - 1) * $perPage;                                               
 // ------------------------
 // Costruzione query lista utenti (sicura)
 // ------------------------
-$where = "1=1";                                                                 // base: nessun filtro
-$params = [];                                                                    // parametri bind
+// ------------------------
+// Costruzione query lista utenti (sicura)
+// ------------------------
+$where    = "1=1";                     // base: nessun filtro
+$bindings = [];                        // SOLO qui teniamo i parametri da bindare
 
-if ($q !== '') {                                                                // se c’è ricerca, aggiungiamo filtro LIKE su più campi
+// [RICERCA] Se c'è q, aggiungiamo filtro e prepariamo il valore da bindare
+if ($q !== '') {
     $where .= " AND (nome LIKE :q OR cognome LIKE :q OR username LIKE :q OR email LIKE :q OR phone LIKE :q)";
-    $params[':q'] = '%' . $q . '%';                                             // pattern
+    $bindings[':q'] = '%' . $q . '%';  // pattern per LIKE
 }
 
-// [RIGA] Conteggio totale per paginazione
-// [RIGA] Conteggio totale per paginazione (bind solo se esistono parametri)
+// [RIGA] Conteggio totale per paginazione (bind solo i parametri presenti)
 $countSql  = "SELECT COUNT(*) FROM utenti WHERE $where";
 $countStmt = $pdo->prepare($countSql);
-// Se abbiamo il parametro :q (ricerca), lo bindi
-foreach ($params as $k => $v) { $countStmt->bindValue($k, $v, PDO::PARAM_STR); }
+
+// Se esiste :q, lo bindiamo (altrimenti niente bind)
+if (isset($bindings[':q'])) {
+    $countStmt->bindValue(':q', $bindings[':q'], PDO::PARAM_STR);
+}
+
 $countStmt->execute();
 $total = (int)$countStmt->fetchColumn();
 
-// [RIGA] Lista utenti con ordinamento e paginazione (bind :q, :lim, :off)
+// [RIGA] Lista utenti (bind :q se c’è, e SEMPRE :lim / :off)
 $listSql  = "SELECT id, nome, cognome, username, email, phone, crediti, is_active, verified_at
              FROM utenti
              WHERE $where
              ORDER BY $sort " . strtoupper($dir) . "
              LIMIT :lim OFFSET :off";
 $listStmt = $pdo->prepare($listSql);
-// Bind della ricerca (se presente)
-foreach ($params as $k => $v) { $listStmt->bindValue($k, $v, PDO::PARAM_STR); }
-// Bind della paginazione
-$listStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
-$listStmt->bindValue(':off', $offset,  PDO::PARAM_INT);
+
+// Bind della ricerca solo se presente
+if (isset($bindings[':q'])) {
+    $listStmt->bindValue(':q', $bindings[':q'], PDO::PARAM_STR);
+}
+// Bind della paginazione SEMPRE
+$listStmt->bindValue(':lim', (int)$perPage, PDO::PARAM_INT);
+$listStmt->bindValue(':off', (int)$offset,  PDO::PARAM_INT);
+
+// Esecuzione senza array (abbiamo già bindato tutto)
 $listStmt->execute();
-$users = $listStmt->fetchAll();                                    
+$users = $listStmt->fetchAll();                                   
 
 // [RIGA] Totale utenti per il badge in alto
 $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  // numero totale utenti
