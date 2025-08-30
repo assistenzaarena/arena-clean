@@ -16,16 +16,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {                          // [RIGA] 
     $username = trim($_POST['username'] ?? '');                       // [RIGA] Username/email (riduciamo spazi ai lati)
     $password = $_POST['password'] ?? '';                             // [RIGA] Password (non usiamo trim)
 
-    // [RIGA] Query pulita: NIENTE commenti dentro gli apici!
-    //       Leggiamo id, hash password, ruolo e stato 2FA
-    $stmt = $pdo->prepare(
-        "SELECT id, password_hash, role, totp_enabled
-         FROM utenti
-         WHERE username = :u
-         LIMIT 1"
-    );                                                                // [RIGA] Prepared statement (sicuro)
-    $stmt->execute([':u' => $username]);                              // [RIGA] Bind del parametro :u
-    $user = $stmt->fetch();                                           // [RIGA] Riga utente o false
+<?php
+// [RIGA] Query pulita: cerca sia per username che per email
+$stmt = $pdo->prepare(
+    "SELECT id, password_hash, role, totp_enabled
+     FROM utenti
+     WHERE username = :u OR email = :u
+     LIMIT 1"
+); // [RIGA] Così se l’utente scrive l’email funziona uguale
+$stmt->execute([':u' => $username]); // [RIGA] Bind unico: usiamo lo stesso dato per username/email
+$user = $stmt->fetch();              // [RIGA] Riga utente (o false se non trovata)
 
     // [RIGA] Verifica credenziali
     if ($user && password_verify($password, $user['password_hash'])) {// [RIGA] Hash combacia → credenziali ok
