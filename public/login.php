@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8"><title>Login</title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_login.css">
-  <link rel="stylesheet" href="/assets/login.css">
+  <link rel="stylesheet" href="/assets/login.css?v=5">
 </head>
 <body>
 <main class="auth">
