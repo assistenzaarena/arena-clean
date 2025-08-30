@@ -168,35 +168,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   <!-- [RIGA] CSS condivisi -->
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
-
-  <style>
-    /* [RIGA] Stili minimi per la tabella tipo “console” */
-    .admin-wrap { max-width: 1280px; margin: 24px auto; padding: 0 20px; color:#fff; }
-    .kpi { background:#111; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:16px; display:inline-block; }
-    .filters { display:flex; gap:12px; align-items:center; margin: 12px 0; }
-    .filters input[type=text]{ height:36px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#0a0a0b; color:#fff; padding:0 10px; }
-    .filters select{ height:36px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#0a0a0b; color:#fff; }
-    table { width:100%; border-collapse: separate; border-spacing: 0 8px; }
-    thead th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.03em; color:#c9c9c9; }
-    tbody tr { background:#111; border:1px solid rgba(255,255,255,.08); }
-    tbody td { padding:10px; vertical-align:middle; }
-    tbody td input[type=text], tbody td input[type=number], tbody td input[type=email], tbody td input[type=tel], tbody td input[type=password] {
-      width:100%; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.2); background:#0a0a0b; color:#fff; padding:0 10px;
-    }
-    .pill { display:inline-flex; align-items:center; justify-content:center; height:28px; padding:0 10px; border-radius:9999px; font-size:12px; font-weight:800; }
-    .pill-on { background:#00c074; color:#0b1; }
-    .pill-off{ background:#333; color:#bbb; }
-    .btn { display:inline-flex; align-items:center; justify-content:center; height:32px; padding:0 12px; border:1px solid rgba(255,255,255,.25); border-radius:8px; color:#fff; text-decoration:none; font-weight:800; }
-    .btn:hover { border-color:#fff; }
-    .btn-apply { background:#e62329; border-color:#e62329; }
-    .btn-apply:hover { background:#c61e28; border-color:#c61e28; }
-    .actions { display:flex; gap:8px; }
-    .pag { margin-top: 12px; display:flex; gap:6px; }
-    .pag a { color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,.25); padding:4px 8px; border-radius:6px; }
-    .pag .on { background:#fff; color:#000; }
-    .err { color:#ff6b6b; margin-bottom:8px; }
-    .flash { color:#00d07e; margin-bottom:8px; }
-  </style>
+<link rel="stylesheet" href="/assets/dashboard.css">
 </head>
 <body>
 
