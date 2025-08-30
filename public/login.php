@@ -1,6 +1,6 @@
 <?php
 if (session_status() !== PHP_SESSION_NONE) { session_start(); } // avvia sessione prima di ogni output
-require __DIR__ . '/header_user.php';?>
+require __DIR__ . '/header_login.php';?>
 <?php
 // [SCOPO] Pagina di login: mostra un form e autentica l'utente demo (o futuri utenti da DB).
 
