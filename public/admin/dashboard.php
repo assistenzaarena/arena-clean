@@ -544,11 +544,21 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         <input type="password" name="new_password" placeholder="Reset (opzionale)"><!-- reset password -->
       </td>
 
-      <td class="actions">
-        <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
-        <!-- Salvataggio campi della riga -->
-        <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
-      </td>
+    <td class="actions">
+  <!-- Link Movimenti -->
+  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
+
+  <!-- Cestino: apre il popup di conferma -->
+  <button type="button"
+          class="btn btn-delete"
+          data-user-id="<?php echo (int)$u['id']; ?>"
+          data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+    🗑 Elimina
+  </button>
+
+  <!-- Salvataggio campi della riga -->
+  <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+</td>
     </form>
   </tr>
 <?php endforeach; ?>
