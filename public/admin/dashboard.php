@@ -469,6 +469,18 @@ $reason = is_null($u['verified_at'])
             <!-- Salvataggio campi della riga -->
             <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
           </td>
+            <td class="actions">
+  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
+  <!-- NUOVO: cestino che apre il popup -->
+  <button type="button"
+          class="btn btn-delete"
+          data-user-id="<?php echo (int)$u['id']; ?>"
+          data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+    🗑 Elimina
+  </button>
+  <!-- Salvataggio campi della riga -->
+  <button class="btn btn-apply" type="submit" name="action" value="update_user">Applica modifiche</button>
+</td>
         </form>
       </tr>
     <?php endforeach; ?>
@@ -486,10 +498,85 @@ $reason = is_null($u['verified_at'])
       <a class="<?php echo $cls; ?>" href="<?php echo $url; ?>"><?php echo $p; ?></a>
     <?php endfor; ?>
   </div>
+  <!-- =======================
+       POPUP ELIMINAZIONE (unico)
+       ======================= -->
+  <div id="deleteModal" class="modal" style="display:none;
+       position:fixed; inset:0; background:rgba(0,0,0,.6);
+       align-items:center; justify-content:center; z-index:9999;">
+    <div class="modal-card" style="background:#111; border:1px solid #333; border-radius:12px; padding:16px; width:420px; color:#fff;">
+      <h3 style="margin:0 0 8px; font-size:18px;">Elimina utente</h3>
+      <p id="deleteText" style="margin:0 0 12px; color:#ddd;">
+        Sei sicuro di voler eliminare definitivamente questo utente?
+      </p>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" id="btnCancel" class="btn">Annulla</button>
+        <!-- Il submit “Conferma” invia il form nascosto sotto -->
+        <button type="button" id="btnConfirm" class="btn btn-apply" style="background:#e62329;border-color:#e62329;">Conferma</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Form nascosto che verrà popolare dal popup -->
+  <form id="deleteForm" method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>" style="display:none">
+    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+    <input type="hidden" name="action" value="admin_delete_user">
+    <input type="hidden" name="user_id" id="deleteUserId" value="">
+  </form>
 </main>
 
 <?php require __DIR__ . '/../footer.php'; ?> <!-- footer -->
+    <script>
+  // [SCOPO] Aggancia i pulsanti "🗑 Elimina" e gestisce il popup di conferma
+
+  // Elementi del popup e del form
+  const modal = document.getElementById('deleteModal');
+  const text  = document.getElementById('deleteText');
+  const btnC  = document.getElementById('btnCancel');
+  const btnOK = document.getElementById('btnConfirm');
+  const form  = document.getElementById('deleteForm');
+  const hidId = document.getElementById('deleteUserId');
+
+  // Stato selezione corrente
+  let currentUserId = null;
+
+  // Apre il popup con i dati dell'utente
+  function openDelete(userId, username) {
+    currentUserId = userId;
+    hidId.value = userId;
+    text.textContent = `Sei sicuro di voler eliminare definitivamente l'utente "${username}"?`;
+    modal.style.display = 'flex';
+  }
+
+  // Chiude il popup
+  function closeDelete() {
+    modal.style.display = 'none';
+    currentUserId = null;
+  }
+
+  // Click sul cestino: data-* sugli elementi
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const uid = btn.getAttribute('data-user-id');
+      const un  = btn.getAttribute('data-user-name') || '';
+      openDelete(uid, un);
+    });
+  });
+
+  // Bottoni nel popup
+  btnC.addEventListener('click', closeDelete);
+  btnOK.addEventListener('click', () => form.submit());
+
+  // Chiudi cliccando fuori dalla card
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeDelete();
+  });
+
+  // Esc per chiudere
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') closeDelete();
+  });
+</script>
 
 </body>
 </html>
