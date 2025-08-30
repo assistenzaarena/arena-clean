@@ -124,13 +124,23 @@ if ($user_code === null) {                                    // se per caso 10 
         // [RIGA] Token verifica email (esadecimale 32 char)
         $token = bin2hex(random_bytes(16));
 
-    // [RIGA] Insert nuovo utente con NOME e COGNOME inclusi
-//        NOTA: prima non li salvavamo, per questo risultavano vuoti in dashboard.
+// [RIGA] Generiamo un codice univoco a 5 cifre per l’utente
+//        (es. "04231"), controlliamo che non esista già
+function generaCodiceUtente(PDO $pdo): string {
+    do {
+        $codice = str_pad((string)random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+        $chk = $pdo->prepare("SELECT 1 FROM utenti WHERE user_code = :c LIMIT 1");
+        $chk->execute([':c' => $codice]);
+    } while ($chk->fetch()); // ripeti se già usato
+    return $codice;
+}
+$user_code = generaCodiceUtente($pdo);
+
 // [RIGA] Insert nuovo utente con NOME e COGNOME inclusi
 //        e con is_active = 0 (disattivo finché non verifica l’email o lo attiva admin)
 $ins = $pdo->prepare('
     INSERT INTO utenti (
-    user_code,         -- [NEW] codice a 5 cifre univoco
+        user_code,         -- [NEW] codice a 5 cifre univoco
         nome,              -- nome dell’utente
         cognome,           -- cognome dell’utente
         username,          -- username univoco
@@ -140,11 +150,11 @@ $ins = $pdo->prepare('
         crediti,           -- saldo iniziale (0)
         verification_token,-- token verifica email
         verified_at,       -- NULL finché non verifica
-        is_active,         -- [NEW] 0 = disattivo
+        is_active,         -- 0 = disattivo
         created_at         -- timestamp creazione
     )
     VALUES (
-        :uc,               -- [NEW] bind del codice
+        :uc,               -- bind codice
         :n,                -- bind nome
         :c,                -- bind cognome
         :u,                -- bind username
@@ -154,21 +164,21 @@ $ins = $pdo->prepare('
         0,                 -- crediti iniziali
         :t,                -- bind token verifica
         NULL,              -- non verificato all’inizio
-        0,                 -- [NEW] disattivo all’inizio
+        0,                 -- disattivo all’inizio
         NOW()              -- creato ora
     )
 ');
 
-// [RIGA] Esecuzione con TUTTI i parametri, inclusi nome e cognome
+// [RIGA] Esecuzione con TUTTI i parametri, inclusi user_code, nome e cognome
 $ins->execute([
-   ':uc' => $user_code,   // [NEW] il codice generato sopra
-    ':n' => $nome,         // [NEW] nome dal form
-    ':c' => $cognome,      // [NEW] cognome dal form
-    ':u' => $username,
-    ':h' => $hash,
-    ':e' => $email,
-    ':p' => $phone,
-    ':t' => $token,
+    ':uc' => $user_code,   // [NEW] il codice generato sopra
+    ':n'  => $nome,        // nome dal form
+    ':c'  => $cognome,     // cognome dal form
+    ':u'  => $username,
+    ':h'  => $hash,
+    ':e'  => $email,
+    ':p'  => $phone,
+    ':t'  => $token,
 ]);
 
         // [RIGA] Link di verifica per attivare l’account
