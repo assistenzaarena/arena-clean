@@ -2,7 +2,6 @@
 // [SCOPO] Footer unico per tutte le pagine (guest, user, admin).
 // [USO]   Includi alla fine di ogni pagina, prima di </body>:
 //         <?php require __DIR__ . '/footer.php'; ?>
-?>
 <link rel="stylesheet" href="/assets/footer.css">
 
 <footer class="site-footer" role="contentinfo">
