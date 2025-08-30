@@ -26,9 +26,15 @@ try {
         die('Token non valido o già usato.');
     }
 
-    // [RIGA] Attivo l'account: set verified_at e pulisco il token
-    $u = $pdo->prepare('UPDATE utenti SET verified_at = NOW(), verification_token = NULL WHERE id = :id');
-    $u->execute([':id' => $row['id']]);
+    // [RIGA] Attivo l'account: segno la verifica, pulisco il token e rendo attivo l’utente
+$u = $pdo->prepare('
+    UPDATE utenti
+    SET verified_at = NOW(),
+        verification_token = NULL,
+        is_active = 1
+    WHERE id = :id
+');
+$u->execute([':id' => $row['id']]);
 
     // [RIGA] Messaggio finale
     echo 'Account verificato. Ora puoi accedere: <a href="/login.php">Login</a>';
