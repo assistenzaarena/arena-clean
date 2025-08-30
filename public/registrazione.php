@@ -102,18 +102,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // [RIGA] Token verifica email (esadecimale 32 char)
         $token = bin2hex(random_bytes(16));
 
-        // [RIGA] Insert nuovo utente (verified_at NULL finché non conferma)
-        $ins = $pdo->prepare('
-            INSERT INTO utenti (username, password_hash, email, phone, crediti, verification_token, verified_at, created_at)
-            VALUES (:u, :h, :e, :p, 0, :t, NULL, NOW())
-        ');
-        $ins->execute([
-            ':u' => $username,
-            ':h' => $hash,
-            ':e' => $email,
-            ':p' => $phone,
-            ':t' => $token,
-        ]);
+    // [RIGA] Insert nuovo utente con NOME e COGNOME inclusi
+//        NOTA: prima non li salvavamo, per questo risultavano vuoti in dashboard.
+$ins = $pdo->prepare('
+    INSERT INTO utenti (
+        nome,              -- [NEW] nome dell’utente
+        cognome,           -- [NEW] cognome dell’utente
+        username,          -- username univoco
+        password_hash,     -- hash della password
+        email,             -- email univoca
+        phone,             -- telefono univoco
+        crediti,           -- saldo iniziale (0)
+        verification_token,-- token verifica email
+        verified_at,       -- NULL finché non verifica
+        created_at         -- timestamp creazione
+    )
+    VALUES (
+        :n,                -- bind nome
+        :c,                -- bind cognome
+        :u,                -- bind username
+        :h,                -- bind hash password
+        :e,                -- bind email
+        :p,                -- bind telefono
+        0,                 -- crediti iniziali
+        :t,                -- bind token verifica
+        NULL,              -- non verificato all’inizio
+        NOW()              -- creato ora
+    )
+');
+
+// [RIGA] Esecuzione con TUTTI i parametri, inclusi nome e cognome
+$ins->execute([
+    ':n' => $nome,         // [NEW] nome dal form
+    ':c' => $cognome,      // [NEW] cognome dal form
+    ':u' => $username,
+    ':h' => $hash,
+    ':e' => $email,
+    ':p' => $phone,
+    ':t' => $token,
+]);
 
         // [RIGA] Link di verifica per attivare l’account
         $verifyUrl = sprintf(
