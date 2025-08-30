@@ -65,7 +65,7 @@
 .auth__submit {
   background:#00c074;
 }
-.auth__submit:hover { background:#c61e28; }
+.auth__submit:hover { background:#00a862; }
 
 /* Blocco sotto: link alla login (stile simile alla CTA login) */
 .auth__cta p {
