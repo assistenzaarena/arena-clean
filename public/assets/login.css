@@ -4,7 +4,7 @@
   display: grid;
   place-items: start center;
   padding: 32px 16px;
-  row-gap: 4px;  /* distanza tra card e blocco sotto */
+  row-gap: 1px;  /* distanza tra card e blocco sotto */
 }
 
 /* Card */
@@ -16,6 +16,7 @@
   border-radius: 12px;
   box-shadow: 0 8px 28px rgba(0,0,0,.2);
   padding: 20px;
+  margin: 0;
 }
 /* Titolo */
 .auth__title {
@@ -76,6 +77,8 @@
   color:#fff; text-decoration:none; font-weight:800;
 }
 .auth__register:hover { border-color:#fff; }
+.auth__card { outline: 1px solid red; }
+.auth__cta  { outline: 1px solid cyan; }
 
 /* Piccolo: stringi un filo */
 @media (max-width: 420px) {
