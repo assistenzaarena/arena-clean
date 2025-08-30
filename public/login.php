@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8"><title>Login</title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_login.css">
+  <link rel="stylesheet" href="/assets/login.css">
 </head>
 <body>
 <h1>Login</h1>
