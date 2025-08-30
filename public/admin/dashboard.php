@@ -50,6 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic
         $is_active = isset($_POST['is_active']) ? 1 : 0; // checkbox on/off → 1/0
         $saldo     = $_POST['crediti'] ?? '';         // saldo attuale (string, lo validiamo a numero)
         $new_pass  = $_POST['new_password'] ?? '';    // nuovo valore password (se vogliamo resettarla)
+    // ------------------------------------------
+// NUOVO RAMO: toggle stato attivo/inattivo
+// ------------------------------------------
+if ($action === 'toggle_active' && $user_id > 0) {               // [RIGA] Se è una richiesta di toggle
+    $new_state = (int)($_POST['new_state'] ?? 0);                // [RIGA] Nuovo stato richiesto: 1=attivo, 0=disattivo
+    $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id"); // [RIGA] Update solo del flag
+    $up->execute([':a' => $new_state, ':id' => $user_id]);       // [RIGA] Esecuzione
+    $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.'; // [RIGA] Messaggio di conferma
+}                                           
 
         // [RIGA] Validazioni semplici (puoi rafforzarle se vuoi)
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {      // email formale
@@ -253,12 +262,25 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
           <td><input type="email" name="email" value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"></td><!-- email editabile -->
           <td><input type="tel" name="phone" value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"></td><!-- telefono editabile -->
 
-          <td>
-            <label class="pill <?php echo $u['is_active'] ? 'pill-on' : 'pill-off'; ?>">
-              <input type="checkbox" name="is_active" <?php if($u['is_active']) echo 'checked'; ?> style="margin-right:6px;">
-              <?php echo $u['is_active'] ? 'Attivo' : 'Disattivo'; ?>
-            </label>
-          </td><!-- attivo/disattivo -->
+      <?php
+// Stato effettivo: attivo SOLO se is_active=1 E verified_at NON è NULL
+$eff_active = ((int)$u['is_active'] === 1) && !is_null($u['verified_at']);
+$state_text  = $eff_active ? 'Attivo' : 'Inattivo';
+$state_class = $eff_active ? 'btn-state on' : 'btn-state off';
+$next_state  = $eff_active ? 0 : 1;
+?>
+<td>
+  <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>" style="display:inline">
+    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+    <input type="hidden" name="action" value="toggle_active">
+    <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
+    <input type="hidden" name="new_state" value="<?php echo $next_state; ?>">
+    <button type="submit" class="<?php echo $state_class; ?>"><?php echo $state_text; ?></button>
+  </form>
+  <?php if (is_null($u['verified_at'])): ?>
+    <div style="font-size:11px;color:#ff9090;margin-top:4px;">Email non verificata</div>
+  <?php endif; ?>
+</td>
 
           <td><input type="number" step="0.01" name="crediti" value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"></td><!-- saldo editabile -->
 
