@@ -32,7 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!doctype html>
 <html lang="it">
-<head><meta charset="utf-8"><title>Login</title></head>
+<head>
+  <meta charset="utf-8"><title>Login</title>
+  <link rel="stylesheet" href="/assets/base.css">
+  <link rel="stylesheet" href="/assets/header_login.css">
+</head>
 <body>
 <h1>Login</h1>
 <?php if (!empty($error)) echo "<p style='color:red'>$error</p>"; ?>
