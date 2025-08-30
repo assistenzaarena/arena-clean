@@ -35,13 +35,130 @@ if (isset($_SESSION['flash'])) {                      // ← aggiunta minima per
     unset($_SESSION['flash']);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {          // se arriva un POST (clic su "Applica modifiche")
-    // [RIGA] Verifica CSRF
-    $posted_csrf = $_POST['csrf'] ?? '';              // token inviato nel form
-    if (!hash_equals($_SESSION['csrf'], $posted_csrf)) { // confronto costante
-        http_response_code(400);                      // richiesta non valida
-        die('CSRF non valido');                       // blocchiamo
+// ------------------------
+// Gestione aggiornamenti riga (POST)
+// ------------------------
+$flash = null;     // [RIGA] Messaggio flash da mostrare all’admin dopo un’azione
+$errors = [];      // [RIGA] Eventuali errori di validazione
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // [RIGA] Se arriva una richiesta POST (click pulsante)
+    // [RIGA] Verifica token CSRF
+    $posted_csrf = $_POST['csrf'] ?? '';       // recupero il token inviato nel form
+    if (!hash_equals($_SESSION['csrf'], $posted_csrf)) { // confronto sicuro contro quello in sessione
+        http_response_code(400);               // risposta HTTP 400 = bad request
+        die('CSRF non valido');                // blocco l’esecuzione
     }
+
+    // [RIGA] Recupero azione richiesta e ID utente
+    $action  = $_POST['action']  ?? '';        // es. "toggle_active", "update_user", "admin_verify_email"
+    $user_id = (int)($_POST['user_id'] ?? 0);  // id utente coinvolto
+
+    // ==========================================================
+    // 1. TOGGLE ATTIVO/DISATTIVO
+    // ==========================================================
+    if ($action === 'toggle_active' && $user_id > 0) {
+        $new_state = (int)($_POST['new_state'] ?? 0);   // 1 = attivo, 0 = disattivo
+
+        // [SQL] Aggiorno il campo is_active
+        $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");
+        $up->execute([':a' => $new_state, ':id' => $user_id]);
+
+        // [UX] Messaggio di conferma
+        $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
+
+        // [PRG] Redirect per ricaricare la pagina e mostrare il nuovo stato subito
+        $_SESSION['flash'] = $flash;
+        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
+    }
+
+    // ==========================================================
+    // 2. UPDATE DATI UTENTE (nome, cognome, email, telefono, saldo, password)
+    // ==========================================================
+    if ($action === 'update_user' && $user_id > 0) {
+        // [INPUT] Recupero i campi dal form
+        $nome      = trim($_POST['nome'] ?? '');
+        $cognome   = trim($_POST['cognome'] ?? '');
+        $email     = trim($_POST['email'] ?? '');
+        $phone     = trim($_POST['phone'] ?? '');
+        $is_active = isset($_POST['is_active']) ? 1 : 0;  // compatibilità: se c’è ancora il vecchio checkbox
+        $saldo     = $_POST['crediti'] ?? '';
+        $new_pass  = $_POST['new_password'] ?? '';
+
+        // [VALIDAZIONI]
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email non valida.';
+        }
+        if ($phone !== '' && !preg_match('/^\+?[0-9\- ]{7,20}$/', $phone)) {
+            $errors[] = 'Numero di telefono non valido.';
+        }
+        if ($saldo === '' || !is_numeric($saldo)) {
+            $errors[] = 'Saldo non valido.';
+        }
+        if ($new_pass !== '' && strlen($new_pass) < 8) {
+            $errors[] = 'La nuova password deve avere almeno 8 caratteri.';
+        }
+
+        // [UPDATE] Se non ci sono errori → aggiorno DB
+        if (!$errors) {
+            $sql = "UPDATE utenti 
+                    SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti 
+                    WHERE id = :id";
+            $params = [
+                ':nome'    => $nome,
+                ':cognome' => $cognome,
+                ':email'   => $email,
+                ':phone'   => $phone,
+                ':active'  => $is_active,
+                ':crediti' => (float)$saldo,
+                ':id'      => $user_id,
+            ];
+
+            // [PASSWORD] Se admin ha chiesto reset password → rigenero hash
+            if ($new_pass !== '') {
+                $hash = password_hash($new_pass, PASSWORD_DEFAULT);
+                $sql = "UPDATE utenti 
+                        SET nome = :nome, cognome = :cognome, email = :email, phone = :phone, is_active = :active, crediti = :crediti, password_hash = :hash 
+                        WHERE id = :id";
+                $params[':hash'] = $hash;
+            }
+
+            // [SQL] Eseguo l’update
+            $up = $pdo->prepare($sql);
+            $up->execute($params);
+
+            // [UX] Messaggio di conferma
+            $flash = 'Modifiche salvate.';
+
+            // [PRG] Redirect per ricaricare la pagina e riflettere i dati aggiornati
+            $_SESSION['flash'] = $flash;
+            $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+            header("Location: /admin/dashboard.php?$query");
+            exit;
+        }
+    }
+
+    // ==========================================================
+    // 3. ADMIN VERIFY EMAIL (nuovo)
+    // ==========================================================
+    if ($action === 'admin_verify_email' && $user_id > 0) {
+        // [SQL] Segno verified_at, pulisco il token e attivo l’utente
+        $up = $pdo->prepare("UPDATE utenti 
+                             SET verified_at = NOW(), verification_token = NULL, is_active = 1 
+                             WHERE id = :id");
+        $up->execute([':id' => $user_id]);
+
+        // [UX] Messaggio flash
+        $flash = 'Email convalidata e utente attivato.';
+
+        // [PRG] Redirect per ricaricare la lista aggiornata
+        $_SESSION['flash'] = $flash;
+        $query = http_build_query(['page'=>$_GET['page']??1,'sort'=>$_GET['sort']??'cognome','dir'=>$_GET['dir']??'asc','q'=>$_GET['q']??'']);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
+    }
+}
 
     // [RIGA] Prendiamo l’azione (per estensioni future) — qui gestiamo "update_user"
     $action  = $_POST['action']  ?? '';
