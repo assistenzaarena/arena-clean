@@ -197,7 +197,7 @@ if ($action === 'update_user' && $user_id > 0) {
         header("Location: /admin/dashboard.php?$query");
         exit;
     }
-}
+
     // ==========================================================
     // 4. ELIMINA UTENTE (nuovo)
     // ==========================================================
