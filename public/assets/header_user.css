@@ -35,7 +35,7 @@
 /* Crediti */
 .user-credits { display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
                 border:1px solid rgba(255,255,255,.2); border-radius:9999px; font-weight:700; }
-.credits-refresh { background:transparent; border:none; color:#ccc; cursor:pointer; font-size:14px; }
+.credits-refresh { background:transparent; border:none; color:#ccc; cursor:pointer; font-size:12px; }
 .credits-refresh:hover { color:#fff; }
 
 /* Avatar + nome */
@@ -52,8 +52,8 @@
 }
 
 .logout-form .btn {
-  height:36px;                 /* stessa altezza degli altri bottoni */
-  padding:-2 12px;              /* stesso padding */
+  height:30px;                 /* stessa altezza degli altri bottoni */
+  padding:0 12px;              /* stesso padding */
   font-size:12px;
   font-weight:800;
   border-radius:9999px;
