@@ -131,6 +131,7 @@ if ($user_code === null) {                                    // se per caso 10 
 //        e con is_active = 0 (disattivo finché non verifica l’email o lo attiva admin)
 $ins = $pdo->prepare('
     INSERT INTO utenti (
+    user_code,         -- [NEW] codice a 5 cifre univoco
         nome,              -- nome dell’utente
         cognome,           -- cognome dell’utente
         username,          -- username univoco
@@ -144,6 +145,7 @@ $ins = $pdo->prepare('
         created_at         -- timestamp creazione
     )
     VALUES (
+        :uc,               -- [NEW] bind del codice
         :n,                -- bind nome
         :c,                -- bind cognome
         :u,                -- bind username
@@ -160,6 +162,7 @@ $ins = $pdo->prepare('
 
 // [RIGA] Esecuzione con TUTTI i parametri, inclusi nome e cognome
 $ins->execute([
+   ':uc' => $user_code,   // [NEW] il codice generato sopra
     ':n' => $nome,         // [NEW] nome dal form
     ':c' => $cognome,      // [NEW] cognome dal form
     ':u' => $username,
