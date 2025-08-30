@@ -159,17 +159,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="auth__card"><!-- [RIGA] Card bianca identica alla login -->
     <h1 class="auth__title">Crea il tuo account</h1>
 
-    <?php if ($success): ?><!-- [RIGA] Messaggio di successo -->
-      <p style="color:#0a7f3f; margin:8px 0 12px;"><?php echo htmlspecialchars($success); ?></p>
-    <?php endif; ?>
+<?php if ($success): ?>
+  <p class="success-msg"><?php echo htmlspecialchars($success); ?></p>
+<?php endif; ?>
 
-    <?php if ($errors): ?><!-- [RIGA] Lista errori generali (sintesi) -->
-      <ul style="color:#c01818; margin:8px 0 12px; padding-left:18px;">
-        <?php foreach ($errors as $msg): ?>
-          <li><?php echo htmlspecialchars($msg); ?></li>
-        <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
+<?php if ($errors): ?>
+  <ul class="error-list">
+    <?php foreach ($errors as $msg): ?>
+      <li><?php echo htmlspecialchars($msg); ?></li>
+    <?php endforeach; ?>
+  </ul>
+<?php endif; ?>
 
     <form method="post" action=""><!-- [RIGA] Form POST sulla stessa pagina -->
 
