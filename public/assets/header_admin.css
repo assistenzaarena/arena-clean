@@ -21,7 +21,7 @@
 /* Logo */
 .logo { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:#fff; }
 .logo__img { height:40px; width:auto; display:block; }
-.logo__text { font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:.05em; }
+.logo__text { font-weight:900; font-size:20px; text-transform:uppercase; letter-spacing:.05em; }
 
 /* Azioni a destra */
 .hdr__right { display:flex; align-items:center; gap:14px; }
