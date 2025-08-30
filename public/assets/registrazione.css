@@ -63,7 +63,7 @@
 
 /* Bottone "Registrati" in rosso brand */
 .auth__submit {
-  background:#e62329;
+  background:#00c074;
 }
 .auth__submit:hover { background:#c61e28; }
 
