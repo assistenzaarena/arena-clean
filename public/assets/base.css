@@ -1,0 +1,61 @@
+/* ============================================================
+   BASE.CSS — Reset e variabili globali
+   Carica questo file PRIMA di header.css, footer.css ecc.
+   ============================================================ */
+
+/* RESET base */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0f1114;   /* colore scuro default pagina */
+  color: #fff;           /* colore testo default */
+  font-family: "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.4;
+}
+
+/* Box sizing prevedibile */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Link */
+a {
+  color: inherit;          /* di default stesso colore del testo */
+  text-decoration: none;
+}
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+/* Liste */
+ul, ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Bottoni */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+/* Variabili globali (override se già definite in altri CSS) */
+:root {
+  --container-w: 1280px;               /* larghezza massima contenuto */
+  --pad-x: 20px;                       /* padding orizzontale default */
+  --color-bg-dark: #0a0a0b;            /* nero header */
+  --color-bg-page: #0f1114;            /* nero pagina */
+  --color-text: #ffffff;
+  --color-text-muted: #c9c9c9;
+  --color-brand: #e62329;              /* rosso Arena */
+  --color-cta: #00c074;                /* verde CTA */
+}
