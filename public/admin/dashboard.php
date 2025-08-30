@@ -589,7 +589,10 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         $pages = max(1, (int)ceil($total / $perPage));
         for ($p=1; $p<=$pages; $p++):
           $cls = ($p===$page) ? 'on' : '';
-          $url = '/admin/dashboard.php?page='.$p.'&sort='.urlencode($sort).'&dir='.urlencode($dir).'&q='.urlencode($q);
+          $url = '/admin/dashboard.php?page='.$p
+               .'&sort='.urlencode($sort)
+               .'&dir='.urlencode($dir)
+               .'&q='.urlencode($q);
       ?>
         <a class="<?php echo $cls; ?>" href="<?php echo $url; ?>"><?php echo $p; ?></a>
       <?php endfor; ?>
