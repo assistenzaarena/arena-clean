@@ -1,0 +1,91 @@
+/* --- REGISTRAZIONE: estende lo stile della login --- */
+
+/* Card (opzionale: leggermente più larga se vuoi) */
+.auth__card {
+  max-width: 460px;                  /* login era 420px */
+}
+
+/* Titolo più deciso */
+.auth__title {
+  font-weight: 900;
+  font-size: 22px;
+  margin: 0 0 16px;
+}
+
+/* Gruppi campi: respiro leggermente maggiore */
+.auth__group { margin-bottom: 14px; }
+
+/* Input: evidenzia focus + invalid */
+.auth__input:focus {
+  border-color: #bdbdbd;             /* focus neutro */
+  box-shadow: 0 0 0 2px rgba(0,0,0,.04) inset;
+}
+.auth__input:invalid {
+  border-color: #d64545;             /* invalid HTML5 lato client */
+}
+
+/* Mini-hint sotto la password */
+.auth__group small {
+  display:block;
+  margin-top:6px;
+  color:#666;
+  font-size:12px;
+}
+
+/* Checkbox termini: allineamento e hit-area più comoda */
+.auth__group input[type="checkbox"]#accept_tc {
+  width: 18px;
+  height: 18px;
+  accent-color: #e62329;             /* rosso brand nei browser che lo supportano */
+}
+.auth__group label[for="accept_tc"] a {
+  color:#fff; text-decoration: underline;
+}
+
+/* Messaggi server-side (quelli stampati dal PHP) */
+.auth__card .success-msg {
+  color:#0a7f3f;
+  background:rgba(10,127,63,.08);
+  border:1px solid rgba(10,127,63,.25);
+  padding:10px 12px;
+  border-radius:8px;
+  margin: 8px 0 12px;
+}
+.auth__card .error-list {
+  color:#c01818;
+  background:rgba(198,24,24,.08);
+  border:1px solid rgba(198,24,24,.25);
+  padding:10px 14px;
+  border-radius:8px;
+  margin: 8px 0 12px;
+}
+.auth__card .error-list li { margin-left: 16px; }
+
+/* Bottone "Registrati" in rosso brand */
+.auth__submit {
+  background:#e62329;
+}
+.auth__submit:hover { background:#c61e28; }
+
+/* Blocco sotto: link alla login (stile simile alla CTA login) */
+.auth__cta p {
+  font-size: 15px;
+  font-weight: 700;
+  color:#fff;
+  margin: 8px 0 8px;
+}
+.auth__register {
+  height: 44px;
+  padding: 0 18px;
+  border:1px solid rgba(255,255,255,.35);
+  border-radius:9999px;
+  color:#fff;
+  font-weight:800;
+}
+.auth__register:hover { border-color:#fff; }
+
+/* Responsive */
+@media (max-width: 480px){
+  .auth { padding: 24px 12px; gap: 6px; }
+  .auth__card { max-width: 100%; padding: 16px; }
+}
