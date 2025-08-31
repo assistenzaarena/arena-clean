@@ -278,24 +278,30 @@ if (file_exists($headerPath)) { require $headerPath; }
     nextId = null;
   });
 
-btnOk.addEventListener('click', function(){
+btnOk.addEventListener('click', function() {
   if (!nextId) return;
 
   // chiudo il popup (UX), poi chiamo l’API
   modal.style.display = 'none';
 
-  fetch('/api/enroll.php', {
+  // URL assoluto: elimina ambiguità di path
+  const url = window.location.origin + '/api/enroll.php';
+
+  fetch(url, {
     method: 'POST',
-    credentials: 'same-origin', // <-- invia i cookie di sessione
+    credentials: 'same-origin',                 // <-- manda cookie/sessione
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'csrf=' + encodeURIComponent(window.CSRF) +
-          '&tournament_id=' + encodeURIComponent(nextId)
+    body: 'csrf=' + encodeURIComponent(window.CSRF)
+        + '&tournament_id=' + encodeURIComponent(nextId)
   })
   .then(async (r) => {
-    let js = null, txt = null;
-    try { js = await r.json(); } catch (_) {}
+    // provo a leggere testo e JSON per vedere cosa torna davvero
+    let txt = '';
+    try { txt = await r.text(); } catch (_) {}
+    let js = null;
+    try { js = txt ? JSON.parse(txt) : null; } catch (_) {}
+
     if (!js) {
-      try { txt = await r.text(); } catch (_) {}
       alert('Risposta non valida dal server:\n' + (txt ? txt.slice(0, 500) : '(vuota)'));
       throw new Error('non_json');
     }
@@ -306,6 +312,7 @@ btnOk.addEventListener('click', function(){
       alert('Iscrizione non riuscita: ' + (js.error || 'errore'));
       return;
     }
+    // redirect deciso dal server
     window.location.href = js.redirect || ('/torneo.php?id=' + nextId);
   })
   .catch(() => {
