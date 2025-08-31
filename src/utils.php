@@ -27,23 +27,28 @@ function generate_unique_code(PDO $pdo, string $table, string $column): string {
 
     return $code;
 }
-<?php
-/* ...altre funzioni... */
 
 /**
- * Genera un codice alfanumerico UPPERCASE di $len (default 8) univoco su tabella/colonna.
- * Esempio: generate_unique_code8($pdo, 'credit_movements','movement_code');
+ * Genera un codice alfanumerico univoco (UPPERCASE) di lunghezza variabile (default 8).
+ * Es: "AX93TPQ2"
+ *
+ * @param PDO    $pdo    Connessione al DB
+ * @param string $table  Nome tabella
+ * @param string $column Nome colonna
+ * @param int    $len    Lunghezza codice (default 8)
+ * @return string Codice univoco
  */
 function generate_unique_code8(PDO $pdo, string $table, string $column, int $len = 8): string {
-  $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // senza O/0/I/1
-  do {
-    $code = '';
-    for ($i=0; $i<$len; $i++) {
-      $code .= $alphabet[random_int(0, strlen($alphabet)-1)];
-    }
-    $q = $pdo->prepare("SELECT 1 FROM {$table} WHERE {$column} = :c LIMIT 1");
-    $q->execute([':c'=>$code]);
-    $exists = (bool)$q->fetchColumn();
-  } while ($exists);
-  return $code;
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // senza O/0/I/1
+    do {
+        $code = '';
+        for ($i = 0; $i < $len; $i++) {
+            $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+        $q = $pdo->prepare("SELECT 1 FROM {$table} WHERE {$column} = :c LIMIT 1");
+        $q->execute([':c' => $code]);
+        $exists = (bool)$q->fetchColumn();
+    } while ($exists);
+
+    return $code;
 }
