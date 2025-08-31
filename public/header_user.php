@@ -1,10 +1,27 @@
 <?php
-// [HEAD USER] Avvio sessione e variabili di test (qui non tocchiamo il DB)
+// [HEAD USER] Sessione e lettura dati reali utente
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$username  = $_SESSION['username'] ?? 'DemoUser';          // username fittizio per test
-$crediti   = $_SESSION['crediti']  ?? 100;                 // saldo fittizio per test
-$avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’avatar
+// Percorso root (header_user.php sta in /public)
+$ROOT = __DIR__;
+
+// Config + DB
+require_once $ROOT . '/src/config.php';
+require_once $ROOT . '/src/db.php';
+
+// Username da sessione (fallback "DemoUser" se manca)
+$username  = $_SESSION['username'] ?? 'DemoUser';
+$avatarChr = mb_strtoupper(mb_substr($username, 0, 1));
+
+// Lettura saldo reale (se loggato), altrimenti 0
+$headerCredits = 0.0;
+if (!empty($_SESSION['user_id'])) {
+  $hq = $pdo->prepare("SELECT crediti FROM utenti WHERE id = :id LIMIT 1");
+  $hq->execute([':id' => (int)$_SESSION['user_id']]);
+  if ($row = $hq->fetch(PDO::FETCH_ASSOC)) {
+    $headerCredits = (float)$row['crediti'];
+  }
+}
 ?>
 <link rel="stylesheet" href="/assets/header_user.css">
 
@@ -28,7 +45,7 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
       <!-- Saldo crediti -->
       <div class="user-credits">
         <span class="user-credits__label">Crediti:</span>
-        <span class="user-credits__value" id="headerCrediti"><?php echo htmlspecialchars((string)$crediti); ?></span>
+        <span class="user-credits__value" id="headerCrediti"><?php echo number_format($headerCredits, 0, ',', '.'); ?></span>
         <button class="credits-refresh" type="button" aria-label="Aggiorna saldo">&#x21bb;</button>
       </div>
 
@@ -45,6 +62,32 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
 
     </div>
   </div>
+
+  <!-- Auto-refresh del saldo (ogni 10s + click su ↻) -->
+  <script>
+    (function(){
+      const el = document.getElementById('headerCrediti');
+      const btn = document.querySelector('.credits-refresh');
+      if(!el) return;
+
+      function refreshCredits(){
+        fetch('/api/user_credits.php', { credentials: 'same-origin' })
+          .then(r => r.ok ? r.json() : null)
+          .then(js => {
+            if (!js || !js.ok) return;
+            el.textContent = (js.credits || 0).toLocaleString('it-IT', { maximumFractionDigits: 0 });
+          })
+          .catch(()=>{});
+      }
+
+      // primo refresh + polling
+      refreshCredits();
+      setInterval(refreshCredits, 10000);
+
+      // refresh manuale col pulsante ↻
+      if (btn) btn.addEventListener('click', refreshCredits);
+    })();
+  </script>
 </header>
 
 <!-- Sub-header (uguale al guest) -->
