@@ -13,6 +13,9 @@ $ROOT = __DIR__; // /var/www/html
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
+// CSRF per chiamate POST dall’interfaccia
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$csrf = $_SESSION['csrf'];
 
 // opzionale: obbliga login
 require_login();
@@ -66,6 +69,7 @@ function safeCode(array $t){
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_user.css"><!-- se esiste -->
   <link rel="stylesheet" href="/assets/lobby.css?v=2">
+  <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
 </head>
 <body>
 
@@ -274,13 +278,30 @@ if (file_exists($headerPath)) { require $headerPath; }
     nextId = null;
   });
 
-  btnOk.addEventListener('click', function(){
-    if (!nextId) return;
-    modal.style.display = 'none';
-    // Step 2: qui collegheremo l'API per iscrivere + generare registration_code (5 cifre)
-    // Per ora: redirect "simulato" alla pagina torneo
-    window.location.href = '/torneo.php?id=' + nextId;
-  });
+btnOk.addEventListener('click', function(){
+  if (!nextId) return;
+
+  // chiudo subito il popup (UX), poi chiamo l'API
+  modal.style.display = 'none';
+
+  fetch('/api/enroll.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'csrf=' + encodeURIComponent(window.CSRF) +
+          '&tournament_id=' + encodeURIComponent(nextId)
+  })
+  .then(r => r.ok ? r.json() : null)
+  .then(js => {
+    if (!js || !js.ok) {
+      // errori gestibili: not_open, locked, already_enrolled, bad_csrf...
+      alert('Iscrizione non riuscita' + (js && js.error ? ': ' + js.error : '.'));
+      return;
+    }
+    // tutto ok: vai alla pagina torneo
+    window.location.href = js.redirect || ('/torneo.php?id=' + nextId);
+  })
+  .catch(() => { alert('Errore di rete'); });
+});
 
   // chiudi cliccando fuori
   modal.addEventListener('click', function(e){
