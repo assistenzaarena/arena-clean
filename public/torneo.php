@@ -1,32 +1,27 @@
 <?php
 /**
  * public/torneo.php
- * Pagina singolo torneo (versione base con pulsante Disiscriviti).
+ * Pagina singolo torneo (con pulsante Disiscriviti e popup conferma).
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = __DIR__; // /var/www/html
+$ROOT = __DIR__;
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 
-// L’utente deve essere loggato
 require_login();
 $uid = (int)($_SESSION['user_id'] ?? 0);
 
-// Torneo id
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id <= 0) { http_response_code(400); die('ID torneo mancante'); }
 
-// Carico dati torneo
 $q = $pdo->prepare("SELECT * FROM tournaments WHERE id=:id LIMIT 1");
 $q->execute([':id'=>$id]);
 $torneo = $q->fetch(PDO::FETCH_ASSOC);
-
 if (!$torneo) { http_response_code(404); die('Torneo non trovato'); }
 
-// Controllo iscrizione utente
 $enrolled = false;
 try {
   $chk = $pdo->prepare("SELECT 1 FROM tournament_enrollments WHERE tournament_id=:tid AND user_id=:uid LIMIT 1");
@@ -35,7 +30,6 @@ try {
 } catch (Throwable $e) {
   $enrolled = false;
 }
-
 ?>
 <!doctype html>
 <html lang="it">
@@ -45,7 +39,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_user.css">
-  <link rel="stylesheet" href="/assets/lobby.css"><!-- riuso stile card -->
+  <link rel="stylesheet" href="/assets/lobby.css">
   <style>
     .torneo-wrap{max-width:1000px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
     .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
@@ -53,6 +47,12 @@ try {
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
     .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
     .btn--warn:hover{background:#c01c21;}
+
+    /* Overlay popup */
+    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
+    .modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
+    .modal-card h3{margin:0 0 10px;}
+    .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
   </style>
 </head>
 <body>
@@ -67,16 +67,17 @@ try {
     </h1>
 
     <?php if ($enrolled): ?>
-      <!-- Pulsante Disiscriviti (modificato: niente action, intercetto via JS) -->
-      <form id="unenrollForm" style="display:inline">
+      <!-- Pulsante Disiscriviti -->
+      <form id="unenrollForm" method="post" action="/api/unenroll.php">
         <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
         <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
-        <button class="btn btn--warn" type="submit" onclick="return confirm('Vuoi davvero disiscriverti da questo torneo?');">Disiscriviti</button>
+        <input type="hidden" name="redirect" value="1">
+        <button class="btn btn--warn" type="button" id="unenrollBtn">Disiscriviti</button>
       </form>
     <?php endif; ?>
   </div>
 
-  <!-- Info base torneo -->
+  <!-- Info torneo -->
   <section class="card card--ps">
     <h3 class="card__title"><?php echo htmlspecialchars($torneo['league_name']); ?> • Stagione <?php echo htmlspecialchars($torneo['season']); ?></h3>
     <dl class="grid">
@@ -87,7 +88,7 @@ try {
     </dl>
   </section>
 
-  <!-- Placeholder eventi torneo -->
+  <!-- Eventi -->
   <section style="margin-top:20px;">
     <h2>Eventi del torneo</h2>
     <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
@@ -96,46 +97,42 @@ try {
 
 <?php require $ROOT . '/footer.php'; ?>
 
-<!-- JS: disiscrizione via fetch e redirect -->
+<!-- Popup Disiscrizione -->
+<div id="unenrollModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3>Conferma disiscrizione</h3>
+    <p>Vuoi davvero disiscriverti da questo torneo?</p>
+    <div class="actions">
+      <button type="button" id="cancelUnenroll" class="btn">Annulla</button>
+      <button type="button" id="confirmUnenroll" class="btn btn--warn">Conferma</button>
+    </div>
+  </div>
+</div>
+
 <script>
-(function () {
-  const form = document.getElementById('unenrollForm');
-  if (!form) return;
+  (function(){
+    var btn = document.getElementById('unenrollBtn');
+    var modal = document.getElementById('unenrollModal');
+    var cancelBtn = document.getElementById('cancelUnenroll');
+    var confirmBtn = document.getElementById('confirmUnenroll');
+    var form = document.getElementById('unenrollForm');
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const csrf = form.querySelector('input[name="csrf"]').value;
-    const tid  = form.querySelector('input[name="tournament_id"]').value;
-
-    fetch('/api/unenroll.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'csrf=' + encodeURIComponent(csrf) +
-            '&tournament_id=' + encodeURIComponent(tid)
-    })
-    .then(async (r) => {
-      let txt = '';
-      try { txt = await r.text(); } catch (_) {}
-      let js = null;
-      try { js = txt ? JSON.parse(txt) : null; } catch (_) {}
-      if (!js) {
-        alert('Risposta non valida dal server:\n' + (txt || '(vuota)'));
-        throw new Error('non_json');
-      }
-      return js;
-    })
-    .then((js) => {
-      if (!js.ok) {
-        alert('Disiscrizione non riuscita: ' + (js.error || 'errore'));
-        return;
-      }
-      window.location.href = js.redirect || '/lobby.php';
-    })
-    .catch(() => { alert('Errore di rete'); });
-  });
-})();
+    if(btn){
+      btn.addEventListener('click', function(){
+        modal.style.display = 'flex';
+      });
+    }
+    cancelBtn.addEventListener('click', function(){
+      modal.style.display = 'none';
+    });
+    confirmBtn.addEventListener('click', function(){
+      modal.style.display = 'none';
+      form.submit();
+    });
+    modal.addEventListener('click', function(e){
+      if(e.target === modal){ modal.style.display = 'none'; }
+    });
+  })();
 </script>
 
 </body>
