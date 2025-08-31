@@ -58,11 +58,7 @@ $csrf = $_SESSION['csrf'];
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
     .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
     .btn--warn:hover{background:#c01c21;}
-    
- <!-- Qui compariranno i cuori -->
-  <div id="heartsWrap" style="display:inline-block; margin-left:10px;"></div>
-</div>
-    
+     
     /* Overlay popup */
     .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
     .modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
