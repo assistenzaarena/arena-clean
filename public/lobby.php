@@ -309,7 +309,7 @@ btnOk.addEventListener('click', function() {
   })
   .then((js) => {
     if (!js.ok) {
-      alert('Iscrizione non riuscita: ' + (js.error || 'errore'));
+      alert('Iscrizione non riuscita: ' + (js && (js.msg || js.error) ? (js.msg || js.error) : 'errore'));
       return;
     }
     // redirect deciso dal server
