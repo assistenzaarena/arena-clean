@@ -178,6 +178,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ===============================
+// SYNC INIZIALE: se non ci sono righe in tournament_events per il torneo,
+// importa dall’API la lista fixtures (round corrente) e le inserisce attive.
+// ===============================
+$has = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid");
+$has->execute([':tid'=>$id]);
+$hasRows = ((int)$has->fetchColumn() > 0);
+
+$err_fetch = null;
+
+if (!$hasRows) {
+  try {
+    if ($roundType === 'matchday') {
+      // molte leghe usano "Regular Season - %d" come label del round
+      $resp = fb_fixtures_matchday($league_id, $season, (int)$matchday, 'Regular Season - %d');
+    } else {
+      $resp = fb_fixtures_round_label($league_id, $season, (string)$round_lbl);
+    }
+
+    if ($resp['ok']) {
+      $list = fb_extract_fixtures_minimal($resp['data']);
+
+      if ($list) {
+        $ins = $pdo->prepare("
+          INSERT IGNORE INTO tournament_events
+            (tournament_id, event_code, round_no, fixture_id,
+             home_team_id, home_team_name, away_team_id, away_team_name,
+             kickoff, is_active, pick_locked)
+          VALUES
+            (:tid, :ecode, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
+        ");
+
+        foreach ($list as $fx) {
+          // genera un codice evento globale a 5 cifre
+          $ecode = generate_event_code_global($pdo);
+
+          $ins->execute([
+            ':tid'   => $id,
+            ':ecode' => $ecode,
+            ':rnd'   => $current_round_no ?: 1,
+            ':fid'   => ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
+            ':hid'   => $fx['home_id'],
+            ':hname' => $fx['home_name'],
+            ':aid'   => $fx['away_id'],
+            ':aname' => $fx['away_name'],
+          ]);
+        }
+      }
+    } else {
+      // opzionale: esporre l’errore in pagina
+      $err_fetch = 'Errore API: '.$resp['error'].' (HTTP '.$resp['status'].')';
+    }
+  } catch (Throwable $e) {
+    $err_fetch = 'Eccezione fetch: '.$e->getMessage();
+  }
+}
+
+// ===============================
 // CARICO eventi per la tabella (come pending semplificato)
 // ===============================
 $ev = $pdo->prepare("
