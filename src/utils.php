@@ -64,5 +64,3 @@ function generate_unique_code8(PDO $pdo, string $table, string $column, int $len
 
     return $code;
 }
-    return $code;
-}
