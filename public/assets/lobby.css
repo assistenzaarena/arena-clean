@@ -1,71 +1,81 @@
-/* Lobby tornei — stile card */
-
+/* Layout */
 .lobby-wrap{
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 24px auto;
   padding: 0 16px;
-  color: #fff;
+  color:#fff;
 }
-
-.page-title{
-  font-size: 22px;
-  margin: 0 0 16px;
-}
-
+.page-title{ font-size:22px; margin:0 0 16px; }
 .muted{ color:#aaa; }
 
-.cards{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+.lobby--decor{
+  /* sfondo scuro leggermente decorato */
+  background:
+    radial-gradient(1200px 400px at -10% 110%, rgba(120,0,0,.25), transparent 60%),
+    radial-gradient(900px 300px at 120% -10%, rgba(120,0,0,.18), transparent 60%),
+    linear-gradient(180deg, #0b0b0d 0%, #0a0a0b 100%);
+  min-height: calc(100vh - 120px);
+  padding-bottom: 40px;
 }
 
+/* Sezioni */
+.section{ margin: 18px 0 28px; }
+.section__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.section__head h2{ margin:0; font-size:18px; font-weight:900; letter-spacing:.02em; }
+
+/* Griglia card */
+.cards{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap:14px;
+}
+.cards--wide .card{ min-height: 180px; }
+
+/* Card base */
 .card{
   background:#111;
   border:1px solid rgba(255,255,255,.12);
   border-radius:14px;
   padding:14px;
-  box-shadow:0 8px 28px rgba(0,0,0,.2);
+  box-shadow:0 8px 28px rgba(0,0,0,.22);
 }
 
+/* Card rossa */
+.card--red{
+  background: #251112;
+  border-color: rgba(255,60,60,.35);
+  position:relative;
+}
+.card--red::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(800px 300px at -10% 120%, rgba(255,60,60,.18), transparent 60%),
+    radial-gradient(600px 220px at 110% -10%, rgba(255,60,60,.12), transparent 60%);
+  border-radius:14px;
+  pointer-events:none;
+}
+
+/* Header card */
 .card__head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+  display:flex; align-items:center; justify-content:space-between;
   margin-bottom:8px;
 }
+.code{ font-weight:900; letter-spacing:.04em; }
+.badge{ font-size:12px; padding:3px 8px; border-radius:9999px; border:1px solid rgba(255,255,255,.24); }
+.badge--open{ background:#0c3023; border-color:#00c074; color:#00c074; }
 
-.code{
-  font-weight:900;
-  letter-spacing:.04em;
-}
-
-.badge{
-  font-size:12px;
-  padding:3px 8px;
-  border-radius:9999px;
-  border:1px solid rgba(255,255,255,.2);
-}
-.badge--open{
-  background:#0c3023;
-  border-color:#00c074;
-  color:#00c074;
-}
-
-.card__title{
-  font-size:18px;
-  margin:6px 0 4px;
-}
-
+/* Titolo & meta */
+.card__title{ font-size:18px; margin:6px 0 4px; }
 .meta{ color:#c9c9c9; font-size:13px; margin-bottom:8px; }
 
+/* Dati in griglia */
 .grid{
-  display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:10px 12px;
+  display:grid; grid-template-columns: repeat(2, 1fr); gap:10px 12px;
 }
 .grid dt{ font-size:12px; color:#aaa; }
 .grid dd{ margin:0; font-weight:800; }
 
+/* Lock & countdown */
 .lock{ color:#c9c9c9; margin-right:6px; }
 .countdown{ font-weight:800; color:#fff; }
