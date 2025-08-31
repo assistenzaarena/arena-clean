@@ -2,13 +2,13 @@
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Calcolo la root del progetto: /var/www/html
-$ROOT = dirname(__DIR__, 2); // da /public/admin -> su di 2 livelli = root progetto
+$ROOT = dirname(__DIR__); // da /var/www/html/admin → /var/www/html
 
 require_once $ROOT . '/src/guards.php';   // require_login(), require_admin()
 require_admin();
 
-require_once $ROOT . '/src/config.php';   // costanti/env
-require_once $ROOT . '/src/db.php';       // $pdo connessione
+require_once $ROOT . '/src/config.php';   // config generica
+require_once $ROOT . '/src/db.php';       // connessione PDO
 
 $competitions = require $ROOT . '/config/competitions.php'; // mappa competizioni
 
