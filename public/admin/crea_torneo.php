@@ -1,19 +1,16 @@
 <?php
-/**
- * public/admin/crea_torneo.php
- *
- * [SCOPO] SOLO creazione tornei (nessuna gestione). Accesso riservato all'admin.
- *         Step 1: menu competizioni + stagione + giornata/round obbligatori (no API).
- */
-
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-require_once __DIR__ . '/../src/guards.php';  // require_login(), require_admin()
+// Calcolo la root del progetto: /var/www/html
+$ROOT = dirname(__DIR__, 2); // da /public/admin -> su di 2 livelli = root progetto
+
+require_once $ROOT . '/src/guards.php';   // require_login(), require_admin()
 require_admin();
 
-require_once __DIR__ . '/../src/config.php';  // config generica (es. chiavi env)
-require_once __DIR__ . '/../src/db.php';      // $pdo connessione
-$competitions = require __DIR__ . '/../config/competitions.php'; // mappa competizioni
+require_once $ROOT . '/src/config.php';   // costanti/env
+require_once $ROOT . '/src/db.php';       // $pdo connessione
+
+$competitions = require $ROOT . '/config/competitions.php'; // mappa competizioni
 
 // [CSRF] token anti-forgery
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
