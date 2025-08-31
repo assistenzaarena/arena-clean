@@ -66,7 +66,7 @@ try {
   }
 
   // 3.2) iscrizione (lives = 1) + registration_code (5 cifre univoco)
-  $regCode = generate_unique_code($pdo, 'tournament_enrollments', 'registration_code'); // 00000..99999
+  $regCode = generate_unique_code($pdo, 'tournament_enrollments', 'registration_code', 8); // 00000..99999
 
   $ins = $pdo->prepare("
     INSERT INTO tournament_enrollments
