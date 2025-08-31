@@ -76,7 +76,7 @@
   right:8px; bottom:8px;                   /* angolo in basso a destra */
   width:64px; height:64px;                 /* piccolino */
   background:url('/assets/logo_arena.png') center/contain no-repeat;
-  opacity:.15;                              /* quasi impercettibile */
+  opacity:.25;                              /* quasi impercettibile */
   pointer-events:none;
   filter:grayscale(100%);
 }
