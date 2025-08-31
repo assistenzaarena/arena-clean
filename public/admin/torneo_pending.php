@@ -252,7 +252,7 @@ if (!$hasRows) {
 // CARICO elenco eventi per la tabella (senza kickoff / pick_locked in UI)
 // ===============================
 $ev = $pdo->prepare("
-  SELECT id, fixture_id, home_team_name, away_team_name, is_active
+  SELECT id, event_code, fixture_id, home_team_name, away_team_name, is_active
   FROM tournament_events
   WHERE tournament_id = :tid
   ORDER BY id ASC
@@ -335,7 +335,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       <table>
         <thead>
           <tr>
-            <th>ID</th>
+            <th>ID (5 cifre)</th>
             <th>Fixture ID</th>
             <th>Partita</th>
             <th>Scelte abilitate</th>
@@ -345,7 +345,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
         <tbody>
           <?php foreach ($events as $e): ?>
             <tr>
-              <td><?php echo (int)$e['id']; ?></td>
+              <td><?php echo htmlspecialchars($e['event_code']); ?></td>
               <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '-'; ?></td>
               <td><?php echo htmlspecialchars(($e['home_team_name'] ?? '??').' vs '.($e['away_team_name'] ?? '??')); ?></td>
               <td><?php echo ((int)$e['is_active']===1) ? 'Sì' : 'No'; ?></td>
