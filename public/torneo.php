@@ -102,7 +102,7 @@ $csrf = $_SESSION['csrf'];
   <!-- ====== AGGIUNTA: Azioni vite + cuori + countdown ====== -->
   <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
     <?php if ($enrolled): ?>
-      <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#0b1;font-weight:800;">
+      <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;">
         + Aggiungi vita
       </button>
     <?php endif; ?>
