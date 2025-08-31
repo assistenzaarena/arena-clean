@@ -95,7 +95,6 @@ try {
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
-    // Per debug: attiva la riga sotto per vedere l’errore esatto
-    // echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]); exit;
-    echo json_encode(['ok'=>false,'error'=>'exception']); exit;
+    echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]); exit;
+    // echo json_encode(['ok'=>false,'error'=>'exception']); exit;
 }
