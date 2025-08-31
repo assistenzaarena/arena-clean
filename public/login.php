@@ -70,11 +70,12 @@ if (!empty($error)) {
         header("Location: /admin/2fa_setup.php"); exit;
     }
 
-    // --- utente normale
-    $_SESSION['user_id']  = (int)$user['id'];
-    $_SESSION['username'] = $username;
-    $_SESSION['role']     = 'user';
-    header("Location: /area_riservata.php"); exit;
+// --- utente normale → lobby tornei (home utente)
+$_SESSION['user_id']  = (int)$user['id'];
+$_SESSION['username'] = $username;
+$_SESSION['role']     = 'user';
+header("Location: /lobby.php"); 
+exit;                // vai subito in lobby tornei
 }
     } else {
         $error = "Credenziali errate";                                    // credenziali sbagliate
