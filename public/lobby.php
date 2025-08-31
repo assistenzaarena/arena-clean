@@ -47,6 +47,10 @@ try {
   $my = [];
 }
 
+/** Codice torneo “safe”: usa tournament_code se c’è, altrimenti ID DB a 5 cifre */
+function safeCode(array $t){
+  return $t['tournament_code'] ?: sprintf('%05d',(int)$t['id']);
+}
 ?>
 <!doctype html>
 <html lang="it">
@@ -79,7 +83,7 @@ if (file_exists($headerPath)) { require $headerPath; }
       <div class="cards cards--wide">
         <?php foreach ($my as $t): ?>
           <?php
-            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
+            $code   = safeCode($t);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
           <article class="card card--red">
@@ -124,7 +128,7 @@ if (file_exists($headerPath)) { require $headerPath; }
       <div class="cards cards--wide">
         <?php foreach ($all as $t): ?>
           <?php
-            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
+            $code   = safeCode($t);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
           <article class="card card--red">
