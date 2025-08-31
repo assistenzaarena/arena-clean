@@ -72,6 +72,7 @@ try {
             onsubmit="return confirm('Vuoi davvero disiscriverti da questo torneo?');">
         <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
         <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+        <input type="hidden" name="redirect" value="1">
         <button class="btn btn--warn" type="submit">Disiscriviti</button>
       </form>
     <?php endif; ?>
