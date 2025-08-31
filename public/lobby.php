@@ -47,6 +47,11 @@ try {
   $my = [];
 }
 
+/* ------------ AGGIUNTA: mappa id tornei dove l'utente è iscritto ------------ */
+$myIds = [];
+foreach ($my as $row) { $myIds[(int)$row['id']] = true; }
+/* --------------------------------------------------------------------------- */
+
 // resta in PHP: NIENTE nuovo <?php qui
 function safeCode(array $t){
   return $t['tournament_code'] ?: sprintf('%05d',(int)$t['id']);
@@ -86,7 +91,8 @@ if (file_exists($headerPath)) { require $headerPath; }
             $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
-          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>">
+          <!-- AGGIUNTA: data-enrolled="1" perché sono “i miei tornei” -->
+          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>" data-enrolled="1">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">ISCRITTO</span>
@@ -141,8 +147,10 @@ if (file_exists($headerPath)) { require $headerPath; }
           <?php
             $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
+            $enrolled = isset($myIds[(int)$t['id']]) ? '1' : '0'; // AGGIUNTA
           ?>
-          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>">
+          <!-- AGGIUNTA: data-enrolled="0|1" per decidere se mostrare popup o entrare -->
+          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>" data-enrolled="<?php echo $enrolled; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">OPEN</span>
@@ -183,6 +191,20 @@ if (file_exists($headerPath)) { require $headerPath; }
       </div>
     <?php endif; ?>
   </section>
+
+  <!-- ========= AGGIUNTA: Popup conferma iscrizione (Step 1) ========= -->
+  <div id="enrollModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <h3 style="margin:0 0 8px;">Conferma iscrizione</h3>
+      <p style="margin:0 0 12px;">Vuoi iscriverti a questo torneo?</p>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn" id="enrollCancel">Annulla</button>
+        <button type="button" class="btn btn-primary" id="enrollConfirm">Conferma</button>
+      </div>
+    </div>
+  </div>
+  <!-- =============================================================== -->
+
 </main>
 
 <script>
@@ -220,6 +242,57 @@ if (file_exists($headerPath)) { require $headerPath; }
     setTimeout(loop, 10000);
   }
   loop();
+})();
+
+/* ====== AGGIUNTA: logica popup iscrizione (Step 1) ====== */
+(function(){
+  var modal   = document.getElementById('enrollModal');
+  var btnOk   = document.getElementById('enrollConfirm');
+  var btnNo   = document.getElementById('enrollCancel');
+  var nextId  = null;  // id torneo selezionato
+
+  document.querySelectorAll('article.card[data-id]').forEach(function(card){
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function(){
+      var id = card.getAttribute('data-id');
+      var enrolled = (card.getAttribute('data-enrolled') === '1');
+      if (!id) return;
+
+      if (enrolled) {
+        // già iscritto → entra direttamente nel torneo
+        window.location.href = '/torneo.php?id=' + id;
+      } else {
+        // non iscritto → apri conferma
+        nextId = id;
+        modal.style.display = 'flex';
+      }
+    });
+  });
+
+  btnNo.addEventListener('click', function(){
+    modal.style.display = 'none';
+    nextId = null;
+  });
+
+  btnOk.addEventListener('click', function(){
+    if (!nextId) return;
+    modal.style.display = 'none';
+    // Step 2: qui collegheremo l'API per iscrivere + generare registration_code (5 cifre)
+    // Per ora: redirect "simulato" alla pagina torneo
+    window.location.href = '/torneo.php?id=' + nextId;
+  });
+
+  // chiudi cliccando fuori
+  modal.addEventListener('click', function(e){
+    if (e.target === modal) { modal.style.display = 'none'; nextId = null; }
+  });
+
+  // ESC per chiudere
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+      modal.style.display = 'none'; nextId = null;
+    }
+  });
 })();
 </script>
 
