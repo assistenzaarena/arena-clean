@@ -46,7 +46,8 @@ try {
   // tabella non esiste ancora → sezione "vuota"
   $my = [];
 }
-  <?php
+
+// resta in PHP: NIENTE nuovo <?php qui
 function safeCode(array $t){
   return $t['tournament_code'] ?: sprintf('%05d',(int)$t['id']);
 }
