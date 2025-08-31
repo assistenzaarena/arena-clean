@@ -58,7 +58,7 @@ $csrf = $_SESSION['csrf'];
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
     .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
     .btn--warn:hover{background:#c01c21;}
-     
+
     /* Overlay popup */
     .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
     .modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
@@ -99,7 +99,7 @@ $csrf = $_SESSION['csrf'];
     </dl>
   </section>
 
-  <!-- ====== AGGIUNTA: Azioni vite + cuori + countdown ====== -->
+  <!-- ====== Azioni vite + cuori + countdown ====== -->
   <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
     <?php if ($enrolled): ?>
       <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;">
@@ -132,7 +132,7 @@ $csrf = $_SESSION['csrf'];
       <?php endif; ?>
     </div>
   </section>
-  <!-- ======================================================= -->
+  <!-- ============================================ -->
 
   <!-- Eventi -->
   <section style="margin-top:20px;">
@@ -156,6 +156,7 @@ $csrf = $_SESSION['csrf'];
 </div>
 
 <script>
+  // Popup disiscrizione
   (function(){
     var btn = document.getElementById('unenrollBtn');
     var modal = document.getElementById('unenrollModal');
@@ -186,7 +187,7 @@ $csrf = $_SESSION['csrf'];
     }
   })();
 
-  /* ====== AGGIUNTA: acquisto 1 vita con aggiornamento cuori/saldo ====== */
+  // Acquisto vita (+ aggiornamento cuori e saldo header)
   (function(){
     var btn = document.getElementById('btnAddLife');
     if (!btn) return;
@@ -212,17 +213,6 @@ $csrf = $_SESSION['csrf'];
       }
     }
 
-    function refreshHeaderCredits(){
-      fetch('/api/user_credits.php')
-        .then(r => r.ok ? r.json() : null)
-        .then(js => {
-          if (js && js.ok && typeof js.crediti !== 'undefined') {
-            var el = document.getElementById('headerCrediti');
-            if (el) el.textContent = js.crediti;
-          }
-        }).catch(()=>{});
-    }
-
     btn.addEventListener('click', function(){
       fetch('/api/add_life.php', {
         method: 'POST',
@@ -231,21 +221,34 @@ $csrf = $_SESSION['csrf'];
         body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
             + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
       })
-      .then(r => r.json().catch(()=>null).then(js => js || {ok:false,error:'non_json'}))
-      .then(js => {
+      .then(async (r) => {
+        let txt = '';
+        try { txt = await r.text(); } catch(_) {}
+        let js = null;
+        try { js = txt ? JSON.parse(txt) : null; } catch(_) {}
+        if (!js) { alert('Errore'); throw new Error('non_json'); }
+        return js;
+      })
+      .then(function(js){
         if (!js.ok) {
           var msg = 'Errore';
           if (js.error === 'insufficient_funds') msg = 'Crediti insufficienti';
-          else if (js.error === 'lives_limit')     msg = 'Hai raggiunto il limite di vite';
+          else if (js.error === 'max_reached')     msg = 'Hai raggiunto il limite di vite';
           else if (js.error === 'locked')         msg = 'Scelte bloccate';
           else if (js.error === 'not_enrolled')   msg = 'Non sei iscritto a questo torneo';
           alert(msg);
           return;
         }
+        // aggiorna cuori
         renderHearts(parseInt(js.lives || 0, 10));
-        refreshHeaderCredits();
+
+        // aggiorna saldo header, se presente
+        if (typeof js.header_credits !== 'undefined') {
+          var el = document.getElementById('headerCrediti');
+          if (el) el.textContent = js.header_credits;
+        }
       })
-      .catch(()=> alert('Errore di rete'));
+      .catch(function(){ alert('Errore di rete'); });
     });
   })();
 
@@ -263,51 +266,6 @@ $csrf = $_SESSION['csrf'];
     document.querySelectorAll('.countdown').forEach(tick);
   })();
 </script>
-<script>
-  (function(){
-    var btnAdd = document.getElementById('btnAddLife');
-    if (!btnAdd) return;
 
-    btnAdd.addEventListener('click', function(){
-      // Parametri
-      var tid = <?php echo (int)$id; ?>;
-      var csrf = "<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>";
-
-      fetch('/api/add_life.php', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-        body: 'csrf=' + encodeURIComponent(csrf) +
-              '&tournament_id=' + encodeURIComponent(tid)
-      })
-      .then(r => r.json().catch(()=>null))
-      .then(js => {
-        if(!js || !js.ok){
-          // messaggi più chiari
-          var em = (js && (js.msg || js.error)) ? (js.msg || js.error) : 'errore';
-          alert('Acquisto vita non riuscito: ' + em);
-          return;
-        }
-        // Aggiorna i cuori in pagina se hai un container dedicato
-        // es. <div id="heartsWrap"></div> – ricostruisco i cuori in base a js.lives
-        var wrap = document.getElementById('heartsWrap');
-        if (wrap) {
-          var n = parseInt(js.lives||0,10);
-          wrap.innerHTML = '';
-          for (var i=0;i<n;i++){
-            var s = document.createElement('span');
-            s.textContent = '❤';
-            s.style.marginRight = '6px';
-            s.style.color = '#ff6b6b';
-            wrap.appendChild(s);
-          }
-        }
-        // feedback leggero
-        // alert('Vita aggiunta!'); // se vuoi un feedback modale
-      })
-      .catch(() => alert('Errore di rete'));
-    });
-  })();
-</script>
 </body>
 </html>
