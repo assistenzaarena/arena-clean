@@ -292,7 +292,10 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 <?php require $ROOT . '/header_admin.php'; ?>
 
 <div class="wrap">
-  <h1>Pending torneo #<?php echo (int)$id; ?></h1>
+  <h1>
+  Pending torneo #<?php echo htmlspecialchars($torneo['tournament_code'] ?? sprintf('%05d', (int)$id)); ?>
+  <span class="muted" style="font-size:12px; margin-left:6px;">(ID DB: <?php echo (int)$id; ?>)</span>
+</h1>
 
   <?php if (!empty($_SESSION['flash'])): ?>
     <div class="flash"><?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?></div>
