@@ -23,7 +23,7 @@ $uid = (int)($_SESSION['user_id'] ?? 0);
 // Tornei OPEN (tutti)
 $all = $pdo->query("
   SELECT id, tournament_code, name, league_name, season,
-         cost_per_life, max_slots, lock_at
+         cost_per_life, max_slots, max_lives_per_user, guaranteed_prize, lock_at
   FROM tournaments
   WHERE status = 'open'
   ORDER BY lock_at IS NULL, lock_at ASC, created_at DESC
@@ -34,7 +34,7 @@ $my = [];
 try {
   $q = $pdo->prepare("
     SELECT t.id, t.tournament_code, t.name, t.league_name, t.season,
-           t.cost_per_life, t.max_slots, t.lock_at
+           t.cost_per_life, t.max_slots, t.max_lives_per_user, t.guaranteed_prize, t.lock_at
     FROM tournaments t
     JOIN tournament_enrollments e ON e.tournament_id = t.id
     WHERE e.user_id = :uid AND t.status = 'open'
@@ -46,8 +46,7 @@ try {
   // tabella non esiste ancora → sezione "vuota"
   $my = [];
 }
-
-/** Codice torneo “safe”: usa tournament_code se c’è, altrimenti ID DB a 5 cifre */
+  <?php
 function safeCode(array $t){
   return $t['tournament_code'] ?: sprintf('%05d',(int)$t['id']);
 }
@@ -83,10 +82,10 @@ if (file_exists($headerPath)) { require $headerPath; }
       <div class="cards cards--wide">
         <?php foreach ($my as $t): ?>
           <?php
-            $code   = safeCode($t);
+            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
-          <article class="card card--red">
+          <article class="card card--red" data-id="<?php echo (int)$t['id']; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">ISCRITTO</span>
@@ -96,21 +95,32 @@ if (file_exists($headerPath)) { require $headerPath; }
             <div class="meta"><?php echo htmlspecialchars($t['league_name']); ?> • Stagione <?php echo htmlspecialchars($t['season']); ?></div>
 
             <dl class="grid">
-              <div><dt>Buy-in</dt><dd>€ <?php echo number_format((float)$t['cost_per_life'], 2, ',', '.'); ?></dd></div>
+              <div><dt>Buy-in</dt><dd><?php echo number_format((float)$t['cost_per_life'], 0, ',', '.'); ?> crediti</dd></div>
               <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
-              <div><dt>Vite acquistate</dt><dd>—</dd></div>
+              <div><dt>Vite max/utente</dt><dd><?php echo (int)$t['max_lives_per_user']; ?></dd></div>
               <div>
-                <dt>Lock scelte</dt>
+                <dt>Crediti in palio</dt>
                 <dd>
-                  <?php if ($lockAt): ?>
-                    <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
-                      <?php echo date('d/m/Y H:i', $lockAt); ?>
-                    </time>
-                    <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
-                  <?php else: ?>—<?php endif; ?>
+                  <span class="pot">—</span>
+                  <?php if (!empty($t['guaranteed_prize'])): ?>
+                    <small class="guarantee"> (Garantiti: <?php echo number_format((float)$t['guaranteed_prize'], 0, ',', '.'); ?> crediti)</small>
+                  <?php endif; ?>
                 </dd>
               </div>
             </dl>
+
+            <div class="card__footer">
+              <?php if ($lockAt): ?>
+                <div class="countdown-row">
+                  <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
+                    <?php echo date('d/m/Y H:i', $lockAt); ?>
+                  </time>
+                  <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
+                </div>
+              <?php else: ?>
+                <div class="countdown-row">—</div>
+              <?php endif; ?>
+            </div>
           </article>
         <?php endforeach; ?>
       </div>
@@ -128,10 +138,10 @@ if (file_exists($headerPath)) { require $headerPath; }
       <div class="cards cards--wide">
         <?php foreach ($all as $t): ?>
           <?php
-            $code   = safeCode($t);
+            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
-          <article class="card card--red">
+          <article class="card card--red" data-id="<?php echo (int)$t['id']; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">OPEN</span>
@@ -141,21 +151,32 @@ if (file_exists($headerPath)) { require $headerPath; }
             <div class="meta"><?php echo htmlspecialchars($t['league_name']); ?> • Stagione <?php echo htmlspecialchars($t['season']); ?></div>
 
             <dl class="grid">
-              <div><dt>Buy-in</dt><dd>€ <?php echo number_format((float)$t['cost_per_life'], 2, ',', '.'); ?></dd></div>
+              <div><dt>Buy-in</dt><dd><?php echo number_format((float)$t['cost_per_life'], 0, ',', '.'); ?> crediti</dd></div>
               <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
-              <div><dt>Vite acquistate</dt><dd>—</dd></div>
+              <div><dt>Vite max/utente</dt><dd><?php echo (int)$t['max_lives_per_user']; ?></dd></div>
               <div>
-                <dt>Lock scelte</dt>
+                <dt>Crediti in palio</dt>
                 <dd>
-                  <?php if ($lockAt): ?>
-                    <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
-                      <?php echo date('d/m/Y H:i', $lockAt); ?>
-                    </time>
-                    <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
-                  <?php else: ?>—<?php endif; ?>
+                  <span class="pot">—</span>
+                  <?php if (!empty($t['guaranteed_prize'])): ?>
+                    <small class="guarantee"> (Garantiti: <?php echo number_format((float)$t['guaranteed_prize'], 0, ',', '.'); ?> crediti)</small>
+                  <?php endif; ?>
                 </dd>
               </div>
             </dl>
+
+            <div class="card__footer">
+              <?php if ($lockAt): ?>
+                <div class="countdown-row">
+                  <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
+                    <?php echo date('d/m/Y H:i', $lockAt); ?>
+                  </time>
+                  <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
+                </div>
+              <?php else: ?>
+                <div class="countdown-row">—</div>
+              <?php endif; ?>
+            </div>
           </article>
         <?php endforeach; ?>
       </div>
@@ -177,6 +198,27 @@ if (file_exists($headerPath)) { require $headerPath; }
     setTimeout(function(){ tick(el); }, 1000);
   }
   document.querySelectorAll('.countdown').forEach(tick);
+})();
+
+// Aggiorna "Crediti in palio" ogni 10s
+(function(){
+  function updatePot(card){
+    var id = card.getAttribute('data-id');
+    if(!id) return;
+    fetch('/api/tournament_stats.php?id='+id)
+      .then(r => r.ok ? r.json() : null)
+      .then(js => {
+        if(!js || !js.ok) return;
+        var el = card.querySelector('.pot');
+        if(el) el.textContent = (js.pot || 0).toLocaleString('it-IT') + ' crediti';
+      })
+      .catch(()=>{});
+  }
+  function loop(){
+    document.querySelectorAll('article.card[data-id]').forEach(updatePot);
+    setTimeout(loop, 10000);
+  }
+  loop();
 })();
 </script>
 
