@@ -6,10 +6,10 @@
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = __DIR__; // /var/www/html/public
-require_once dirname($ROOT) . '/src/config.php';
-require_once dirname($ROOT) . '/src/db.php';
-require_once dirname($ROOT) . '/src/guards.php';
+$ROOT = __DIR__; // /var/www/html
+require_once $ROOT . '/src/config.php';
+require_once $ROOT . '/src/db.php';
+require_once $ROOT . '/src/guards.php';
 
 // L’utente deve essere loggato
 require_login();
