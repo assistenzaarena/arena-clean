@@ -119,3 +119,26 @@ function fb_extract_fixtures_minimal(array $api_json): array {
     }
     return $out;
 }
+/**
+ * FETCH singolo fixture per ID (API-FOOTBALL: fixtures?id=...)
+ */
+function fb_fixture_by_id(int $fixture_id): array {
+    return fb_get('fixtures', ['id' => $fixture_id]);
+}
+
+/**
+ * Estrae un singolo fixture con i campi minimi (stesso formato di fb_extract_fixtures_minimal)
+ * Ritorna: null|array ['fixture_id','date','home_name','away_name','home_id','away_id']
+ */
+function fb_extract_one_fixture_minimal(array $api_json): ?array {
+    if (!isset($api_json['response'][0])) return null;
+    $fx = $api_json['response'][0];
+    return [
+        'fixture_id' => $fx['fixture']['id'] ?? null,
+        'date'       => $fx['fixture']['date'] ?? null,
+        'home_name'  => $fx['teams']['home']['name'] ?? null,
+        'away_name'  => $fx['teams']['away']['name'] ?? null,
+        'home_id'    => $fx['teams']['home']['id'] ?? null,
+        'away_id'    => $fx['teams']['away']['id'] ?? null,
+    ];
+}
