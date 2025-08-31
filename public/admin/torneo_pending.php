@@ -20,6 +20,17 @@ require_once $ROOT . '/src/db.php';
 $competitions = require $ROOT . '/src/config/competitions.php';
 require_once $ROOT . '/src/services/football_api.php';
 
+// ===== [AGGIUNTA] utility locale: genera un codice globale a 5 cifre univoco su tournament_events.event_code =====
+function generate_event_code_global(PDO $pdo): string {
+  do {
+    $code = str_pad((string)random_int(0, 99999), 5, '0', STR_PAD_LEFT); // es. "04231"
+    $q = $pdo->prepare("SELECT 1 FROM tournament_events WHERE event_code = :c LIMIT 1");
+    $q->execute([':c' => $code]);
+    $exists = (bool)$q->fetchColumn();
+  } while ($exists);
+  return $code;
+}
+
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
@@ -88,19 +99,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       header('Location: /admin/torneo_pending.php?id='.$id); exit;
     }
 
+    // [AGGIUNTA] genera codice evento globale a 5 cifre
+    $eventCode = generate_event_code_global($pdo);
+
     $ins = $pdo->prepare("
       INSERT IGNORE INTO tournament_events
-        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
-      VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
+        (tournament_id, event_code, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+      VALUES (:tid, :ecode, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
     ");
     $ins->execute([
-      ':tid'  => $id,
-      ':rnd'  => $current_round_no ?: 1,
-      ':fid'  => (int)$one['fixture_id'],
-      ':hid'  => $one['home_id'],
-      ':hname'=> $one['home_name'],
-      ':aid'  => $one['away_id'],
-      ':aname'=> $one['away_name'],
+      ':tid'   => $id,
+      ':ecode' => $eventCode,
+      ':rnd'   => $current_round_no ?: 1,
+      ':fid'   => (int)$one['fixture_id'],
+      ':hid'   => $one['home_id'],
+      ':hname' => $one['home_name'],
+      ':aid'   => $one['away_id'],
+      ':aname' => $one['away_name'],
     ]);
 
     $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
@@ -115,16 +130,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
       header('Location: /admin/torneo_pending.php?id='.$id); exit;
     }
+
+    // [AGGIUNTA] genera codice evento globale a 5 cifre
+    $eventCode = generate_event_code_global($pdo);
+
     $ins = $pdo->prepare("
       INSERT INTO tournament_events
-        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
-      VALUES (:tid, :rnd, NULL, NULL, :hname, NULL, :aname, NULL, 1, 0)
+        (tournament_id, event_code, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+      VALUES (:tid, :ecode, :rnd, NULL, NULL, :hname, NULL, :aname, NULL, 1, 0)
     ");
     $ins->execute([
-      ':tid'   => $id,
-      ':rnd'   => $current_round_no ?: 1,
-      ':hname' => $hname,
-      ':aname' => $aname,
+      ':tid'    => $id,
+      ':ecode'  => $eventCode,
+      ':rnd'    => $current_round_no ?: 1,
+      ':hname'  => $hname,
+      ':aname'  => $aname,
     ]);
     $_SESSION['flash'] = 'Evento manuale aggiunto.';
     header('Location: /admin/torneo_pending.php?id='.$id); exit;
@@ -204,18 +224,21 @@ if (!$hasRows) {
       if ($list) {
         $ins = $pdo->prepare("
           INSERT IGNORE INTO tournament_events
-            (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
-          VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
+            (tournament_id, event_code, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+          VALUES (:tid, :ecode, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
         ");
         foreach ($list as $fx) {
+          // [AGGIUNTA] genera codice evento globale per ogni riga importata
+          $eventCode = generate_event_code_global($pdo);
           $ins->execute([
-            ':tid'  => $id,
-            ':rnd'  => $current_round_no ?: 1,
-            ':fid'  => ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
-            ':hid'  => $fx['home_id'],
-            ':hname'=> $fx['home_name'],
-            ':aid'  => $fx['away_id'],
-            ':aname'=> $fx['away_name'],
+            ':tid'   => $id,
+            ':ecode' => $eventCode,
+            ':rnd'   => $current_round_no ?: 1,
+            ':fid'   => ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
+            ':hid'   => $fx['home_id'],
+            ':hname' => $fx['home_name'],
+            ':aid'   => $fx['away_id'],
+            ':aname' => $fx['away_name'],
           ]);
         }
       }
