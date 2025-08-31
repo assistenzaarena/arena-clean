@@ -1,11 +1,10 @@
 <?php
 /**
  * public/lobby.php
- *
- * SCOPO: mostra in sola lettura i tornei in stato 'open'.
- * - Card con: tournament_code (5 cifre), nome, competizione, stagione,
- *   costo vita, posti totali, vite vendute (placeholder 0), lock_at con countdown.
- * - Nessun bottone (iscrizioni arriveranno nello step 3C).
+ * Lobby con due sezioni:
+ * - I miei tornei (iscritto)
+ * - Tornei in partenza (tutti gli open)
+ * Solo lettura: nessun bottone (arriva nello step 3C).
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
@@ -13,19 +12,41 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $ROOT = __DIR__; // /var/www/html
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/guards.php'; // se vuoi controllare login utente
+require_once $ROOT . '/src/guards.php';
 
-// Carico tornei open (pubblicati)
-$sql = "
-  SELECT
-    id, tournament_code, name, league_name, season,
-    cost_per_life, max_slots, lock_at, created_at, updated_at
+// opzionale: obbliga login
+require_login();
+
+// utente loggato
+$uid = (int)($_SESSION['user_id'] ?? 0);
+
+// Tornei OPEN (tutti)
+$all = $pdo->query("
+  SELECT id, tournament_code, name, league_name, season,
+         cost_per_life, max_slots, lock_at
   FROM tournaments
   WHERE status = 'open'
-  ORDER BY created_at DESC
-";
-$stmt = $pdo->query($sql);
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  ORDER BY lock_at IS NULL, lock_at ASC, created_at DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// I miei tornei (se c'è la tabella iscrizioni). Non fallire se non esiste.
+$my = [];
+try {
+  $q = $pdo->prepare("
+    SELECT t.id, t.tournament_code, t.name, t.league_name, t.season,
+           t.cost_per_life, t.max_slots, t.lock_at
+    FROM tournaments t
+    JOIN tournament_enrollments e ON e.tournament_id = t.id
+    WHERE e.user_id = :uid AND t.status = 'open'
+    ORDER BY t.lock_at IS NULL, t.lock_at ASC, t.created_at DESC
+  ");
+  $q->execute([':uid'=>$uid]);
+  $my = $q->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+  // tabella non esiste ancora → sezione "vuota"
+  $my = [];
+}
+
 ?>
 <!doctype html>
 <html lang="it">
@@ -34,91 +55,122 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <title>Lobby tornei</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/base.css">
-  <link rel="stylesheet" href="/assets/header_user.css"><!-- se hai un header utente -->
-  <link rel="stylesheet" href="/assets/lobby.css">
+  <link rel="stylesheet" href="/assets/header_user.css"><!-- se esiste -->
+  <link rel="stylesheet" href="/assets/lobby.css?v=2">
 </head>
 <body>
 
 <?php
-// Se hai un header user già pronto:
 $headerPath = $ROOT . '/header_user.php';
 if (file_exists($headerPath)) { require $headerPath; }
 ?>
 
-<main class="lobby-wrap">
-  <h1 class="page-title">Tornei disponibili</h1>
+<main class="lobby-wrap lobby--decor">
+  <h1 class="page-title">Lobby tornei</h1>
 
-  <?php if (empty($rows)): ?>
-    <div class="muted">Nessun torneo pubblicato al momento.</div>
-  <?php else: ?>
-    <div class="cards">
-      <?php foreach ($rows as $t): ?>
-        <?php
-          $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
-          $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
-        ?>
-        <article class="card">
-          <header class="card__head">
-            <span class="code">#<?php echo htmlspecialchars($code); ?></span>
-            <span class="badge badge--open">OPEN</span>
-          </header>
-
-          <h2 class="card__title"><?php echo htmlspecialchars($t['name']); ?></h2>
-          <div class="meta">
-            <div><?php echo htmlspecialchars($t['league_name']); ?> • Stagione <?php echo htmlspecialchars($t['season']); ?></div>
-          </div>
-
-          <dl class="grid">
-            <div>
-              <dt>Costo vita</dt>
-              <dd>€ <?php echo number_format((float)$t['cost_per_life'], 2, ',', '.'); ?></dd>
-            </div>
-            <div>
-              <dt>Posti totali</dt>
-              <dd><?php echo (int)$t['max_slots']; ?></dd>
-            </div>
-            <div>
-              <dt>Vite vendute</dt>
-              <dd>0</dd><!-- placeholder: lo collegheremo in 3C -->
-            </div>
-            <div>
-              <dt>Lock scelte</dt>
-              <dd>
-                <?php if ($lockAt): ?>
-                  <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
-                    <?php echo date('d/m/Y H:i', $lockAt); ?>
-                  </time>
-                  <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
-                <?php else: ?>
-                  —
-                <?php endif; ?>
-              </dd>
-            </div>
-          </dl>
-
-          <!-- Nessun bottone qui (arriveranno allo step 3C) -->
-        </article>
-      <?php endforeach; ?>
+  <!-- Sezione: I miei tornei -->
+  <section class="section">
+    <div class="section__head">
+      <h2>I miei tornei</h2>
     </div>
-  <?php endif; ?>
+    <?php if (empty($my)): ?>
+      <div class="muted">Non sei iscritto a nessun torneo.</div>
+    <?php else: ?>
+      <div class="cards cards--wide">
+        <?php foreach ($my as $t): ?>
+          <?php
+            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
+            $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
+          ?>
+          <article class="card card--red">
+            <header class="card__head">
+              <span class="code">#<?php echo htmlspecialchars($code); ?></span>
+              <span class="badge badge--open">ISCRITTO</span>
+            </header>
+
+            <h3 class="card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
+            <div class="meta"><?php echo htmlspecialchars($t['league_name']); ?> • Stagione <?php echo htmlspecialchars($t['season']); ?></div>
+
+            <dl class="grid">
+              <div><dt>Buy-in</dt><dd>€ <?php echo number_format((float)$t['cost_per_life'], 2, ',', '.'); ?></dd></div>
+              <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
+              <div><dt>Vite acquistate</dt><dd>—</dd></div>
+              <div>
+                <dt>Lock scelte</dt>
+                <dd>
+                  <?php if ($lockAt): ?>
+                    <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
+                      <?php echo date('d/m/Y H:i', $lockAt); ?>
+                    </time>
+                    <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
+                  <?php else: ?>—<?php endif; ?>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </section>
+
+  <!-- Sezione: Tornei in partenza -->
+  <section class="section">
+    <div class="section__head">
+      <h2>Tornei in partenza</h2>
+    </div>
+    <?php if (empty($all)): ?>
+      <div class="muted">Nessun torneo disponibile al momento.</div>
+    <?php else: ?>
+      <div class="cards cards--wide">
+        <?php foreach ($all as $t): ?>
+          <?php
+            $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
+            $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
+          ?>
+          <article class="card card--red">
+            <header class="card__head">
+              <span class="code">#<?php echo htmlspecialchars($code); ?></span>
+              <span class="badge badge--open">OPEN</span>
+            </header>
+
+            <h3 class="card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
+            <div class="meta"><?php echo htmlspecialchars($t['league_name']); ?> • Stagione <?php echo htmlspecialchars($t['season']); ?></div>
+
+            <dl class="grid">
+              <div><dt>Buy-in</dt><dd>€ <?php echo number_format((float)$t['cost_per_life'], 2, ',', '.'); ?></dd></div>
+              <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
+              <div><dt>Vite acquistate</dt><dd>—</dd></div>
+              <div>
+                <dt>Lock scelte</dt>
+                <dd>
+                  <?php if ($lockAt): ?>
+                    <time class="lock" datetime="<?php echo htmlspecialchars($t['lock_at']); ?>">
+                      <?php echo date('d/m/Y H:i', $lockAt); ?>
+                    </time>
+                    <span class="countdown" data-due="<?php echo htmlspecialchars($t['lock_at']); ?>"></span>
+                  <?php else: ?>—<?php endif; ?>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </section>
 </main>
 
 <script>
-// Countdown semplice per tutti gli elementi .countdown
+// Countdown semplice
 (function(){
-  function tick(node){
-    var due = node.getAttribute('data-due');
-    if(!due) return;
+  function tick(el){
+    var due = el.getAttribute('data-due'); if(!due) return;
     var end = new Date(due.replace(' ', 'T')).getTime();
-    var now = Date.now();
-    var diff = end - now;
-    if(diff <= 0){ node.textContent = 'CHIUSO'; return; }
-    var s = Math.floor(diff/1000);
-    var d = Math.floor(s/86400); s%=86400;
-    var h = Math.floor(s/3600);  s%=3600;
-    var m = Math.floor(s/60);    s%=60;
-    node.textContent = (d>0? d+'g ':'') + (h+'h ') + (m+'m ') + (s+'s');
-    requestAnimationFrame(function(){ setTimeout(function(){ tick(node); }, 1000); });
+    var now = Date.now(); var diff = end - now;
+    if(diff <= 0){ el.textContent = 'CHIUSO'; return; }
+    var s = Math.floor(diff/1000), d = Math.floor(s/86400); s%=86400;
+    var h = Math.floor(s/3600); s%=3600; var m = Math.floor(s/60); s%=60;
+    el.textContent = (d>0? d+'g ':'') + h+'h ' + m+'m ' + s+'s';
+    setTimeout(function(){ tick(el); }, 1000);
   }
   document.querySelectorAll('.countdown').forEach(tick);
 })();
