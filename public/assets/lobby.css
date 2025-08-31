@@ -1,0 +1,71 @@
+/* Lobby tornei — stile card */
+
+.lobby-wrap{
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 16px;
+  color: #fff;
+}
+
+.page-title{
+  font-size: 22px;
+  margin: 0 0 16px;
+}
+
+.muted{ color:#aaa; }
+
+.cards{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.card{
+  background:#111;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  padding:14px;
+  box-shadow:0 8px 28px rgba(0,0,0,.2);
+}
+
+.card__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+
+.code{
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.badge{
+  font-size:12px;
+  padding:3px 8px;
+  border-radius:9999px;
+  border:1px solid rgba(255,255,255,.2);
+}
+.badge--open{
+  background:#0c3023;
+  border-color:#00c074;
+  color:#00c074;
+}
+
+.card__title{
+  font-size:18px;
+  margin:6px 0 4px;
+}
+
+.meta{ color:#c9c9c9; font-size:13px; margin-bottom:8px; }
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:10px 12px;
+}
+.grid dt{ font-size:12px; color:#aaa; }
+.grid dd{ margin:0; font-weight:800; }
+
+.lock{ color:#c9c9c9; margin-right:6px; }
+.countdown{ font-weight:800; color:#fff; }
