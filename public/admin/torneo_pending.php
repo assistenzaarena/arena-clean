@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $up  = $pdo->prepare("UPDATE tournament_events SET is_active=:n WHERE id=:rid AND tournament_id=:tid");
     $up->execute([':n'=>$new, ':rid'=>$row_id, ':tid'=>$id]);
 
-    $_SESSION['flash'] = 'Evento #'.$row_id.' '.($new ? 'attivato' : 'disattivato').'.';
+    $_SESSION['flash'] = 'Evento #'.$row_id.' — '.($new ? 'scelte sbloccate' : 'scelte bloccate').'.';
     header('Location: /admin/torneo_pending.php?id='.$id); exit;
   }
 
@@ -312,7 +312,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
             <th>ID</th>
             <th>Fixture ID</th>
             <th>Partita</th>
-            <th>Attivo</th>
+            <th>Scelte abilitate</th>
             <th>Azioni</th>
           </tr>
         </thead>
@@ -328,7 +328,9 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
                   <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                   <input type="hidden" name="action" value="toggle_event_active">
                   <input type="hidden" name="row_id" value="<?php echo (int)$e['id']; ?>">
-                  <button class="btn" type="submit"><?php echo ((int)$e['is_active']===1)?'Disattiva':'Attiva'; ?></button>
+                  <button class="btn" type="submit">
+  <?php echo ((int)$e['is_active']===1) ? 'Blocca scelte' : 'Sblocca scelte'; ?>
+</button>
                 </form>
 
                 <form method="post" action="" onsubmit="return confirm('Eliminare definitivamente questo evento?');" style="display:inline">
