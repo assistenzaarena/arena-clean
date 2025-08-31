@@ -166,6 +166,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['flash'] = 'Torneo pubblicato (open).';
     header('Location: /admin/crea_torneo.php'); exit;
   }
+    // elimina intero torneo (solo se è in draft)
+  if ($action === 'delete_tournament') {
+    // prima elimino gli eventi, poi il torneo
+    $pdo->prepare("DELETE FROM tournament_events WHERE tournament_id=:tid")->execute([':tid'=>$id]);
+    $pdo->prepare("DELETE FROM tournaments WHERE id=:id AND status='draft'")->execute([':id'=>$id]);
+
+    $_SESSION['flash'] = 'Torneo #'.$id.' eliminato definitivamente.';
+    header('Location: /admin/crea_torneo.php'); exit;
+  }
 }
 
 // ===============================
