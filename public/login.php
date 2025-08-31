@@ -7,10 +7,9 @@
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); // necessario per $_SESSION e per session_regenerate_id()
 }
-
-require_once __DIR__ . '/src/config.php';
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/guards.php';
+// [RIGA] 2) Carica config e DB PRIMA di qualsiasi HTML
+require_once __DIR__ . '/src/config.php'; // costanti, APP_ENV, ecc.
+require_once __DIR__ . '/src/db.php';     // $pdo (PDO con prepared reali)
 
 // [RIGA] Variabile per messaggi errore (evita notice)
 $error = null;
