@@ -203,7 +203,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } // fine if !$errors
     } // fine if action === 'create'
 } // fine if POST
-   <?php
+
+<?php
 // ===============================
 // [SEZIONE PENDING] Carico i tornei in stato 'pending' da mostrare sotto al form
 // ===============================
