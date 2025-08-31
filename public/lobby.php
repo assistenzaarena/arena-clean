@@ -281,26 +281,36 @@ if (file_exists($headerPath)) { require $headerPath; }
 btnOk.addEventListener('click', function(){
   if (!nextId) return;
 
-  // chiudo subito il popup (UX), poi chiamo l'API
+  // chiudo il popup (UX), poi chiamo l’API
   modal.style.display = 'none';
 
   fetch('/api/enroll.php', {
     method: 'POST',
+    credentials: 'same-origin', // <-- invia i cookie di sessione
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'csrf=' + encodeURIComponent(window.CSRF) +
           '&tournament_id=' + encodeURIComponent(nextId)
   })
-  .then(r => r.ok ? r.json() : null)
-  .then(js => {
-    if (!js || !js.ok) {
-      // errori gestibili: not_open, locked, already_enrolled, bad_csrf...
-      alert('Iscrizione non riuscita' + (js && js.error ? ': ' + js.error : '.'));
+  .then(async (r) => {
+    let js = null, txt = null;
+    try { js = await r.json(); } catch (_) {}
+    if (!js) {
+      try { txt = await r.text(); } catch (_) {}
+      alert('Risposta non valida dal server:\n' + (txt ? txt.slice(0, 500) : '(vuota)'));
+      throw new Error('non_json');
+    }
+    return js;
+  })
+  .then((js) => {
+    if (!js.ok) {
+      alert('Iscrizione non riuscita: ' + (js.error || 'errore'));
       return;
     }
-    // tutto ok: vai alla pagina torneo
     window.location.href = js.redirect || ('/torneo.php?id=' + nextId);
   })
-  .catch(() => { alert('Errore di rete'); });
+  .catch(() => {
+    alert('Errore di rete');
+  });
 });
 
   // chiudi cliccando fuori
