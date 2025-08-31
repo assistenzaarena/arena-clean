@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/utils.php';   // generate_unique_code8()
+require_once $ROOT . '/src/utils.php';   // generate_unique_code(), generate_unique_code8()
 
 // Deve essere loggato
 if (empty($_SESSION['user_id'])) {
@@ -42,7 +42,7 @@ try {
   $tq->execute([':id'=>$tournament_id]);
   $t = $tq->fetch(PDO::FETCH_ASSOC);
 
-  if (!$t)                  { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
+  if (!$t) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
   if ($t['status'] !== 'open') { echo json_encode(['ok'=>false,'error'=>'not_open']); exit; }
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
     echo json_encode(['ok'=>false,'error'=>'locked']); exit;
@@ -77,23 +77,21 @@ try {
     echo json_encode(['ok'=>false,'error'=>'insufficient_funds']); exit;
   }
 
-  // 3.2) iscrizione (lives = 1)
-  // se la colonna registration_code esiste: genera un codice a 5 cifre; se non esiste, questo campo viene ignorato dalla query
+  // 3.2) iscrizione (lives = 1) — con registration_code SOLO se la colonna esiste
   $regCode = null;
   $hasReg  = false;
-
-  // rileva dinamicamente se la colonna esiste (così non esplode in ambienti dove non l'hai ancora aggiunta)
   $colq = $pdo->query("SHOW COLUMNS FROM tournament_enrollments LIKE 'registration_code'");
   if ($colq && $colq->fetch(PDO::FETCH_ASSOC)) {
     $hasReg  = true;
-    // se vuoi tenerlo NULL lasciarlo così; se vuoi generarlo:
     $regCode = generate_unique_code($pdo, 'tournament_enrollments', 'registration_code');
   }
 
   if ($hasReg) {
     $ins = $pdo->prepare("
-      INSERT INTO tournament_enrollments (user_id, tournament_id, registration_code, lives, created_at)
-      VALUES (:u, :t, :rc, 1, NOW())
+      INSERT INTO tournament_enrollments
+        (user_id, tournament_id, registration_code, lives, created_at)
+      VALUES
+        (:u, :t, :rc, 1, NOW())
     ");
     $ins->execute([
       ':u'  => $user_id,
@@ -102,8 +100,10 @@ try {
     ]);
   } else {
     $ins = $pdo->prepare("
-      INSERT INTO tournament_enrollments (user_id, tournament_id, lives, created_at)
-      VALUES (:u, :t, 1, NOW())
+      INSERT INTO tournament_enrollments
+        (user_id, tournament_id, lives, created_at)
+      VALUES
+        (:u, :t, 1, NOW())
     ");
     $ins->execute([
       ':u' => $user_id,
@@ -131,14 +131,9 @@ try {
 
   echo json_encode(['ok'=>true, 'redirect'=>'/torneo.php?id='.$tournament_id]); exit;
 
-}} catch (Throwable $e) {
+} catch (Throwable $e) {
   if ($pdo->inTransaction()) { $pdo->rollBack(); }
-  // DEBUG TEMPORANEO: mostra anche il messaggio SQL
-  echo json_encode([
-    'ok'    => false,
-    'error' => 'exception',
-    'msg'   => $e->getMessage()
-  ]);
-}
+  // scommenta per vedere l'errore reale una volta sola:
+  // echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]); exit;
   echo json_encode(['ok'=>false,'error'=>'exception']); exit;
 }
