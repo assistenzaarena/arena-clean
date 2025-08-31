@@ -117,21 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $matchday = null; // coerente
             }
         }
-      ?>
-           
-<?php
-// ===============================
-// [SEZIONE PENDING] Carico i tornei in stato 'pending' da mostrare sotto al form
-// ===============================
-$pending_stmt = $pdo->prepare("
-  SELECT id, name, league_name, season, round_type, matchday, round_label, created_at
-  FROM tournaments
-  WHERE status = 'pending'
-  ORDER BY created_at DESC
-");
-$pending_stmt->execute();
-$pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
+
         // ---- INSERT DB (stato iniziale: draft) ----
         if (!$errors) {
             $sql = "INSERT INTO tournaments
@@ -162,71 +148,74 @@ $pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
                 ':rlabel' => ($round_label === '' ? null : $round_label),
             ]);
 
-                // =========================
-    // [Step 2B] FETCH FIXTURES & STATO (pending/draft)
-    // =========================
-    require_once $ROOT . '/src/services/football_api.php'; // wrapper API
+            // =========================
+            // [Step 2B] FETCH FIXTURES & STATO (pending/draft)
+            // =========================
+            require_once $ROOT . '/src/services/football_api.php'; // wrapper API
 
-    // Recupero l'ID auto-increment del torneo appena creato
-    $tournament_id = (int)$pdo->lastInsertId();
+            $tournament_id = (int)$pdo->lastInsertId();
+            $roundType = $comp['round_type']; // 'matchday' | 'round_label'
+            $fixturesResp = null;
+            $fixturesMin  = [];
+            $complete     = false;
+            $incompleteReason = '';
 
-    // Determino tipo round e parametri
-    $roundType = $comp['round_type']; // 'matchday' | 'round_label'
-    $fixturesResp = null;
-    $fixturesMin  = [];
-    $complete     = false;
-    $incompleteReason = '';
-
-    try {
-        if ($roundType === 'matchday') {
-            // atteso per completezza
-            $expected = $comp['expected_matches_per_matchday'] ?? null;
-            // ATTENZIONE: molte leghe usano label "Regular Season - {N}" per il round
-            $fixturesResp = fb_fixtures_matchday((int)$comp['league_id'], $season, (int)$matchday, 'Regular Season - %d');
-            if (!$fixturesResp['ok']) {
-                $incompleteReason = 'Errore API: '.$fixturesResp['error'].' (HTTP '.$fixturesResp['status'].')';
-            } else {
-                $fixturesMin = fb_extract_fixtures_minimal($fixturesResp['data']);
-                $count = count($fixturesMin);
-                $complete = ($expected !== null) ? ($count === (int)$expected) : ($count > 0);
-                if (!$complete && $expected !== null) {
-                    $incompleteReason = "Trovate $count partite su $expected.";
+            try {
+                if ($roundType === 'matchday') {
+                    $expected = $comp['expected_matches_per_matchday'] ?? null;
+                    $fixturesResp = fb_fixtures_matchday((int)$comp['league_id'], $season, (int)$matchday, 'Regular Season - %d');
+                    if (!$fixturesResp['ok']) {
+                        $incompleteReason = 'Errore API: '.$fixturesResp['error'].' (HTTP '.$fixturesResp['status'].')';
+                    } else {
+                        $fixturesMin = fb_extract_fixtures_minimal($fixturesResp['data']);
+                        $count = count($fixturesMin);
+                        $complete = ($expected !== null) ? ($count === (int)$expected) : ($count > 0);
+                        if (!$complete && $expected !== null) {
+                            $incompleteReason = "Trovate $count partite su $expected.";
+                        }
+                    }
+                } else {
+                    $fixturesResp = fb_fixtures_round_label((int)$comp['league_id'], $season, $round_label);
+                    if (!$fixturesResp['ok']) {
+                        $incompleteReason = 'Errore API: '.$fixturesResp['error'].' (HTTP '.$fixturesResp['status'].')';
+                    } else {
+                        $fixturesMin = fb_extract_fixtures_minimal($fixturesResp['data']);
+                        $complete = (count($fixturesMin) > 0);
+                        if (!$complete) { $incompleteReason = 'Nessuna partita trovata per il round selezionato.'; }
+                    }
                 }
+            } catch (Throwable $e) {
+                $fixturesResp = null;
+                $fixturesMin  = [];
+                $complete     = false;
+                $incompleteReason = 'Eccezione fetch: '.$e->getMessage();
             }
-        } else {
-            // round_label: consideriamo completo se >0 fixtures (soglia semplice per 2B)
-            $fixturesResp = fb_fixtures_round_label((int)$comp['league_id'], $season, $round_label);
-            if (!$fixturesResp['ok']) {
-                $incompleteReason = 'Errore API: '.$fixturesResp['error'].' (HTTP '.$fixturesResp['status'].')';
-            } else {
-                $fixturesMin = fb_extract_fixtures_minimal($fixturesResp['data']);
-                $complete = (count($fixturesMin) > 0);
-                if (!$complete) { $incompleteReason = 'Nessuna partita trovata per il round selezionato.'; }
-            }
-        }
-    } catch (Throwable $e) {
-        $fixturesResp = null;
-        $fixturesMin  = [];
-        $complete     = false;
-        $incompleteReason = 'Eccezione fetch: '.$e->getMessage();
-    }
 
-    // Aggiorno lo status in base alla completezza
-    if ($complete) {
-        $pdo->prepare("UPDATE tournaments SET status = 'draft' WHERE id = :id")->execute([':id'=>$tournament_id]);
-        $_SESSION['flash'] = 'Torneo creato (bozza). Fixtures completi. Pronto alla pubblicazione.';
-        header('Location: /admin/crea_torneo.php'); exit;
-    } else {
-        // (opzionale) potresti salvare anche la "nota" se hai una colonna a disposizione
-        $pdo->prepare("UPDATE tournaments SET status = 'pending' WHERE id = :id")->execute([':id'=>$tournament_id]);
-        $_SESSION['flash'] = 'Torneo in pending: '.$incompleteReason;
-        header('Location: /admin/torneo_pending.php?id='.$tournament_id); exit;
-    }
-        }
-    }
-}
+            if ($complete) {
+                $pdo->prepare("UPDATE tournaments SET status = 'draft' WHERE id = :id")->execute([':id'=>$tournament_id]);
+                $_SESSION['flash'] = 'Torneo creato (bozza). Fixtures completi. Pronto alla pubblicazione.';
+                header('Location: /admin/crea_torneo.php'); exit;
+            } else {
+                $pdo->prepare("UPDATE tournaments SET status = 'pending' WHERE id = :id")->execute([':id'=>$tournament_id]);
+                $_SESSION['flash'] = 'Torneo in pending: '.$incompleteReason;
+                header('Location: /admin/torneo_pending.php?id='.$tournament_id); exit;
+            }
+        } // fine if !$errors
+    } // fine if action === 'create'
+} // fine if POST
+   <?php
+// ===============================
+// [SEZIONE PENDING] Carico i tornei in stato 'pending' da mostrare sotto al form
+// ===============================
+$pending_stmt = $pdo->prepare("
+  SELECT id, name, league_name, season, round_type, matchday, round_label, created_at
+  FROM tournaments
+  WHERE status = 'pending'
+  ORDER BY created_at DESC
+");
+$pending_stmt->execute();
+$pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
