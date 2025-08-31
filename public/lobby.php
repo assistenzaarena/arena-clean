@@ -203,7 +203,7 @@ if (file_exists($headerPath)) { require $headerPath; }
       <p style="margin:0 0 12px;">Vuoi iscriverti a questo torneo?</p>
       <div style="display:flex; gap:8px; justify-content:flex-end;">
         <button type="button" class="btn" id="enrollCancel">Annulla</button>
-        <button type="button" class="btn btn-primary" id="enrollConfirm">Conferma</button>
+        <button type="button" id="enrollConfirm" class="btn btn--ok">Conferma</button>
       </div>
     </div>
   </div>
