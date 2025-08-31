@@ -5,8 +5,6 @@
 
 .lobby--decor{
   background:
-    radial-gradient(1400px 420px at -10% 110%, rgba(150,30,30,.25), transparent 60%),
-    radial-gradient(1000px 300px at 120% -10%, rgba(150,30,30,.18), transparent 60%),
     linear-gradient(180deg, #0f1114 0%, #0f1114 100%);
   min-height: calc(100vh - 120px);
   padding-bottom: 40px;
