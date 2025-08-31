@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/utils.php';   // per generate_unique_code8
+require_once $ROOT . '/src/utils.php';   // per generate_unique_code(), generate_unique_code8()
 
 // Deve essere loggato
 if (empty($_SESSION['user_id'])) { echo json_encode(['ok'=>false,'error'=>'not_logged']); exit; }
@@ -52,21 +52,26 @@ try {
     echo json_encode(['ok'=>false,'error'=>'insufficient_funds']); exit;
   }
 
-  // 3.2) iscrizione (lives=1)
-  // se hai registration_code a 5 cifre: generane uno al bisogno (riuso generator a 8? noi lo lasciamo vuoto/NULL)
+  // 3.2) iscrizione (lives=1) con registration_code a 5 cifre
+  $regCode = generate_unique_code($pdo, 'tournament_enrollments', 'registration_code'); // 5 cifre univoco
   $ins = $pdo->prepare("
-    INSERT INTO tournament_enrollments (user_id, tournament_id, lives)
-    VALUES (:u, :t, 1)
+    INSERT INTO tournament_enrollments (user_id, tournament_id, registration_code, lives)
+    VALUES (:u, :t, :code, 1)
   ");
-  $ins->execute([':u'=>$user_id, ':t'=>$tournament_id]);
+  $ins->execute([':u'=>$user_id, ':t'=>$tournament_id, ':code'=>$regCode]);
 
-  // 3.3) log movimento (addebito)
+  // 3.3) log movimento (addebito) — amount NEGATIVO, nessuna colonna 'sign'
   $movCode = generate_unique_code8($pdo, 'credit_movements', 'movement_code', 8);
   $mov = $pdo->prepare("
-    INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, sign)
-    VALUES (:m, :u, :t, 'enroll', :a, -1)
+    INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
+    VALUES (:m, :u, :t, 'enroll', :a, NOW())
   ");
-  $mov->execute([':m'=>$movCode, ':u'=>$user_id, ':t'=>$tournament_id, ':a'=>$cost]);
+  $mov->execute([
+    ':m'=>$movCode,
+    ':u'=>$user_id,
+    ':t'=>$tournament_id,
+    ':a'=> -1 * $cost   // addebito → negativo
+  ]);
 
   $pdo->commit();
 
