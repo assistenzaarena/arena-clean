@@ -1,27 +1,48 @@
 <?php
+/**
+ * public/admin/crea_torneo.php
+ *
+ * SCOPO: SOLO creazione tornei (nessuna gestione). Accesso riservato all'admin.
+ * STEP 1: select competizioni (da mappa), stagione e matchday/round obbligatori.
+ * NESSUNA chiamata API in questo step (arriverà nello Step 2).
+ */
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// Calcolo la root del progetto: /var/www/html
-$ROOT = dirname(__DIR__); // da /var/www/html/admin → /var/www/html
+/* ------------------------------------------------------------------
+   ROOT DEL PROGETTO (DOCROOT) = /var/www/html
+   Da /public/admin risalgo di 1 livello: dirname(__DIR__) = /var/www/html
+   ------------------------------------------------------------------ */
+$ROOT = dirname(__DIR__);  // /var/www/html
 
+/* ----------------- include di sicurezza ----------------- */
 require_once $ROOT . '/src/guards.php';   // require_login(), require_admin()
-require_admin();
+require_admin();                          // blocca non-admin
 
-require_once $ROOT . '/src/config.php';   // config generica
-require_once $ROOT . '/src/db.php';       // connessione PDO
+require_once $ROOT . '/src/config.php';   // config generica / env
+require_once $ROOT . '/src/db.php';       // connessione PDO ($pdo)
 
-$competitions = require $ROOT . '/config/competitions.php'; // mappa competizioni
+/* ------------------------------------------------------------------
+   Mappa competizioni: POSIZIONA competitions.php in /src/config/ !
+   Percorso: /var/www/html/src/config/competitions.php
+   ------------------------------------------------------------------ */
+$competitions = require $ROOT . '/src/config/competitions.php'; // <-- QUI
+// Se vuoi debug veloce: uncomment
+// if (!file_exists($ROOT . '/src/config/competitions.php')) { die('competitions.php non trovato!'); }
 
-// [CSRF] token anti-forgery
+/* ----------------- CSRF ----------------- */
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
-$flash = null;           // messaggi una tantum
-$errors = [];            // errori validazione
+$flash  = null;
+$errors = [];
 
-// ---------- POST: crea torneo ----------
+/* ================================================================
+   POST HANDLER: CREA TORNEO (nessuna API/fetch in questo step)
+   ================================================================ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF
+
+    // CSRF check
     $posted_csrf = $_POST['csrf'] ?? '';
     if (!hash_equals($_SESSION['csrf'], $posted_csrf)) {
         http_response_code(400);
@@ -29,11 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $action = $_POST['action'] ?? '';
+
     if ($action === 'create') {
-        // [INPUT] dai campi del form
-        $comp_key  = $_POST['competition'] ?? '';           // chiave competizione (select)
-        $season    = trim($_POST['season'] ?? '');          // stagione
-        $name      = trim($_POST['name'] ?? '');            // nome torneo
+        // ---- INPUT ----
+        $comp_key  = $_POST['competition'] ?? '';
+        $season    = trim($_POST['season'] ?? '');
+        $name      = trim($_POST['name'] ?? '');
 
         $cost_per_life      = $_POST['cost_per_life'] ?? '';
         $max_slots          = $_POST['max_slots'] ?? '';
@@ -42,11 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $prize_percent      = $_POST['prize_percent'] ?? '';
         $rake_percent       = $_POST['rake_percent'] ?? '';
 
-        // Questi due sono mutuamente esclusivi in base alla competizione scelta
-        $matchday    = $_POST['matchday']    ?? '';         // per round_type = matchday
-        $round_label = trim($_POST['round_label'] ?? '');   // per round_type = round_label
+        // Campi “round”: uno dei due, a seconda della competizione
+        $matchday    = $_POST['matchday']    ?? '';
+        $round_label = trim($_POST['round_label'] ?? '');
 
-        // [VALIDAZIONI] competizione / stagioni / economie
+        // ---- VALIDAZIONI BASE ----
         if ($name === '') { $errors[] = 'Nome torneo obbligatorio.'; }
 
         if ($comp_key === '' || !isset($competitions[$comp_key])) {
@@ -57,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($season === '') { $errors[] = 'Stagione obbligatoria.'; }
 
+        // Economia
         if ($cost_per_life === '' || !is_numeric($cost_per_life) || $cost_per_life < 0) {
             $errors[] = 'Costo per vita non valido.';
         }
@@ -72,31 +95,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($rake_percent === '' || !ctype_digit((string)$rake_percent)) {
             $errors[] = 'Percentuale rake non valida.';
         }
-        if ($prize_percent !== '' && $rake_percent !== '' && ((int)$prize_percent + (int)$rake_percent !== 100)) {
+        if ($prize_percent !== '' && $rake_percent !== '' &&
+            ((int)$prize_percent + (int)$rake_percent !== 100)) {
             $errors[] = 'Prize% + Rake% devono sommare 100.';
         }
         if ($guaranteed_prize !== '' && (!is_numeric($guaranteed_prize) || $guaranteed_prize < 0)) {
             $errors[] = 'Montepremi garantito non valido.';
         }
 
-        // [VALIDAZIONE] campi “round” in base al tipo competizione
+        // ---- VALIDAZIONE round in base al tipo competizione ----
         if (empty($errors) && isset($comp)) {
             if ($comp['round_type'] === 'matchday') {
                 if ($matchday === '' || !ctype_digit((string)$matchday) || (int)$matchday < 1) {
                     $errors[] = 'Giornata obbligatoria (numero).';
                 }
-                // per coerenza azzeriamo round_label
-                $round_label = null;
-            } else { // round_label
+                $round_label = null; // coerente
+            } else { // 'round_label'
                 if ($round_label === '') {
                     $errors[] = 'Round obbligatorio (es. "Group A - 2", "Round of 16").';
                 }
-                // per coerenza azzeriamo matchday
-                $matchday = null;
+                $matchday = null; // coerente
             }
         }
 
-        // [INSERT] se tutto ok, scrivo il torneo (stato iniziale: 'draft')
+        // ---- INSERT DB (stato iniziale: draft) ----
         if (!$errors) {
             $sql = "INSERT INTO tournaments
                     (name, cost_per_life, max_slots, max_lives_per_user, guaranteed_prize,
@@ -117,12 +139,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':pp'     => (int)$prize_percent,
                 ':rp'     => (int)$rake_percent,
 
-                // dati competizione dalla mappa
                 ':lid'    => (int)$comp['league_id'],
                 ':lname'  => $comp['name'],
 
                 ':season' => $season,
-                ':rtype'  => $comp['round_type'],  // 'matchday' | 'round_label'
+                ':rtype'  => $comp['round_type'],      // 'matchday' | 'round_label'
                 ':mday'   => ($matchday === '' ? null : (int)$matchday),
                 ':rlabel' => ($round_label === '' ? null : $round_label),
             ]);
@@ -144,12 +165,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<?php require __DIR__ . '/../header_admin.php'; ?><!-- header admin -->
+<?php require $ROOT . '/header_admin.php'; ?><!-- barra admin -->
 
 <main class="admin-wrap">
   <h1 class="page-title">Crea Tornei</h1>
 
-  <!-- messaggi -->
   <?php if (!empty($_SESSION['flash'])): ?>
     <div class="flash"><?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?></div>
   <?php endif; ?>
@@ -170,11 +190,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input id="name" name="name" type="text" required>
         </div>
 
-        <!-- Competizione (select dalla mappa) -->
+        <!-- Competizione -->
         <div class="field">
           <label for="competition">Competizione</label>
           <select id="competition" name="competition" required>
-            <option value="">— Seleziona competizione —</option>
+            <option value="">— Seleziona —</option>
             <?php foreach ($competitions as $key => $c): ?>
               <option value="<?php echo htmlspecialchars($key); ?>"
                       data-round-type="<?php echo htmlspecialchars($c['round_type']); ?>"
@@ -189,16 +209,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="field">
           <label for="season">Stagione</label>
           <input id="season" name="season" type="text" placeholder="2024/2025" required>
-          <small class="hint">Puoi cambiare la stagione proposta se necessario.</small>
+          <small class="hint">Precompilata dalla competizione, modificabile.</small>
         </div>
 
-        <!-- Giornata (solo per round_type = matchday) -->
+        <!-- Giornata (matchday) -->
         <div class="field" id="wrap-matchday" style="display:none;">
           <label for="matchday">Giornata</label>
           <input id="matchday" name="matchday" type="number" min="1">
         </div>
 
-        <!-- Round label (solo per round_type = round_label) -->
+        <!-- Round label (coppe) -->
         <div class="field" id="wrap-roundlabel" style="display:none;">
           <label for="round_label">Round</label>
           <input id="round_label" name="round_label" type="text" placeholder="Es. Group A - 2 / Round of 16">
@@ -239,11 +259,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </main>
 
-<!-- JS minimo: imposta stagione di default e mostra il giusto campo round -->
+<!-- JS: imposta stagione di default e mostra matchday/round corretti -->
 <script>
 (function () {
-  const sel = document.getElementById('competition');   // select competizione
-  const season = document.getElementById('season');     // input stagione
+  const sel = document.getElementById('competition');
+  const season = document.getElementById('season');
   const wrapMD = document.getElementById('wrap-matchday');
   const wrapRL = document.getElementById('wrap-roundlabel');
   const md = document.getElementById('matchday');
@@ -251,9 +271,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   function applyCompUI() {
     const opt = sel.options[sel.selectedIndex];
-    const rtype = opt.getAttribute('data-round-type') || '';
-    const defSeas = opt.getAttribute('data-default-season') || '';
-    if (defSeas && !season.value) season.value = defSeas; // precompila stagione se vuota
+    const rtype = opt ? (opt.getAttribute('data-round-type') || '') : '';
+    const defSeas = opt ? (opt.getAttribute('data-default-season') || '') : '';
+
+    if (defSeas && !season.value) season.value = defSeas;
 
     if (rtype === 'matchday') {
       wrapMD.style.display = '';
@@ -268,7 +289,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       md.required = false;
       rl.required = true;
     } else {
-      // nulla selezionato
       wrapMD.style.display = 'none';
       wrapRL.style.display = 'none';
       md.required = false;
@@ -277,8 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   sel.addEventListener('change', applyCompUI);
-  // Prima inizializzazione (se ricarichi con select vuota non fa nulla)
-  applyCompUI();
+  applyCompUI(); // init
 })();
 </script>
 
