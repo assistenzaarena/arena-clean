@@ -229,31 +229,46 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
   <?php endif; ?>
 
   <!-- META TORNEO -->
-  <div class="card">
-    <h3 style="margin-top:0">Meta torneo</h3>
-    <form method="post" action="" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+ <div class="card">
+  <h3 style="margin-top:0">Meta torneo</h3>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <!-- Form: Salva meta -->
+    <form method="post" action="">
       <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
       <input type="hidden" name="action" value="update_meta">
 
-      <label>Round corrente
+      <label style="margin-right:8px;">Round corrente
         <input type="number" name="current_round_no" min="1" value="<?php echo (int)$current_round_no; ?>">
       </label>
 
-      <label>Lock scelte (data/ora)
+      <label style="margin-right:8px;">Lock scelte (data/ora)
         <input type="datetime-local" name="lock_at"
                value="<?php echo $torneo['lock_at'] ? htmlspecialchars(date('Y-m-d\TH:i', strtotime($torneo['lock_at']))) : ''; ?>">
       </label>
 
       <button class="btn" type="submit">Salva meta</button>
+    </form>
 
-      <!-- Pubblica ora direttamente da qui -->
-      <form method="post" action="" onsubmit="return confirm('Pubblicare questo torneo? Diventerà OPEN.');" style="display:inline;">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-        <input type="hidden" name="action" value="publish_now">
-        <button class="btn btn-primary" type="submit" style="margin-left:8px">Pubblica ora</button>
-      </form>
+    <!-- Form: Pubblica ora -->
+    <form method="post" action=""
+          onsubmit="return confirm('Pubblicare questo torneo? Diventerà OPEN.');"
+          style="display:inline;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="action" value="publish_now">
+      <button class="btn btn-primary" type="submit">Pubblica ora</button>
+    </form>
+
+    <!-- Form: Elimina torneo (quello che mi hai chiesto) -->
+    <form method="post" action=""
+          onsubmit="return confirm('Sei sicuro di voler ELIMINARE questo torneo? Azione irreversibile.');"
+          style="display:inline;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="action" value="delete_tournament">
+      <button class="btn btn-warn" type="submit">Elimina torneo</button>
     </form>
   </div>
+</div>
 
   <!-- TABELLA EVENTI -->
   <div class="card">
