@@ -2,7 +2,7 @@
    Stile pagina: Crea Tornei
    =========================== */
 
-/* wrapper centrale (coerente con dashboard) */
+/* wrapper centrale */
 .admin-wrap{
   max-width: 1280px;
   margin: 24px auto;
@@ -26,7 +26,7 @@
   box-shadow: 0 8px 28px rgba(0,0,0,.18);
 }
 
-/* griglia del form a 2 colonne (mobile: 1 colonna) */
+/* form a 2 colonne (mobile → 1 colonna) */
 .grid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
