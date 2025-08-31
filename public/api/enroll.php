@@ -101,5 +101,10 @@ try {
 
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) { $pdo->rollBack(); }
-  echo json_encode(['ok'=>false,'error'=>'exception']);
+  // DEBUG TEMPORANEO: mostra anche il messaggio SQL
+  echo json_encode([
+    'ok'    => false,
+    'error' => 'exception',
+    'msg'   => $e->getMessage()
+  ]);
 }
