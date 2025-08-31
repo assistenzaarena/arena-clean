@@ -22,6 +22,8 @@ require_admin();                          // blocca non-admin
 
 require_once $ROOT . '/src/config.php';   // config generica / env
 require_once $ROOT . '/src/db.php';       // connessione PDO ($pdo)
+/* [AGGIUNTA] utils per codice univoco a 5 cifre */
+require_once $ROOT . '/src/utils.php';
 
 /* ------------------------------------------------------------------
    Mappa competizioni: POSIZIONA competitions.php in /src/config/ !
@@ -119,17 +121,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // ---- INSERT DB (stato iniziale: draft) ----
         if (!$errors) {
+
+            // [AGGIUNTA] genera codice torneo univoco globale a 5 cifre
+            $tournament_code = generate_unique_code($pdo, 'tournaments', 'tournament_code');
+
             $sql = "INSERT INTO tournaments
-                    (name, cost_per_life, max_slots, max_lives_per_user, guaranteed_prize,
+                    (tournament_code, name, cost_per_life, max_slots, max_lives_per_user, guaranteed_prize,
                      prize_percent, rake_percent,
                      league_id, league_name, season, round_type, matchday, round_label, status,
                      created_at, updated_at)
                     VALUES
-                    (:name, :cpl, :slots, :mlu, :gp, :pp, :rp,
+                    (:tcode, :name, :cpl, :slots, :mlu, :gp, :pp, :rp,
                      :lid, :lname, :season, :rtype, :mday, :rlabel, 'draft',
                      NOW(), NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
+                ':tcode'  => $tournament_code,          // <-- [AGGIUNTA]
                 ':name'   => $name,
                 ':cpl'    => (float)$cost_per_life,
                 ':slots'  => (int)$max_slots,
