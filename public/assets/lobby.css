@@ -94,3 +94,11 @@
   border-radius:12px; padding:16px; color:#fff;
   box-shadow:0 12px 40px rgba(0,0,0,.35);
 }
+.btn--ok {
+  background:#00c074; 
+  border:1px solid #00c074; 
+  color:#fff;
+}
+.btn--ok:hover {
+  background:#009e5c;
+}
