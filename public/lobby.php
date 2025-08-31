@@ -86,7 +86,7 @@ if (file_exists($headerPath)) { require $headerPath; }
             $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
-          <article class="card card--red" data-id="<?php echo (int)$t['id']; ?>">
+          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">ISCRITTO</span>
@@ -142,7 +142,7 @@ if (file_exists($headerPath)) { require $headerPath; }
             $code   = $t['tournament_code'] ?: sprintf('%05d', (int)$t['id']);
             $lockAt = $t['lock_at'] ? strtotime($t['lock_at']) : null;
           ?>
-          <article class="card card--red" data-id="<?php echo (int)$t['id']; ?>">
+          <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
               <span class="badge badge--open">OPEN</span>
