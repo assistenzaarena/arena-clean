@@ -102,3 +102,5 @@
 .btn--ok:hover {
   background:#009e5c;
 }
+.life-heart { cursor:pointer; user-select:none; }
+.life-heart:hover { transform: scale(1.06); }
