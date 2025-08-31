@@ -30,6 +30,17 @@ try {
 } catch (Throwable $e) {
   $enrolled = false;
 }
+
+/* ====== AGGIUNTA: vite correnti e CSRF ====== */
+$userLives = 0;
+if ($enrolled) {
+  $lv = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
+  $lv->execute([':u'=>$uid, ':t'=>$id]);
+  $userLives = (int)$lv->fetchColumn();
+}
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$csrf = $_SESSION['csrf'];
+/* ============================================ */
 ?>
 <!doctype html>
 <html lang="it">
@@ -88,6 +99,41 @@ try {
     </dl>
   </section>
 
+  <!-- ====== AGGIUNTA: Azioni vite + cuori + countdown ====== -->
+  <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
+    <?php if ($enrolled): ?>
+      <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#0b1;font-weight:800;">
+        + Aggiungi vita
+      </button>
+    <?php endif; ?>
+
+    <div id="livesWrap" style="display:flex; align-items:center; gap:6px;">
+      <?php
+        $hearts = max(0, $userLives);
+        if ($hearts === 0) {
+          echo '<span class="muted">Nessuna vita</span>';
+        } else {
+          for ($i=0; $i<$hearts; $i++) {
+            echo '<span class="life-heart" title="Vita '.($i+1).'" style="font-size:18px;">❤️</span>';
+          }
+        }
+      ?>
+    </div>
+
+    <div style="margin-left:auto; text-align:center;">
+      <?php if (!empty($torneo['lock_at'])): ?>
+        <div style="font-size:12px;color:#c9c9c9;margin-bottom:2px;">Lock scelte</div>
+        <div>
+          <time class="lock" datetime="<?php echo htmlspecialchars($torneo['lock_at']); ?>">
+            <?php echo date('d/m/Y H:i', strtotime($torneo['lock_at'])); ?>
+          </time>
+          <span class="countdown" data-due="<?php echo htmlspecialchars($torneo['lock_at']); ?>"></span>
+        </div>
+      <?php endif; ?>
+    </div>
+  </section>
+  <!-- ======================================================= -->
+
   <!-- Eventi -->
   <section style="margin-top:20px;">
     <h2>Eventi del torneo</h2>
@@ -122,16 +168,99 @@ try {
         modal.style.display = 'flex';
       });
     }
-    cancelBtn.addEventListener('click', function(){
-      modal.style.display = 'none';
+    if(cancelBtn){
+      cancelBtn.addEventListener('click', function(){
+        modal.style.display = 'none';
+      });
+    }
+    if(confirmBtn){
+      confirmBtn.addEventListener('click', function(){
+        modal.style.display = 'none';
+        form.submit();
+      });
+    }
+    if(modal){
+      modal.addEventListener('click', function(e){
+        if(e.target === modal){ modal.style.display = 'none'; }
+      });
+    }
+  })();
+
+  /* ====== AGGIUNTA: acquisto 1 vita con aggiornamento cuori/saldo ====== */
+  (function(){
+    var btn = document.getElementById('btnAddLife');
+    if (!btn) return;
+
+    function renderHearts(n){
+      var w = document.getElementById('livesWrap');
+      if (!w) return;
+      w.innerHTML = '';
+      if (n <= 0) {
+        var s = document.createElement('span');
+        s.className = 'muted';
+        s.textContent = 'Nessuna vita';
+        w.appendChild(s);
+        return;
+      }
+      for (var i=0;i<n;i++){
+        var h = document.createElement('span');
+        h.className = 'life-heart';
+        h.title = 'Vita '+(i+1);
+        h.textContent = '❤️';
+        h.style.fontSize = '18px';
+        w.appendChild(h);
+      }
+    }
+
+    function refreshHeaderCredits(){
+      fetch('/api/user_credits.php')
+        .then(r => r.ok ? r.json() : null)
+        .then(js => {
+          if (js && js.ok && typeof js.crediti !== 'undefined') {
+            var el = document.getElementById('headerCrediti');
+            if (el) el.textContent = js.crediti;
+          }
+        }).catch(()=>{});
+    }
+
+    btn.addEventListener('click', function(){
+      fetch('/api/add_life.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+        body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
+            + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
+      })
+      .then(r => r.json().catch(()=>null).then(js => js || {ok:false,error:'non_json'}))
+      .then(js => {
+        if (!js.ok) {
+          var msg = 'Errore';
+          if (js.error === 'insufficient_funds') msg = 'Crediti insufficienti';
+          else if (js.error === 'lives_limit')     msg = 'Hai raggiunto il limite di vite';
+          else if (js.error === 'locked')         msg = 'Scelte bloccate';
+          else if (js.error === 'not_enrolled')   msg = 'Non sei iscritto a questo torneo';
+          alert(msg);
+          return;
+        }
+        renderHearts(parseInt(js.lives || 0, 10));
+        refreshHeaderCredits();
+      })
+      .catch(()=> alert('Errore di rete'));
     });
-    confirmBtn.addEventListener('click', function(){
-      modal.style.display = 'none';
-      form.submit();
-    });
-    modal.addEventListener('click', function(e){
-      if(e.target === modal){ modal.style.display = 'none'; }
-    });
+  })();
+
+  // Countdown semplice (riuso logica lobby)
+  (function(){
+    function tick(el){
+      var due = el.getAttribute('data-due'); if(!due) return;
+      var end = new Date(due.replace(' ', 'T')).getTime();
+      var d = end - Date.now(); if (d <= 0){ el.textContent = 'CHIUSO'; return; }
+      var s = Math.floor(d/1000), g = Math.floor(s/86400); s%=86400;
+      var h=Math.floor(s/3600); s%=3600; var m=Math.floor(s/60); s%=60;
+      el.textContent = (g>0? g+'g ':'') + h+'h ' + m+'m ' + s+'s';
+      setTimeout(function(){ tick(el); }, 1000);
+    }
+    document.querySelectorAll('.countdown').forEach(tick);
   })();
 </script>
 
