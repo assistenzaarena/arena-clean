@@ -13,7 +13,7 @@
   background:
     radial-gradient(1200px 400px at -10% 110%, rgba(120,0,0,.25), transparent 60%),
     radial-gradient(900px 300px at 120% -10%, rgba(120,0,0,.18), transparent 60%),
-    linear-gradient(180deg, #0b0b0d 0%, #0a0a0b 100%);
+    linear-gradient(180deg, #0f1114 0%, #0f1114 100%);
   min-height: calc(100vh - 120px);
   padding-bottom: 40px;
 }
