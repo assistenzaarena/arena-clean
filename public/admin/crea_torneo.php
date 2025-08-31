@@ -117,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $matchday = null; // coerente
             }
         }
+      ?>
+           
 <?php
 // ===============================
 // [SEZIONE PENDING] Carico i tornei in stato 'pending' da mostrare sotto al form
