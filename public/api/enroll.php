@@ -131,9 +131,14 @@ try {
 
   echo json_encode(['ok'=>true, 'redirect'=>'/torneo.php?id='.$tournament_id]); exit;
 
-} catch (Throwable $e) {
+}} catch (Throwable $e) {
   if ($pdo->inTransaction()) { $pdo->rollBack(); }
-  // Se vuoi vedere l'errore reale per 1 prova: abilita la riga sotto
-  // echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]); exit;
+  // DEBUG TEMPORANEO: mostra anche il messaggio SQL
+  echo json_encode([
+    'ok'    => false,
+    'error' => 'exception',
+    'msg'   => $e->getMessage()
+  ]);
+}
   echo json_encode(['ok'=>false,'error'=>'exception']); exit;
 }
