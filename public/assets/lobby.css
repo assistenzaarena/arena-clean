@@ -80,3 +80,5 @@
   pointer-events:none;
   filter:grayscale(100%);
 }
+.card--ps{ transition: transform .12s ease, box-shadow .12s ease; }
+.card--ps:hover{ transform: translateY(-2px); box-shadow:0 8px 26px rgba(0,0,0,.28); }
