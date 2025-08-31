@@ -15,58 +15,68 @@
 .section__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .section__head h2{ margin:0; font-size:18px; font-weight:900; }
 
-/* Griglia card */
+/* Griglia card (più fitta) */
 .cards{
   display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap:14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* prima 320/360px */
+  gap:10px;                                                   /* prima 14px */
 }
-.cards--wide .card{ min-height: 200px; }
+.cards--wide .card{ min-height: 140px; }                      /* prima 180/200px */
 
-/* Card base */
+/* Card base (compatta) */
 .card{
   background:#111;
   border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;
-  padding:14px;
-  box-shadow:0 8px 28px rgba(0,0,0,.22);
+  border-radius:12px;              /* leggermente meno */
+  padding:10px;                    /* prima 14px */
+  box-shadow:0 6px 18px rgba(0,0,0,.2);
 }
 
-/* Card stile PokerStars */
+/* Header card */
+.card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.code{ font-weight:900; letter-spacing:.04em; font-size:12px; }   /* più piccola */
+.badge{ font-size:11px; padding:2px 6px; border-radius:9999px; border:1px solid rgba(255,255,255,.24); }
+.badge--open{ background:#0c3023; border-color:#00c074; color:#00c074; }
+
+/* Titolo & meta */
+.card__title{ font-size:16px; margin:4px 0 3px; }  /* prima 18/20px */
+.meta{ color:#e6e6e6; font-size:12px; margin-bottom:6px; }
+
+/* Dati */
+.grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:8px 10px; }
+.grid dt{ font-size:11px; color:#f1f1f1; opacity:.8; }
+.grid dd{ margin:0; font-weight:900; color:#fff; font-size:12px; }
+
+/* Footer (countdown) */
+.card__footer{ margin-top:8px; }
+.countdown-row{ display:flex; align-items:center; gap:6px; color:#fff; font-size:12px; }
+.lock{ color:#f1f1f1; opacity:.8; font-size:12px; }
+.countdown{ font-weight:900; }
+.guarantee{ color:#f1f1f1; opacity:.8; margin-left:6px; font-size:11px; }
+
+/* Card rossa stile PokerStars */
 .card--ps{
-  background: linear-gradient(180deg, #3a0f10 0%, #2a0b0c 100%);
+  background: linear-gradient(180deg, #5a1516 0%, #3a0f10 100%);  /* rosso scuro */
   border-color: rgba(255,60,60,.35);
   position:relative;
   overflow:hidden;
 }
 .card--ps::before{
-  content:""; position:absolute; inset:0; border-radius:14px; pointer-events:none;
+  /* alone rosso molto tenue */
+  content:""; position:absolute; inset:0; border-radius:12px; pointer-events:none;
   background:
-    radial-gradient(900px 360px at -10% 120%, rgba(255,80,80,.22), transparent 60%),
-    radial-gradient(700px 240px at 110% -10%, rgba(255,80,80,.16), transparent 60%);
+    radial-gradient(700px 260px at -10% 120%, rgba(255,80,80,.18), transparent 60%),
+    radial-gradient(520px 200px at 110% -10%, rgba(255,80,80,.12), transparent 60%);
 }
 
-/* Header card */
-.card__head{
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:8px;
+/* Watermark logo ARENA (molto, molto poco visibile) */
+.card--ps::after{
+  content:"";
+  position:absolute;
+  right:8px; bottom:8px;                   /* angolo in basso a destra */
+  width:64px; height:64px;                 /* piccolino */
+  background:url('/assets/logo_arena.png') center/contain no-repeat;
+  opacity:.06;                              /* quasi impercettibile */
+  pointer-events:none;
+  filter:grayscale(100%);
 }
-.code{ font-weight:900; letter-spacing:.04em; }
-.badge{ font-size:12px; padding:3px 8px; border-radius:9999px; border:1px solid rgba(255,255,255,.24); }
-.badge--open{ background:#0c3023; border-color:#00c074; color:#00c074; }
-
-/* Titolo & meta */
-.card__title{ font-size:20px; margin:6px 0 4px; }
-.meta{ color:#e6e6e6; font-size:13px; margin-bottom:8px; }
-
-/* Dati */
-.grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:10px 12px; }
-.grid dt{ font-size:12px; color:#f1f1f1; opacity:.8; }
-.grid dd{ margin:0; font-weight:900; color:#fff; }
-
-/* Footer (countdown) */
-.card__footer{ margin-top:10px; }
-.countdown-row{ display:flex; align-items:center; gap:8px; color:#fff; }
-.lock{ color:#f1f1f1; opacity:.8; }
-.countdown{ font-weight:900; }
-.guarantee{ color:#f1f1f1; opacity:.8; margin-left:6px; }
