@@ -210,6 +210,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } // fine if !$errors
     } // fine if action === 'create'
+   // === PUBBLICA (draft -> open) ===
+if ($action === 'publish') {
+    $pub_id = (int)($_POST['tournament_id'] ?? 0);
+    if ($pub_id <= 0) {
+        $_SESSION['flash'] = 'ID torneo non valido.';
+        header('Location: /admin/crea_torneo.php'); exit;
+    }
+
+    // deve esistere ed essere in stato 'draft'
+    $q = $pdo->prepare("SELECT id, status FROM tournaments WHERE id=:id LIMIT 1");
+    $q->execute([':id'=>$pub_id]);
+    $row = $q->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        $_SESSION['flash'] = 'Torneo inesistente.';
+        header('Location: /admin/crea_torneo.php'); exit;
+    }
+    if ($row['status'] !== 'draft') {
+        $_SESSION['flash'] = 'Solo i tornei in BOZZA possono essere pubblicati.';
+        header('Location: /admin/crea_torneo.php'); exit;
+    }
+
+    // pubblica
+    $up = $pdo->prepare("UPDATE tournaments SET status='open', updated_at=NOW() WHERE id=:id AND status='draft'");
+    $up->execute([':id'=>$pub_id]);
+
+    $_SESSION['flash'] = 'Torneo #'.$pub_id.' pubblicato (open).';
+    header('Location: /admin/crea_torneo.php'); exit;
+}
 } // fine if POST
 
 // ===============================
@@ -223,6 +251,16 @@ $pending_stmt = $pdo->prepare("
 ");
 $pending_stmt->execute();
 $pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// bozza (draft) per pulsante "Pubblica"
+$draft_stmt = $pdo->prepare("
+  SELECT id, tournament_code, name, league_name, season, round_type, matchday, round_label, created_at
+  FROM tournaments
+  WHERE status = 'draft'
+  ORDER BY created_at DESC
+");
+$draft_stmt->execute();
+$draft_list = $draft_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="it">
@@ -327,10 +365,70 @@ $pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
     </form>
   </div>
+   
+<!-- ========================================= -->
+<!-- SEZIONE: Tornei in bozza (draft)          -->
+<!-- ========================================= -->
+   
+<div class="card" style="margin-top:16px;">
+  <h2 style="margin:0 0 10px;">Tornei in bozza (draft)</h2>
 
+  <?php if (empty($draft_list)): ?>
+    <div style="color:#aaa;">Nessun torneo in bozza.</div>
+  <?php else: ?>
+    <table class="list" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Codice</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Nome</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Competizione</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Stagione</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Round</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Creato il</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($draft_list as $d): ?>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);">
+              <?php echo htmlspecialchars($d['tournament_code'] ?? sprintf('%05d',(int)$d['id'])); ?>
+              <span style="color:#777; font-size:11px; margin-left:6px;">(ID DB: <?php echo (int)$d['id']; ?>)</span>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($d['name']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($d['league_name']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($d['season']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);">
+              <?php if ($d['round_type'] === 'matchday'): ?>
+                Giornata <?php echo (int)$d['matchday']; ?>
+              <?php else: ?>
+                <?php echo htmlspecialchars($d['round_label']); ?>
+              <?php endif; ?>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($d['created_at']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; gap:8px;">
+              <a class="btn" href="/admin/torneo_draft.php?id=<?php echo (int)$d['id']; ?>">Modifica (bozza)</a>
+
+              <form method="post" action="" onsubmit="return confirm('Pubblicare questo torneo? Diventerà OPEN.');" style="display:inline;">
+                <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                <input type="hidden" name="action" value="publish">
+                <input type="hidden" name="tournament_id" value="<?php echo (int)$d['id']; ?>">
+                <button class="btn" type="submit">Pubblica</button>
+              </form>
+
+              <a class="btn" href="/admin/torneo_pending.php?id=<?php echo (int)$d['id']; ?>">Preview</a>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
+   
   <!-- ========================================= -->
   <!-- SEZIONE: Tornei in pending (solo lettura) -->
   <!-- ========================================= -->
+   
   <div class="card" style="margin-top:16px;">
     <h2 style="margin:0 0 10px;">Tornei in pending</h2>
 
