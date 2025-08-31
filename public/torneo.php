@@ -67,13 +67,11 @@ try {
     </h1>
 
     <?php if ($enrolled): ?>
-      <!-- Pulsante Disiscriviti -->
-      <form method="post" action="/api/unenroll.php" 
-            onsubmit="return confirm('Vuoi davvero disiscriverti da questo torneo?');">
+      <!-- Pulsante Disiscriviti (modificato: niente action, intercetto via JS) -->
+      <form id="unenrollForm" style="display:inline">
         <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
         <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
-        <input type="hidden" name="redirect" value="1">
-        <button class="btn btn--warn" type="submit">Disiscriviti</button>
+        <button class="btn btn--warn" type="submit" onclick="return confirm('Vuoi davvero disiscriverti da questo torneo?');">Disiscriviti</button>
       </form>
     <?php endif; ?>
   </div>
@@ -97,6 +95,48 @@ try {
 </main>
 
 <?php require $ROOT . '/footer.php'; ?>
+
+<!-- JS: disiscrizione via fetch e redirect -->
+<script>
+(function () {
+  const form = document.getElementById('unenrollForm');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const csrf = form.querySelector('input[name="csrf"]').value;
+    const tid  = form.querySelector('input[name="tournament_id"]').value;
+
+    fetch('/api/unenroll.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf=' + encodeURIComponent(csrf) +
+            '&tournament_id=' + encodeURIComponent(tid)
+    })
+    .then(async (r) => {
+      let txt = '';
+      try { txt = await r.text(); } catch (_) {}
+      let js = null;
+      try { js = txt ? JSON.parse(txt) : null; } catch (_) {}
+      if (!js) {
+        alert('Risposta non valida dal server:\n' + (txt || '(vuota)'));
+        throw new Error('non_json');
+      }
+      return js;
+    })
+    .then((js) => {
+      if (!js.ok) {
+        alert('Disiscrizione non riuscita: ' + (js.error || 'errore'));
+        return;
+      }
+      window.location.href = js.redirect || '/lobby.php';
+    })
+    .catch(() => { alert('Errore di rete'); });
+  });
+})();
+</script>
 
 </body>
 </html>
