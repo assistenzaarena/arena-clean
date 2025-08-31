@@ -112,5 +112,5 @@ try {
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) { $pdo->rollBack(); }
   // Se vuoi debug temporaneo: aggiungi 'msg' => $e->getMessage()
-  echo json_encode(['ok' => false, 'error' => 'exception']);
+  echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]);
 }
