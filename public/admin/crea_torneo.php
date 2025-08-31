@@ -8,12 +8,12 @@
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-require_once __DIR__ . '/../src/guards.php';  // require_login(), require_admin()
+require_once __DIR__ . '/arena-clean/src/guards.php';  // require_login(), require_admin()
 require_admin();
 
-require_once __DIR__ . '/../src/config.php';  // config generica (es. chiavi env)
-require_once __DIR__ . '/../src/db.php';      // $pdo connessione
-$competitions = require __DIR__ . '/../../config/competitions.php'; // mappa competizioni
+require_once __DIR__ . '/arena-clean/src/config.php';  // config generica (es. chiavi env)
+require_once __DIR__ . '/arena-clean/src/db.php';      // $pdo connessione
+$competitions = require __DIR__ . '/arena-clean/config/competitions.php'; // mappa competizioni
 
 // [CSRF] token anti-forgery
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
