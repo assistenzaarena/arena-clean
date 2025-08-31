@@ -117,7 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $matchday = null; // coerente
             }
         }
-
+<?php
+// ===============================
+// [SEZIONE PENDING] Carico i tornei in stato 'pending' da mostrare sotto al form
+// ===============================
+$pending_stmt = $pdo->prepare("
+  SELECT id, name, league_name, season, round_type, matchday, round_label, created_at
+  FROM tournaments
+  WHERE status = 'pending'
+  ORDER BY created_at DESC
+");
+$pending_stmt->execute();
+$pending_list = $pending_stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
         // ---- INSERT DB (stato iniziale: draft) ----
         if (!$errors) {
             $sql = "INSERT INTO tournaments
@@ -315,6 +327,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </form>
   </div>
+       <!-- ========================================= -->
+<!-- SEZIONE: Tornei in pending (solo lettura) -->
+<!-- ========================================= -->
+<div class="card" style="margin-top:16px;">
+  <h2 style="margin:0 0 10px;">Tornei in pending</h2>
+
+  <?php if (empty($pending_list)): ?>
+    <div style="color:#aaa;">Nessun torneo in pending.</div>
+  <?php else: ?>
+    <table class="list" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">ID</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Nome</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Competizione</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Stagione</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Round</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Creato il</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.08); color:#c9c9c9; text-transform:uppercase; font-size:12px; letter-spacing:.03em;">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($pending_list as $p): ?>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo (int)$p['id']; ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($p['name']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);">
+              <?php echo htmlspecialchars($p['league_name']); ?>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);"><?php echo htmlspecialchars($p['season']); ?></td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);">
+              <?php if ($p['round_type'] === 'matchday'): ?>
+                Giornata <?php echo (int)$p['matchday']; ?>
+              <?php else: ?>
+                <?php echo htmlspecialchars($p['round_label']); ?>
+              <?php endif; ?>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08);">
+              <?php echo htmlspecialchars($p['created_at']); ?>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; gap:8px;">
+              <!-- Vai alla preview pending (2B) -->
+              <a class="btn" href="/admin/torneo_pending.php?id=<?php echo (int)$p['id']; ?>">Preview</a>
+              <!-- (facoltativo) Aggiungeremo più avanti: Forza bozza / Elimina -->
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
 </main>
 
 <!-- JS: imposta stagione di default e mostra matchday/round corretti -->
