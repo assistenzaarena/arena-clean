@@ -42,48 +42,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {             // esegui solo a submit
 
     if ($user && password_verify($password, $user['password_hash'])) {   // [RIGA] credenziali ok
 
-        // --------------- BARRIERE DI STATO (ROSSO = LOGIN BLOCCATO) ---------------
-        // [RIGA] 1) Account disabilitato dall'admin → stop login
-        if ((int)$user['is_active'] !== 1) {                              // se flag is_active = 0
-            $error = "Account disabilitato. Contatta il supporto.";       // messaggio chiaro all'utente
-            // Nessun redirect, nessun session_regenerate_id: si limita a mostrare l'errore
-        }
-        // [RIGA] 2) Email non verificata → stop login
-        elseif (is_null($user['verified_at'])) {                          // se non ha confermato l'email
-            $error = "Email non verificata. Controlla la posta e clicca il link di attivazione."; 
-        }
-        // ---------------------------------------------------------------------------
+   // --------------- BARRIERA DI STATO (semplificata) ---------------
+if ((int)$user['is_active'] !== 1) {                              // se admin ha disattivato → stop login
+    $error = 'Account disabilitato. Contatta il supporto.';
+}
 
-        // [RIGA] Se abbiamo impostato $error sopra, NON proseguire con il login
-        if (empty($error)) {
-            // Da qui in poi login consentito: credenziali OK + attivo + email verificata
-            session_regenerate_id(true);                                  // anti session fixation
+// NIENTE blocco su verified_at: se l'admin ha attivato, l'utente può entrare anche senza verifica email.
 
-            // --- admin con 2FA già attiva → chiedi codice
-            if (($user['role'] ?? 'user') === 'admin' && !empty($user['totp_enabled'])) {
-                $_SESSION['admin_pending_id'] = (int)$user['id'];         // id in pending per verifica 2FA
-                unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']); // non completare ora
-                header("Location: /admin/2fa_verify.php"); 
-                exit;          // vai alla verifica 2FA
-            }
+if (!empty($error)) {
+    // Esco dal ramo senza session_regenerate_id() né redirect: la pagina mostrerà l'errore
+} else {
+    // Da qui in poi login consentito: credenziali OK + attivo
+    session_regenerate_id(true);
 
-            // --- admin senza 2FA → forza setup
-            if (($user['role'] ?? 'user') === 'admin') {
-                $_SESSION['user_id']  = (int)$user['id'];                 // consenti setup
-                $_SESSION['username'] = $username;
-                $_SESSION['role']     = 'admin';
-                header("Location: /admin/2fa_setup.php"); 
-                exit;           // vai al QR
-            }
+    // --- admin con 2FA già attiva → chiedi codice
+    if (($user['role'] ?? 'user') === 'admin' && !empty($user['totp_enabled'])) {
+        $_SESSION['admin_pending_id'] = (int)$user['id'];
+        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
+        header("Location: /admin/2fa_verify.php"); exit;
+    }
 
-            // --- utente normale → area riservata
-            $_SESSION['user_id']  = (int)$user['id'];
-            $_SESSION['username'] = $username;
-            $_SESSION['role']     = 'user';
-            header("Location: /area_riservata.php"); 
-            exit;                // dentro
-        }
+    // --- admin senza 2FA → forza setup
+    if (($user['role'] ?? 'user') === 'admin') {
+        $_SESSION['user_id']  = (int)$user['id'];
+        $_SESSION['username'] = $username;
+        $_SESSION['role']     = 'admin';
+        header("Location: /admin/2fa_setup.php"); exit;
+    }
 
+    // --- utente normale
+    $_SESSION['user_id']  = (int)$user['id'];
+    $_SESSION['username'] = $username;
+    $_SESSION['role']     = 'user';
+    header("Location: /area_riservata.php"); exit;
+}
     } else {
         $error = "Credenziali errate";                                    // credenziali sbagliate
     }
