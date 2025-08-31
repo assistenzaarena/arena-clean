@@ -2,19 +2,19 @@
 /**
  * public/admin/torneo_pending.php
  *
- * STEP 2C: pagina ADMIN per tornei in stato 'pending' con EDITING MANUALE dei fixtures.
- * - Se non ci sono fixtures registrati in tournament_events -> importa da API (sincronizzazione iniziale).
- * - Permette di disattivare/attivare singoli eventi.
- * - Permette di aggiungere un fixture manualmente (by fixture_id API).
- * - Permette di confermare e passare a 'draft'.
- *
- * Sicurezza: require_admin(), CSRF su tutti i POST.
+ * STEP 2C: pagina ADMIN per tornei in stato 'pending' con EDITING COMPLETO:
+ * - Sincronizzazione iniziale (se non ci sono righe in tournament_events)
+ * - Editor meta torneo: current_round_no + lock_at (data/ora chiusura scelte)
+ * - Tabella eventi: modifica kickoff, toggle attivo/disattivo, lock scelte per evento, elimina evento
+ * - Aggiunta eventi: via fixture_id API oppure “evento manuale” (home/away/kickoff)
+ * - Conferma → DRAFT
+ * - Elimina torneo (con popup)
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $ROOT = dirname(__DIR__); // /var/www/html
-require_once $ROOT . '/src/guards.php';   require_admin();
+require_once $ROOT . '/src/guards.php';     require_admin();
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 $competitions = require $ROOT . '/src/config/competitions.php';
@@ -37,12 +37,14 @@ if ($torneo['status'] !== 'pending') {
   header('Location: /admin/crea_torneo.php'); exit;
 }
 
-// Determino tipo round e parametri fetch
 $roundType = $torneo['round_type'] ?? 'matchday';
 $league_id = (int)$torneo['league_id'];
 $season    = (string)$torneo['season'];
 $matchday  = $torneo['matchday'] ? (int)$torneo['matchday'] : null;
 $round_lbl = $torneo['round_label'] ?? null;
+
+$current_round_no = (int)($torneo['current_round_no'] ?? 1);
+$lock_at          = $torneo['lock_at']; // DATETIME o NULL
 
 // ===============================
 // POST HANDLER: azioni admin
@@ -54,8 +56,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   $action = $_POST['action'] ?? '';
 
-  // Aggiungi fixture manuale (by fixture_id)
-  if ($action === 'add_fixture') {
+  // 1) Aggiorna meta torneo (round corrente + lock_at)
+  if ($action === 'update_meta') {
+    $new_round_no = (int)($_POST['current_round_no'] ?? $current_round_no);
+    $new_lock_at  = trim($_POST['lock_at'] ?? '');
+    $lockValue    = ($new_lock_at === '') ? null : $new_lock_at; // 'YYYY-MM-DD HH:MM:SS' o ''
+
+    $up = $pdo->prepare("UPDATE tournaments SET current_round_no=:r, lock_at=:l, updated_at=NOW() WHERE id=:id");
+    $up->execute([
+      ':r' => $new_round_no,
+      ':l' => $lockValue,
+      ':id'=> $id,
+    ]);
+    $_SESSION['flash'] = 'Meta torneo aggiornati.';
+    header('Location: /admin/torneo_pending.php?id='.$id); exit;
+  }
+
+  // 2) Aggiungi fixture da API (by fixture_id)
+  if ($action === 'add_fixture_api') {
     $fxid = (int)($_POST['fixture_id'] ?? 0);
     if ($fxid <= 0) { $_SESSION['flash'] = 'Fixture ID non valido.'; header('Location: /admin/torneo_pending.php?id='.$id); exit; }
 
@@ -70,32 +88,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       header('Location: /admin/torneo_pending.php?id='.$id); exit;
     }
 
-    // Inserisco se non esiste già
     $ins = $pdo->prepare("
       INSERT IGNORE INTO tournament_events
-        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active)
-      VALUES (:tid, 1, :fid, :hid, :hname, :aid, :aname, :kickoff, 1)
+        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+      VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, :kick, 1, 0)
     ");
     $ins->execute([
-      ':tid'    => $id,
-      ':fid'    => (int)$one['fixture_id'],
-      ':hid'    => $one['home_id'],
-      ':hname'  => $one['home_name'],
-      ':aid'    => $one['away_id'],
-      ':aname'  => $one['away_name'],
-      ':kickoff'=> $one['date'] ? date('Y-m-d H:i:s', strtotime($one['date'])) : null,
+      ':tid'  => $id,
+      ':rnd'  => $current_round_no ?: 1,
+      ':fid'  => (int)$one['fixture_id'],
+      ':hid'  => $one['home_id'],
+      ':hname'=> $one['home_name'],
+      ':aid'  => $one['away_id'],
+      ':aname'=> $one['away_name'],
+      ':kick' => $one['date'] ? date('Y-m-d H:i:s', strtotime($one['date'])) : null,
     ]);
 
-    $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto.';
+    $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
     header('Location: /admin/torneo_pending.php?id='.$id); exit;
   }
 
-  // Toggle attiva/disattiva evento
-  if ($action === 'toggle_event') {
+  // 3) Aggiungi evento manuale (senza API)
+  if ($action === 'add_fixture_manual') {
+    $hname = trim($_POST['home_team_name'] ?? '');
+    $aname = trim($_POST['away_team_name'] ?? '');
+    $kick  = trim($_POST['kickoff'] ?? '');
+    if ($hname === '' || $aname === '') {
+      $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
+      header('Location: /admin/torneo_pending.php?id='.$id); exit;
+    }
+    $ins = $pdo->prepare("
+      INSERT INTO tournament_events
+        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+      VALUES (:tid, :rnd, NULL, NULL, :hname, NULL, :aname, :kick, 1, 0)
+    ");
+    $ins->execute([
+      ':tid'   => $id,
+      ':rnd'   => $current_round_no ?: 1,
+      ':hname' => $hname,
+      ':aname' => $aname,
+      ':kick'  => ($kick === '' ? null : $kick),
+    ]);
+    $_SESSION['flash'] = 'Evento manuale aggiunto.';
+    header('Location: /admin/torneo_pending.php?id='.$id); exit;
+  }
+
+  // 4) Aggiorna una riga evento (kickoff + pick_locked)
+  if ($action === 'update_event') {
+    $row_id = (int)($_POST['row_id'] ?? 0);
+    $kick   = trim($_POST['kickoff'] ?? '');
+    $plock  = isset($_POST['pick_locked']) ? 1 : 0;
+
+    if ($row_id <= 0) {
+      $_SESSION['flash'] = 'Evento non valido.';
+      header('Location: /admin/torneo_pending.php?id='.$id); exit;
+    }
+
+    $up = $pdo->prepare("UPDATE tournament_events SET kickoff=:k, pick_locked=:p WHERE id=:rid AND tournament_id=:tid");
+    $up->execute([
+      ':k'   => ($kick === '' ? null : $kick),
+      ':p'   => $plock,
+      ':rid' => $row_id,
+      ':tid' => $id,
+    ]);
+
+    $_SESSION['flash'] = 'Evento #'.$row_id.' aggiornato.';
+    header('Location: /admin/torneo_pending.php?id='.$id); exit;
+  }
+
+  // 5) Toggle attiva/disattiva evento (selezionabile)
+  if ($action === 'toggle_event_active') {
     $row_id = (int)($_POST['row_id'] ?? 0);
     if ($row_id <= 0) { $_SESSION['flash'] = 'Evento non valido.'; header('Location: /admin/torneo_pending.php?id='.$id); exit; }
 
-    // leggo stato attuale
     $rq = $pdo->prepare("SELECT is_active FROM tournament_events WHERE id=:rid AND tournament_id=:tid");
     $rq->execute([':rid'=>$row_id, ':tid'=>$id]);
     $row = $rq->fetch(PDO::FETCH_ASSOC);
@@ -109,33 +174,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: /admin/torneo_pending.php?id='.$id); exit;
   }
 
-  // Conferma e passa a DRAFT
+  // 6) Elimina evento
+  if ($action === 'delete_event') {
+    $row_id = (int)($_POST['row_id'] ?? 0);
+    if ($row_id <= 0) { $_SESSION['flash'] = 'Evento non valido.'; header('Location: /admin/torneo_pending.php?id='.$id); exit; }
+    $pdo->prepare("DELETE FROM tournament_events WHERE id=:rid AND tournament_id=:tid")->execute([':rid'=>$row_id, ':tid'=>$id]);
+    $_SESSION['flash'] = 'Evento #'.$row_id.' eliminato.';
+    header('Location: /admin/torneo_pending.php?id='.$id); exit;
+  }
+
+  // 7) Conferma → DRAFT
   if ($action === 'confirm_draft') {
-    // (opzionale) potresti verificare che ci sia almeno 1 evento attivo
     $chk = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid AND is_active=1");
     $chk->execute([':tid'=>$id]);
-    $activeCount = (int)$chk->fetchColumn();
-
-    if ($activeCount === 0) {
+    if ((int)$chk->fetchColumn() === 0) {
       $_SESSION['flash'] = 'Nessun evento attivo: attiva almeno una partita prima di confermare.';
       header('Location: /admin/torneo_pending.php?id='.$id); exit;
     }
-
     $pdo->prepare("UPDATE tournaments SET status='draft', updated_at=NOW() WHERE id=:id AND status='pending'")
         ->execute([':id'=>$id]);
-
     $_SESSION['flash'] = 'Torneo #'.$id.' confermato: stato bozza (draft).';
+    header('Location: /admin/crea_torneo.php'); exit;
+  }
+
+  // 8) Elimina torneo (con conferma)
+  if ($action === 'delete_tournament') {
+    // Cancello prima gli eventi, poi il torneo
+    $pdo->prepare("DELETE FROM tournament_events WHERE tournament_id=:tid")->execute([':tid'=>$id]);
+    $pdo->prepare("DELETE FROM tournaments WHERE id=:id AND status='pending'")->execute([':id'=>$id]);
+    $_SESSION['flash'] = 'Torneo #'.$id.' eliminato.';
     header('Location: /admin/crea_torneo.php'); exit;
   }
 }
 
 // ===============================
 // SYNC INIZIALE: se non ci sono righe in tournament_events per il torneo,
-// importa dall’API la lista fixtures (come in 2B) e le inserisce (attive).
+// importa dall’API la lista fixtures (round corrente) e le inserisce attive.
 // ===============================
-$evcount = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid");
-$evcount->execute([':tid'=>$id]);
-$hasRows = ((int)$evcount->fetchColumn() > 0);
+$has = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid");
+$has->execute([':tid'=>$id]);
+$hasRows = ((int)$has->fetchColumn() > 0);
 
 $err_fetch = null;
 
@@ -153,13 +231,14 @@ if (!$hasRows) {
       if ($list) {
         $ins = $pdo->prepare("
           INSERT IGNORE INTO tournament_events
-            (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active)
-          VALUES (:tid, 1, :fid, :hid, :hname, :aid, :aname, :kick, 1)
+            (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
+          VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, :kick, 1, 0)
         ");
         foreach ($list as $fx) {
           $ins->execute([
             ':tid'  => $id,
-            ':fid'  => (int)$fx['fixture_id'],
+            ':rnd'  => $current_round_no ?: 1,
+            ':fid'  => ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
             ':hid'  => $fx['home_id'],
             ':hname'=> $fx['home_name'],
             ':aid'  => $fx['away_id'],
@@ -178,10 +257,10 @@ if (!$hasRows) {
 // CARICO elenco eventi per la tabella
 // ===============================
 $ev = $pdo->prepare("
-  SELECT id, fixture_id, home_team_name, away_team_name, kickoff, is_active
+  SELECT id, fixture_id, home_team_name, away_team_name, kickoff, is_active, pick_locked
   FROM tournament_events
   WHERE tournament_id = :tid
-  ORDER BY kickoff ASC, id ASC
+  ORDER BY kickoff IS NULL, kickoff ASC, id ASC
 ");
 $ev->execute([':tid'=>$id]);
 $events = $ev->fetchAll(PDO::FETCH_ASSOC);
@@ -209,6 +288,8 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     .err{color:#ff6b6b;margin:8px 0}
     .muted{color:#aaa}
     .row-actions{display:flex; gap:8px}
+    input[type=datetime-local]{height:32px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:#0a0a0b;color:#fff;padding:0 10px}
+    input[type=text]{height:32px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:#0a0a0b;color:#fff;padding:0 10px}
   </style>
 </head>
 <body>
@@ -225,21 +306,28 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     <div class="err"><?php echo htmlspecialchars($err_fetch); ?></div>
   <?php endif; ?>
 
+  <!-- META TORNEO -->
   <div class="card">
-    <div class="meta">
-      <div><b>Nome:</b> <?php echo htmlspecialchars($torneo['name']); ?></div>
-      <div><b>Competizione:</b> <?php echo htmlspecialchars($torneo['league_name']); ?> (ID <?php echo (int)$torneo['league_id']; ?>)</div>
-      <div><b>Stagione:</b> <?php echo htmlspecialchars($season); ?></div>
-      <div><b>Round:</b>
-        <?php if ($roundType==='matchday'): ?>
-          Giornata <?php echo (int)$matchday; ?>
-        <?php else: ?>
-          <?php echo htmlspecialchars($round_lbl); ?>
-        <?php endif; ?>
-      </div>
-    </div>
+    <h3 style="margin-top:0">Meta torneo</h3>
+    <form method="post" action="" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="action" value="update_meta">
+
+      <label>Round corrente
+        <input type="number" name="current_round_no" min="1" value="<?php echo (int)$current_round_no; ?>">
+      </label>
+
+      <label>Lock scelte (data/ora)
+        <input type="datetime-local" name="lock_at"
+               value="<?php echo $lock_at ? htmlspecialchars(date('Y-m-d\TH:i', strtotime($lock_at))) : ''; ?>">
+      </label>
+
+      <button class="btn" type="submit">Salva meta</button>
+    </form>
+    <div class="muted" style="margin-top:6px">Il lock scelte blocca globalmente il torneo al momento indicato.</div>
   </div>
 
+  <!-- TABELLA EVENTI -->
   <div class="card">
     <h3 style="margin-top:0">Fixtures del torneo</h3>
 
@@ -249,11 +337,12 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       <table>
         <thead>
           <tr>
-            <th>ID riga</th>
+            <th>ID</th>
             <th>Fixture ID</th>
-            <th>Data/Ora</th>
             <th>Partita</th>
-            <th>Stato</th>
+            <th>Kickoff</th>
+            <th>Attivo</th>
+            <th>Lock scelte</th>
             <th>Azioni</th>
           </tr>
         </thead>
@@ -261,18 +350,38 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
           <?php foreach ($events as $e): ?>
             <tr>
               <td><?php echo (int)$e['id']; ?></td>
-              <td><?php echo (int)$e['fixture_id']; ?></td>
-              <td><?php echo htmlspecialchars($e['kickoff'] ?? '-'); ?></td>
-              <td><?php echo htmlspecialchars($e['home_team_name'].' vs '.$e['away_team_name']); ?></td>
-              <td><?php echo ((int)$e['is_active']===1) ? 'Attivo' : 'Disattivo'; ?></td>
-              <td class="row-actions">
+              <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '-'; ?></td>
+              <td><?php echo htmlspecialchars(($e['home_team_name'] ?? '??').' vs '.($e['away_team_name'] ?? '??')); ?></td>
+              <td>
+                <form method="post" action="" style="display:flex; gap:8px; align-items:center;">
+                  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                  <input type="hidden" name="action" value="update_event">
+                  <input type="hidden" name="row_id" value="<?php echo (int)$e['id']; ?>">
+
+                  <input type="datetime-local" name="kickoff"
+                         value="<?php echo $e['kickoff'] ? htmlspecialchars(date('Y-m-d\TH:i', strtotime($e['kickoff']))) : ''; ?>">
+                  <label style="display:inline-flex; gap:4px; align-items:center;">
+                    <input type="checkbox" name="pick_locked" <?php echo ((int)$e['pick_locked']===1)?'checked':''; ?>>
+                    blocca scelte
+                  </label>
+                  <button class="btn" type="submit">Salva</button>
+                </form>
+              </td>
+              <td>
                 <form method="post" action="" style="display:inline">
                   <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                  <input type="hidden" name="action" value="toggle_event">
+                  <input type="hidden" name="action" value="toggle_event_active">
                   <input type="hidden" name="row_id" value="<?php echo (int)$e['id']; ?>">
-                  <button class="btn" type="submit">
-                    <?php echo ((int)$e['is_active']===1) ? 'Disattiva' : 'Attiva'; ?>
-                  </button>
+                  <button class="btn" type="submit"><?php echo ((int)$e['is_active']===1)?'Disattiva':'Attiva'; ?></button>
+                </form>
+              </td>
+              <td><?php echo ((int)$e['pick_locked']===1)?'Sì':'No'; ?></td>
+              <td class="row-actions">
+                <form method="post" action="" onsubmit="return confirm('Eliminare definitivamente questo evento?');" style="display:inline">
+                  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                  <input type="hidden" name="action" value="delete_event">
+                  <input type="hidden" name="row_id" value="<?php echo (int)$e['id']; ?>">
+                  <button class="btn btn-warn" type="submit">Elimina</button>
                 </form>
               </td>
             </tr>
@@ -282,23 +391,46 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     <?php endif; ?>
   </div>
 
+  <!-- AGGIUNTA EVENTI -->
   <div class="card">
-    <h3 style="margin-top:0">Aggiungi fixture manualmente</h3>
-    <form method="post" action="" style="display:flex; gap:8px; align-items:center;">
-      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-      <input type="hidden" name="action" value="add_fixture">
-      <label for="fixture_id" class="muted">Fixture ID</label>
-      <input id="fixture_id" name="fixture_id" type="number" min="1" required style="height:32px; border:1px solid rgba(255,255,255,.25); border-radius:8px; background:#0a0a0b; color:#fff; padding:0 10px">
-      <button class="btn" type="submit">Aggiungi</button>
-    </form>
-    <div class="muted" style="margin-top:6px">Inserisci l’ID esatto della partita (API-FOOTBALL). La importeremo automaticamente.</div>
+    <h3 style="margin-top:0">Aggiungi fixture (API) o evento manuale</h3>
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+      <form method="post" action="" style="display:flex; gap:8px; align-items:center;">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+        <input type="hidden" name="action" value="add_fixture_api">
+        <label class="muted">Fixture ID</label>
+        <input name="fixture_id" type="number" min="1" required>
+        <button class="btn" type="submit">Aggiungi da API</button>
+      </form>
+
+      <form method="post" action="" style="display:flex; gap:8px; align-items:center;">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+        <input type="hidden" name="action" value="add_fixture_manual">
+        <label class="muted">Casa</label>
+        <input name="home_team_name" type="text" required>
+        <label class="muted">Trasferta</label>
+        <input name="away_team_name" type="text" required>
+        <label class="muted">Kickoff</label>
+        <input name="kickoff" type="datetime-local">
+        <button class="btn" type="submit">Aggiungi manuale</button>
+      </form>
+    </div>
+    <div class="muted" style="margin-top:6px">Gli eventi manuali non hanno fixture_id; puoi comunque bloccarli/attivarli e impostare orario.</div>
   </div>
 
-  <form method="post" action="" style="display:inline">
+  <!-- CTA FINALI -->
+  <form method="post" action="" style="display:inline" onsubmit="return confirm('Confermare e passare a DRAFT?');">
     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
     <input type="hidden" name="action" value="confirm_draft">
     <button class="btn btn-primary" type="submit">Conferma e passa a DRAFT</button>
   </form>
+
+  <form method="post" action="" style="display:inline; margin-left:8px" onsubmit="return confirm('Sei sicuro di voler ELIMINARE il torneo? Azione irreversibile.');">
+    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+    <input type="hidden" name="action" value="delete_tournament">
+    <button class="btn btn-warn" type="submit">Elimina torneo</button>
+  </form>
+
   <a class="btn" href="/admin/crea_torneo.php" style="margin-left:8px">Torna</a>
 </div>
 
