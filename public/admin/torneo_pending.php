@@ -235,7 +235,7 @@ $ev = $pdo->prepare("
   ORDER BY id ASC
 ");
 $ev->execute([':tid'=>$id]);
-events = $ev->fetchAll(PDO::FETCH_ASSOC);
+$events = $ev->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 <!doctype html>
