@@ -155,6 +155,17 @@ $csrf = $_SESSION['csrf'];
   </div>
 </div>
 
+<!-- Popup messaggi (riutilizzabile per errori/successi) -->
+<div id="msgModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 id="msgTitle" style="margin:0 0 10px;">Messaggio</h3>
+    <p id="msgText"  style="margin:0 0 12px; color:#ddd;">Testo</p>
+    <div class="actions">
+      <button type="button" id="msgOk" class="btn">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Popup disiscrizione
   (function(){
@@ -185,6 +196,29 @@ $csrf = $_SESSION['csrf'];
         if(e.target === modal){ modal.style.display = 'none'; }
       });
     }
+  })();
+
+  // ===== Popup messaggi riutilizzabile =====
+  (function(){
+    var modal = document.getElementById('msgModal');
+    var title = document.getElementById('msgTitle');
+    var text  = document.getElementById('msgText');
+    var okBtn = document.getElementById('msgOk');
+
+    window.showMsg = function(tit, msg, kind){
+      title.textContent = tit || 'Messaggio';
+      text.textContent  = msg || '';
+      if (kind === 'error')      title.style.color = '#ff6b6b';
+      else if (kind === 'success') title.style.color = '#00c074';
+      else                       title.style.color = '#fff';
+      modal.style.display = 'flex';
+    };
+
+    window.closeMsg = function(){ modal.style.display = 'none'; };
+
+    okBtn.addEventListener('click', closeMsg);
+    modal.addEventListener('click', function(e){ if (e.target === modal) closeMsg(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMsg(); });
   })();
 
   // Acquisto vita (+ aggiornamento cuori e saldo header) — VERSIONE DIAGNOSTICA
@@ -227,36 +261,36 @@ $csrf = $_SESSION['csrf'];
 
     btn.addEventListener('click', function(){
       fetch(window.location.origin + '/api/add_life.php', {
-  method: 'POST',
-  credentials: 'same-origin',
-  cache: 'no-store', // <-- forza no cache lato fetch
-  headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-  body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
-      + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
-      + '&_ts=' + Date.now() // <-- cache buster ulteriore
-})
-.then(async (r) => {
-  const status = r.status;
-  let text = '';
-  try { text = await r.text(); } catch(_) {}
-  let js = null;
-  try { js = text ? JSON.parse(text) : null; } catch(_) {}
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+        body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
+            + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
+            + '&_ts=' + Date.now()
+      })
+      .then(async (r) => {
+        const status = r.status;
+        let text = '';
+        try { text = await r.text(); } catch(_) {}
+        let js = null;
+        try { js = text ? JSON.parse(text) : null; } catch(_) {}
 
-  if (!js) {
-    alert('HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'));
-    throw new Error('non_json');
-  }
-  return js;
-})
+        if (!js) {
+          showMsg('Errore', 'HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'), 'error');
+          throw new Error('non_json');
+        }
+        return js;
+      })
       .then(function(js){
         if (!js.ok) {
-          // messaggi più chiari se l’API risponde con error code
           var msg = (js.msg || js.error || 'errore');
-          if (msg === 'insufficient_funds') msg = 'Crediti insufficienti';
-          if (msg === 'lives_limit'        || msg === 'max_reached') msg = 'Hai raggiunto il limite di vite';
-          if (msg === 'locked')             msg = 'Scelte bloccate';
-          if (msg === 'not_enrolled')       msg = 'Non sei iscritto a questo torneo';
-          alert('Acquisto vita non riuscito: ' + msg);
+          if (msg === 'insufficient_funds')          msg = 'Crediti insufficienti.';
+          if (msg === 'lives_limit' || msg==='max_reached') msg = 'Hai raggiunto il limite di vite consentite.';
+          if (msg === 'locked')                      msg = 'Le scelte sono bloccate per questo torneo.';
+          if (msg === 'not_enrolled')                msg = 'Non sei iscritto a questo torneo.';
+          if (msg === 'bad_csrf')                    msg = 'Sessione scaduta: ricarica la pagina e riprova.';
+          showMsg('Acquisto vita non riuscito', msg, 'error');
           return;
         }
 
@@ -266,12 +300,11 @@ $csrf = $_SESSION['csrf'];
           var el = document.getElementById('headerCrediti');
           if (el) el.textContent = js.header_credits;
         } else {
-          // fallback: rileggo i crediti via API header
           refreshHeaderCredits();
         }
       })
       .catch(function(){
-        alert('Errore di rete');
+        showMsg('Errore di rete', 'Controlla la connessione e riprova.', 'error');
       });
     });
   })();
