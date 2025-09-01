@@ -13,7 +13,6 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';   // require_admin()
 
-// Helper risposta JSON con stage (debug gentile)
 function jexit(array $p, int $http = 200) {
   http_response_code($http);
   echo json_encode($p);
@@ -21,25 +20,14 @@ function jexit(array $p, int $http = 200) {
 }
 
 // ---------- Guardie ----------
-try {
-  require_admin(); // solo admin
-} catch (Throwable $e) {
-  jexit(['ok'=>false,'error'=>'not_admin'], 403);
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  jexit(['ok'=>false,'error'=>'bad_method'], 405);
-}
+try { require_admin(); } catch (Throwable $e) { jexit(['ok'=>false,'error'=>'not_admin'], 403); }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { jexit(['ok'=>false,'error'=>'bad_method'], 405); }
 
 $csrf = $_POST['csrf'] ?? '';
-if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
-  jexit(['ok'=>false,'error'=>'bad_csrf'], 403);
-}
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) { jexit(['ok'=>false,'error'=>'bad_csrf'], 403); }
 
 $tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-if ($tournament_id <= 0) {
-  jexit(['ok'=>false,'error'=>'bad_params'], 400);
-}
+if ($tournament_id <= 0) { jexit(['ok'=>false,'error'=>'bad_params'], 400); }
 
 try {
   // 1) Carico torneo
@@ -61,37 +49,60 @@ try {
   ");
   $ev->execute([$tournament_id]);
   $events = $ev->fetchAll(PDO::FETCH_KEY_PAIR); // [event_id => result_status]
-
-  if (!$events) {
-    jexit(['ok'=>false,'error'=>'no_events','stage'=>$stage], 400);
-  }
+  if (!$events) { jexit(['ok'=>false,'error'=>'no_events','stage'=>$stage], 400); }
 
   // Mappa risultato -> lato vincente/neutral
-  // - home_win => vive chi ha side='home'
-  // - away_win => vive chi ha side='away'
-  // - draw     => nessuno (eliminate le vite che hanno scelto quell'evento)
-  // - postponed/void => tutti sopravvivono (consideriamo neutro)
   $resultKeep = [
-    'home_win' => 'home',
-    'away_win' => 'away',
-    'draw'     => 'none',
-    'postponed'=> 'both',
-    'void'     => 'both',
+    'home_win'  => 'home',
+    'away_win'  => 'away',
+    'draw'      => 'none',
+    'postponed' => 'both',
+    'void'      => 'both',
   ];
 
   // 3) Carico scelte finalizzate (finalized_at non NULL) per round corrente
+  //    Se la colonna round_no NON esiste in tournament_selections, non filtro per round_no.
+  $stage = 'check_round_no_column';
+  $hasRoundNo = false;
+  try {
+    $col = $pdo->prepare("
+      SELECT 1
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME   = 'tournament_selections'
+        AND COLUMN_NAME  = 'round_no'
+      LIMIT 1
+    ");
+    $col->execute();
+    $hasRoundNo = (bool)$col->fetchColumn();
+  } catch (Throwable $e) {
+    // se fallisce il check, consideriamo che NON esista
+    $hasRoundNo = false;
+  }
+
   $stage = 'load_finalized_selections';
-  $sel = $pdo->prepare("
-    SELECT s.user_id, s.life_index, s.event_id, s.side
-    FROM tournament_selections s
-    WHERE s.tournament_id = ?
-      AND s.finalized_at IS NOT NULL
-      AND (s.round_no IS NULL OR s.round_no = ?)
-  ");
-  $sel->execute([$tournament_id, $roundNo]);
+  if ($hasRoundNo) {
+    $sql = "
+      SELECT s.user_id, s.life_index, s.event_id, s.side
+      FROM tournament_selections s
+      WHERE s.tournament_id = ?
+        AND s.finalized_at IS NOT NULL
+        AND s.round_no = ?
+    ";
+    $params = [$tournament_id, $roundNo];
+  } else {
+    $sql = "
+      SELECT s.user_id, s.life_index, s.event_id, s.side
+      FROM tournament_selections s
+      WHERE s.tournament_id = ?
+        AND s.finalized_at IS NOT NULL
+    ";
+    $params = [$tournament_id];
+  }
+  $sel = $pdo->prepare($sql);
+  $sel->execute($params);
   $finalized = $sel->fetchAll(PDO::FETCH_ASSOC);
 
-  // Se non ci sono scelte finalizzate, non tocchiamo niente
   if (!$finalized) {
     jexit([
       'ok'=>true,
@@ -110,58 +121,42 @@ try {
     $life = (int)$r['life_index'];
     $eid  = (int)$r['event_id'];
     $side = (string)$r['side'];
-
-    $key = $uid . ':' . $life;
+    $key  = $uid . ':' . $life;
 
     $res = $events[$eid] ?? null; // result_status dell'evento
     if (!$res) {
-      // se non c'è risultato, non decido nulla
       if (!isset($lifeOutcome[$key])) $lifeOutcome[$key] = 'neutral';
       continue;
     }
 
     $rule = $resultKeep[$res] ?? 'neutral';
-
     if ($rule === 'both') {
-      // partita rinviata/void: vita sopravvive
       $lifeOutcome[$key] = 'keep';
     } elseif ($rule === 'none') {
-      // pareggio: vita eliminata
       $lifeOutcome[$key] = 'elim';
     } else {
-      // 'home' o 'away'
-      if ($side === $rule) {
-        $lifeOutcome[$key] = 'keep';
-      } else {
-        $lifeOutcome[$key] = 'elim';
-      }
+      $lifeOutcome[$key] = ($side === $rule) ? 'keep' : 'elim';
     }
   }
 
-  // 5) Raggruppo outcome per utente -> conto quante vite da mantenere
+  // 5) Raggruppo outcome per utente -> conteggio vite da mantenere
   $stage = 'group_outcome';
   $keepCount = []; // user_id => quante vite manteniamo
   $elimCount = 0;
   $kept      = 0;
 
   foreach ($lifeOutcome as $key => $out) {
-    list($uidStr, $lifeStr) = explode(':', $key, 2);
+    [$uidStr, $lifeStr] = explode(':', $key, 2);
     $uidI = (int)$uidStr;
     if (!isset($keepCount[$uidI])) $keepCount[$uidI] = 0;
     if ($out === 'keep') { $keepCount[$uidI]++; $kept++; }
     elseif ($out === 'elim') { $elimCount++; }
-    else {
-      // neutral: non ha un’influenza diretta; NON conteggio
-    }
   }
 
-  // 6) Applico risultati su enrollment.lives
-  //    - se un utente non appare in $keepCount ma aveva vite nel round, risulta a zero
-  //    - se nessun outcome (tutti neutral), non tocco niente
+  // 6) Applico risultati su enrollment.lives solo per utenti visti
   $stage = 'apply';
   $pdo->beginTransaction();
 
-  // Scopro tutti gli iscritti (user_id, lives attuali)
   $en = $pdo->prepare("SELECT user_id, lives FROM tournament_enrollments WHERE tournament_id = ?");
   $en->execute([$tournament_id]);
   $enrollments = $en->fetchAll(PDO::FETCH_ASSOC);
@@ -171,7 +166,6 @@ try {
     $uidI  = (int)$row['user_id'];
     $cur   = (int)$row['lives'];
 
-    // calcolo nuove vite: se non abbiamo outcome su questo utente, salto
     if (array_key_exists($uidI, $keepCount)) {
       $newLives = (int)$keepCount[$uidI];
       if ($newLives !== $cur) {
