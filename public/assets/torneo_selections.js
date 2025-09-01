@@ -1,13 +1,27 @@
 // public/assets/torneo_selections.js
 (function () {
-  // Serve che torneo.php esponga la card info con data-tid e CSRF in window.CSRF
+  // --- Trova l'ID torneo dalla card; fallback: querystring ?id=... ---
+  function getTidFromUrl() {
+    var m = location.search.match(/[?&]id=(\d+)/);
+    return m ? m[1] : null;
+  }
   var card = document.querySelector('.card.card--ps[data-tid]');
-  if (!card) return;
-  var TOURNAMENT_ID = card.getAttribute('data-tid');
+  var TOURNAMENT_ID = card ? card.getAttribute('data-tid') : getTidFromUrl();
+  if (!TOURNAMENT_ID) {
+    console.warn('[selections] TOURNAMENT_ID mancante (data-tid o ?id=)');
+    return;
+  }
 
-  // Gestione vita selezionata (cuori)
+  // --- CSRF: deve essere presente; altrimenti avvisa l'utente ---
+  var CSRF = (window.CSRF || (document.querySelector('input[name="csrf"]') || {}).value || '');
+  if (!CSRF) {
+    if (window.showMsg) window.showMsg('Sessione scaduta', 'Ricarica la pagina e riprova.', 'error');
+    console.warn('[selections] CSRF mancante: esponi <script>window.CSRF = "..."</script> in torneo.php');
+    return;
+  }
+
+  // --- Gestione vita selezionata (cuori) ---
   var selectedLife = null;
-
   function bindHearts() {
     document.querySelectorAll('.life-heart').forEach(function (h) {
       h.addEventListener('click', function () {
@@ -18,8 +32,10 @@
     });
   }
   bindHearts(); // on load
+  // Esporto rebind per quando rigeneri i cuori da altre azioni
+  window.rebindHeartsForSelections = bindHearts;
 
-  // Attacca il logo scelto a fianco del cuore (UI)
+  // --- Attacca il logo scelto a fianco del cuore (UI) ---
   function attachLogoToHeart(lifeIndex, logoUrl) {
     var heart = document.querySelector('.life-heart[data-life="' + lifeIndex + '"]');
     if (!heart) return;
@@ -32,7 +48,7 @@
     heart.appendChild(img);
   }
 
-  // Click su un lato (home/away) → salvataggio sul server
+  // --- Click su un lato (home/away) → salvataggio sul server ---
   var inFlight = false;
   document.querySelectorAll('.event-card .team-side').forEach(function (sideEl) {
     sideEl.addEventListener('click', function () {
@@ -41,35 +57,36 @@
         if (window.showMsg) window.showMsg('Seleziona una vita', 'Seleziona prima un cuore (vita) e poi la squadra.', 'error');
         return;
       }
-
       var evCard = sideEl.closest('.event-card');
       if (!evCard) return;
 
-      var eventId = evCard.getAttribute('data-event-id'); // deve esserci su torneo.php
-      var side    = sideEl.getAttribute('data-side');     // 'home' | 'away'
+      var eventId = evCard.getAttribute('data-event-id');   // deve esserci in torneo.php
+      var side    = sideEl.getAttribute('data-side');       // 'home' | 'away'
       if (!eventId || !side) {
+        console.warn('[selections] attributi mancanti: eventId=', eventId, 'side=', side);
         if (window.showMsg) window.showMsg('Salvataggio non riuscito', 'Parametri non validi (event o side mancanti).', 'error');
         return;
       }
 
       var logoUrl = (side === 'home') ? evCard.getAttribute('data-home-logo')
                                       : evCard.getAttribute('data-away-logo');
-
-      // CSRF preso da window (torneo.php lo setta prima)
-      var csrf = (window.CSRF || (document.querySelector('input[name="csrf"]') || {}).value || '');
+      if (!logoUrl) {
+        // non blocco il salvataggio: al limite non attacco logo al cuore
+        console.warn('[selections] logo URL mancante per', side, 'event', eventId);
+      }
 
       inFlight = true;
       fetch('/api/save_selection.php', {
         method: 'POST',
-        credentials: 'same-origin',            // include cookie/sessione
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:
-          'csrf='           + encodeURIComponent(csrf) +
+          'csrf='           + encodeURIComponent(CSRF) +
           '&tournament_id=' + encodeURIComponent(TOURNAMENT_ID) +
           '&event_id='      + encodeURIComponent(eventId) +
           '&life_index='    + encodeURIComponent(String(selectedLife)) +
           '&side='          + encodeURIComponent(side) +
-          '&_ts='           + Date.now()          // cache-buster
+          '&_ts='           + Date.now() // cache-buster
       })
       .then(async function (r) {
         var status = r.status;
@@ -86,11 +103,13 @@
         if (!js) return;
         if (!js.ok) {
           var msg = js.error || 'errore';
-          if (msg === 'bad_params')   msg = 'Parametri non validi.';
-          if (msg === 'locked')       msg = 'Le scelte sono bloccate.';
-          if (msg === 'not_enrolled') msg = 'Non sei iscritto a questo torneo.';
-          if (msg === 'bad_csrf')     msg = 'Sessione scaduta: ricarica e riprova.';
-          if (msg === 'exception')    msg = 'Errore interno.';
+          if (msg === 'bad_params')      msg = 'Parametri non validi.';
+          if (msg === 'locked' || msg==='not_open') msg = 'Le scelte sono bloccate.';
+          if (msg === 'not_enrolled')    msg = 'Non sei iscritto a questo torneo.';
+          if (msg === 'bad_csrf')        msg = 'Sessione scaduta: ricarica e riprova.';
+          if (msg === 'life_out_of_range') msg = 'Indice vita non valido.';
+          if (msg === 'bad_event')       msg = 'Evento non valido.';
+          if (msg === 'exception')       msg = 'Errore interno.';
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
         }
@@ -106,7 +125,4 @@
       });
     });
   });
-
-  // Se dopo un “aggiungi vita” rigeneri i cuori via JS esterno, chiama questo per ri-binderli:
-  window.rebindHeartsForSelections = bindHearts;
 })();
