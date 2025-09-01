@@ -55,6 +55,40 @@ $pp     = isset($torneo['prize_percent']) ? (int)$torneo['prize_percent'] : 100;
 $g      = isset($torneo['guaranteed_prize']) ? (float)$torneo['guaranteed_prize'] : 0.0;
 $potNow = max($g, $totLives * $buyin * ($pp/100));
 /* ============================================ */
+
+/* ====== (NUOVO) Eventi attivi del torneo (per le card) ====== */
+$events = [];
+try {
+  $ev = $pdo->prepare("
+    SELECT id, fixture_id, home_team_name, away_team_name, home_team_id, away_team_id, kickoff
+    FROM tournament_events
+    WHERE tournament_id = :tid AND is_active = 1
+    ORDER BY kickoff IS NULL, kickoff ASC, id ASC
+  ");
+  $ev->execute([':tid'=>$id]);
+  $events = $ev->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+  $events = [];
+}
+
+/* Helpers per logo/iniziali */
+function team_slug(string $name): string {
+  // slug minimale per /assets/logos/<slug>.webp
+  $slug = strtolower($name);
+  $slug = iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$slug);
+  $slug = preg_replace('/[^a-z0-9]+/','', $slug);
+  return $slug ?: 'team';
+}
+function team_initials(string $name): string {
+  $parts = preg_split('/\s+/', preg_replace('/[^a-zA-Z0-9\s]+/u', '', trim($name)));
+  $ini = '';
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    $ini .= mb_strtoupper(mb_substr($p,0,1));
+    if (mb_strlen($ini) >= 2) break;
+  }
+  return $ini !== '' ? $ini : '??';
+}
 ?>
 <!doctype html>
 <html lang="it">
@@ -79,54 +113,50 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
     .modal-card h3{margin:0 0 10px;}
     .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
-    /* === Event cards (grid + stile) === */
+    /* ====== STILI CARD EVENTI (NUOVO) ====== */
     .events-grid{
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
       gap:12px;
       margin-top:10px;
     }
     .event-card{
-      background:#111;
+      background:#0f1114;
       border:1px solid rgba(255,255,255,.12);
-      border-radius:12px;
-      padding:12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      box-shadow:0 6px 16px rgba(0,0,0,.18);
-      cursor:pointer;
-      transition:transform .12s ease, box-shadow .12s ease;
+      border-radius:10px;
+      padding:10px 12px;
+      display:flex; align-items:center; justify-content:space-between;
     }
-    .event-card:hover{
-      transform:translateY(-2px);
-      box-shadow:0 10px 24px rgba(0,0,0,.28);
+    .ec-team{
+      display:flex; align-items:center; gap:10px; min-width:0;
     }
-    .event-side{
-      display:flex; align-items:center; gap:8px; min-width:0;
+    .ec-vs{
+      margin:0 8px; font-weight:900; color:#c9c9c9;
+      letter-spacing:.04em;
     }
-    .event-side img{
-      width:30px; height:30px; object-fit:contain; border-radius:4px;
-      background:#0a0a0b; border:1px solid rgba(255,255,255,.08);
+    .logo-wrap{
+      width:24px; height:24px; position:relative; flex:0 0 24px;
+      border-radius:9999px; overflow:hidden; background:#1a1d22;
+      display:flex; align-items:center; justify-content:center;
     }
-    .event-side .team{
-      display:block; font-weight:800; font-size:13px; color:#fff;
+    .team-logo{
+      width:100%; height:100%; object-fit:contain; display:block;
+      background:transparent;
+    }
+    .team-initials{
+      position:absolute; inset:0;
+      display:none; align-items:center; justify-content:center;
+      font-size:11px; font-weight:900; color:#fff;
+      background:#2a2f36; border:1px solid rgba(255,255,255,.12);
+      border-radius:9999px;
+    }
+    .team-name{
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      max-width:150px;
+      max-width:140px; color:#e6e6e6; font-weight:700;
     }
-    .event-vs{
-      font-size:12px; color:#c9c9c9; font-weight:900; margin:0 8px;
+    @media (max-width: 720px){
+      .events-grid{ grid-template-columns: 1fr; }
     }
-    .pick-home, .pick-away{ outline:2px solid transparent; border-radius:8px; padding:4px; }
-    .event-card[data-pick="home"]  .pick-home{ outline-color:#00c074; }
-    .event-card[data-pick="away"]  .pick-away{ outline-color:#00c074; }
-
-    /* Modal scelta (riuso overlay) */
-    .modal-overlay.pick{ z-index:1001; }
-    .modal-card.pick{ width:360px; border-radius:10px; }
-    .pick-row{ display:flex; gap:10px; align-items:center; margin-top:10px; }
-    .pick-heart{ font-size:20px; cursor:pointer; opacity:.5 }
-    .pick-heart.active{ opacity:1 }
   </style>
 </head>
 <body>
@@ -153,7 +183,6 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
 
   <!-- ======= CARD INFO: nome + buy-in + vite in gioco + montepremi + countdown + vite max ======= -->
   <section class="card card--ps" data-tid="<?php echo (int)$id; ?>">
-    <!-- Titolo card: Nome torneo • Buy-in -->
     <h3 class="card__title">
       <?php echo htmlspecialchars($torneo['name']); ?>
       • Buy-in <?php echo number_format($buyin, 0, ',', '.'); ?> crediti
@@ -218,56 +247,53 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
   <section style="margin-top:20px;">
     <h2>Eventi del torneo</h2>
 
-    <?php
-      // Carico gli eventi (puoi filtrare per round_no se necessario)
-      $ev = $pdo->prepare("
-        SELECT id, fixture_id, round_no,
-               home_team_id, home_team_name,
-               away_team_id, away_team_name
-        FROM tournament_events
-        WHERE tournament_id = :tid
-        ORDER BY id ASC
-      ");
-      $ev->execute([':tid' => $id]);
-      $events = $ev->fetchAll(PDO::FETCH_ASSOC);
+    <?php if (empty($events)): ?>
+      <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
+    <?php else: ?>
+      <div class="events-grid">
+        <?php foreach ($events as $ev): ?>
+          <?php
+            $hn = trim($ev['home_team_name'] ?? 'Casa');
+            $an = trim($ev['away_team_name'] ?? 'Trasferta');
 
-      if (!$events) {
-        echo '<div class="muted">Nessun evento disponibile al momento.</div>';
-      } else {
-        echo '<div class="events-grid">';
-        foreach ($events as $e) {
-          $homeId   = (int)($e['home_team_id'] ?? 0);
-          $awayId   = (int)($e['away_team_id'] ?? 0);
-          $homeLogo = $homeId ? "https://media.api-sports.io/football/teams/{$homeId}.png" : '/assets/placeholder_team.png';
-          $awayLogo = $awayId ? "https://media.api-sports.io/football/teams/{$awayId}.png" : '/assets/placeholder_team.png';
+            $hSlug = team_slug($hn);
+            $aSlug = team_slug($an);
 
-          $homeName = htmlspecialchars($e['home_team_name'] ?: '—');
-          $awayName = htmlspecialchars($e['away_team_name'] ?: '—');
+            $hIni  = team_initials($hn);
+            $aIni  = team_initials($an);
 
-          echo '<div class="event-card"'
-              .' data-event-id="'.(int)$e['id'].'"'
-              .' data-home-id="'.$homeId.'"'
-              .' data-away-id="'.$awayId.'"'
-              .' data-home-name="'.$homeName.'"'
-              .' data-away-name="'.$awayName.'">';
+            $hLogo = "/assets/logos/{$hSlug}.webp";
+            $aLogo = "/assets/logos/{$aSlug}.webp";
+          ?>
+          <div class="event-card">
+            <div class="ec-team">
+              <span class="logo-wrap">
+                <img class="team-logo"
+                     src="<?php echo htmlspecialchars($hLogo); ?>"
+                     alt="<?php echo htmlspecialchars($hn); ?>"
+                     onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
+                <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
+              </span>
+              <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+            </div>
 
-            echo '<div class="event-side pick-home">';
-              echo '<img src="'.htmlspecialchars($homeLogo).'" alt="'.$homeName.' logo" loading="lazy" decoding="async">';
-              echo '<span class="team">'.$homeName.'</span>';
-            echo '</div>';
+            <div class="ec-vs">VS</div>
 
-            echo '<span class="event-vs">VS</span>';
+            <div class="ec-team" style="justify-content:flex-end;">
+              <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
+              <span class="logo-wrap">
+                <img class="team-logo"
+                     src="<?php echo htmlspecialchars($aLogo); ?>"
+                     alt="<?php echo htmlspecialchars($an); ?>"
+                     onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
+                <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
+              </span>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
-            echo '<div class="event-side pick-away" style="justify-content:flex-end;">';
-              echo '<span class="team" style="text-align:right;">'.$awayName.'</span>';
-              echo '<img src="'.htmlspecialchars($awayLogo).'" alt="'.$awayName.' logo" loading="lazy" decoding="async">';
-            echo '</div>';
-
-          echo '</div>';
-        }
-        echo '</div>';
-      }
-    ?>
   </section>
 </main>
 
@@ -292,28 +318,6 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
     <p id="msgText"  style="margin:0 0 12px; color:#ddd;">Testo</p>
     <div class="actions">
       <button type="button" id="msgOk" class="btn">OK</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal scelta (vita + lato) -->
-<div id="pickModal" class="modal-overlay">
-  <div class="modal-card pick">
-    <h3 style="margin:0 0 8px;">Seleziona scelta</h3>
-    <div class="muted" id="pickMatch" style="margin-bottom:8px;">—</div>
-
-    <div>
-      <div style="font-size:12px;color:#c9c9c9;">Scegli la vita</div>
-      <div class="pick-row" id="pickHearts">
-        <!-- cuori inseriti da JS -->
-      </div>
-    </div>
-
-    <div class="pick-row" style="justify-content:flex-end; margin-top:14px;">
-      <button type="button" class="btn" id="pickCancel">Annulla</button>
-      <button type="button" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;" id="pickConfirm">
-        Conferma
-      </button>
     </div>
   </div>
 </div>
@@ -478,86 +482,6 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
     }
     upd();
     setInterval(upd, 10000);
-  })();
-
-  /* ===== Scelta squadra per evento (UI) ===== */
-  (function(){
-    var USER_LIVES = <?php echo (int)$userLives; ?>;
-
-    var modal   = document.getElementById('pickModal');
-    var row     = document.getElementById('pickHearts');
-    var txt     = document.getElementById('pickMatch');
-    var btnOk   = document.getElementById('pickConfirm');
-    var btnNo   = document.getElementById('pickCancel');
-
-    var current = { eventId:null, homeId:null, awayId:null, homeName:'', awayName:'', lifeIndex:0, side:'home' };
-
-    function renderHeartsPick(n){
-      row.innerHTML = '';
-      if (n <= 0) {
-        row.innerHTML = '<span class="muted">Non hai vite disponibili</span>';
-        btnOk.disabled = true;
-        return;
-      }
-      btnOk.disabled = false;
-      for (var i=0; i<n; i++){
-        var sp = document.createElement('span');
-        sp.className = 'pick-heart' + (i===0?' active':'');
-        sp.textContent = '❤️';
-        sp.dataset.idx = i;
-        sp.addEventListener('click', function(){
-          var idx = parseInt(this.dataset.idx,10);
-          current.lifeIndex = idx;
-          [].forEach.call(row.querySelectorAll('.pick-heart'), function(p){ p.classList.remove('active'); });
-          this.classList.add('active');
-        });
-        row.appendChild(sp);
-      }
-    }
-
-    document.querySelectorAll('.event-card').forEach(function(card){
-      var openHome = function(e){ e.stopPropagation(); openPick(card, 'home'); };
-      var openAway = function(e){ e.stopPropagation(); openPick(card, 'away'); };
-      var ph = card.querySelector('.pick-home');
-      var pa = card.querySelector('.pick-away');
-      if (ph) ph.addEventListener('click', openHome);
-      if (pa) pa.addEventListener('click', openAway);
-      card.addEventListener('click', function(){ openPick(card, 'home'); });
-    });
-
-    function openPick(card, side){
-      current.eventId  = parseInt(card.getAttribute('data-event-id'), 10);
-      current.homeId   = parseInt(card.getAttribute('data-home-id'), 10);
-      current.awayId   = parseInt(card.getAttribute('data-away-id'), 10);
-      current.homeName = card.getAttribute('data-home-name') || '';
-      current.awayName = card.getAttribute('data-away-name') || '';
-      current.lifeIndex= 0;
-      current.side     = (side === 'away' ? 'away' : 'home');
-
-      txt.textContent = current.homeName + ' vs ' + current.awayName;
-      renderHeartsPick(USER_LIVES);
-
-      document.querySelectorAll('.event-card').forEach(function(c){ c.removeAttribute('data-pick'); });
-      card.setAttribute('data-pick', current.side);
-
-      modal.style.display = 'flex';
-    }
-
-    btnNo.addEventListener('click', function(){ modal.style.display = 'none'; });
-
-    btnOk.addEventListener('click', function(){
-      modal.style.display = 'none';
-      var sideTxt = (current.side==='home') ? current.homeName : current.awayName;
-      var t = document.createElement('div');
-      t.textContent = 'Scelta registrata (UI): Vita '+(current.lifeIndex+1)+' → '+ sideTxt;
-      t.style.position='fixed'; t.style.bottom='16px'; t.style.left='16px';
-      t.style.background='#111'; t.style.color='#fff'; t.style.border='1px solid #333';
-      t.style.padding='8px 12px'; t.style.borderRadius='8px'; t.style.zIndex='2000';
-      document.body.appendChild(t);
-      setTimeout(function(){ t.remove(); }, 2200);
-    });
-
-    modal.addEventListener('click', function(e){ if (e.target === modal) { modal.style.display='none'; } });
   })();
 </script>
 
