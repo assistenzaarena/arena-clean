@@ -1,71 +1,46 @@
 <?php
 // public/api/select_team.php
-if (session_status() === PHP_SESSION_NONE) session_start();
+// Restituisce selezioni correnti (life_index, side, event_id) dell’utente per un torneo
+
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
 $ROOT = dirname(__DIR__);
-require_once $ROOT.'/src/config.php';
-require_once $ROOT.'/src/db.php';
-require_once $ROOT.'/src/utils.php';
+require_once $ROOT . '/src/config.php';
+require_once $ROOT . '/src/db.php';
 
-if (empty($_SESSION['user_id'])) { echo json_encode(['ok'=>false,'error'=>'not_logged']); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { echo json_encode(['ok'=>false,'error'=>'bad_method']); exit; }
+function out($arr, $code = 200) {
+  http_response_code($code);
+  echo json_encode($arr);
+  exit;
+}
+
+if (empty($_SESSION['user_id']))                   out(['ok'=>false,'error'=>'not_logged'], 401);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST')         out(['ok'=>false,'error'=>'bad_method'], 405);
 
 $csrf = $_POST['csrf'] ?? '';
-if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) { echo json_encode(['ok'=>false,'error'=>'bad_csrf']); exit; }
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf))  out(['ok'=>false,'error'=>'bad_csrf'], 400);
 
-$uid  = (int)$_SESSION['user_id'];
-$tid  = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-$life = isset($_POST['life_no']) ? (int)$_POST['life_no'] : 0;
-$event= isset($_POST['event_id']) ? (int)$_POST['event_id'] : 0;
-$side = ($_POST['team_side'] ?? '') === 'home' ? 'home' : (($_POST['team_side'] ?? '') === 'away' ? 'away' : '');
-
-if ($tid<=0 || $event<=0 || $side==='') { echo json_encode(['ok'=>false,'error'=>'bad_params']); exit; }
+$user_id       = (int)$_SESSION['user_id'];
+$tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
+if ($tournament_id <= 0) out(['ok'=>false,'error'=>'bad_params'], 400);
 
 try {
-  // Torneo open e non oltre lock
-  $tq = $pdo->prepare("SELECT status, lock_at, max_lives_per_user FROM tournaments WHERE id=:id LIMIT 1");
-  $tq->execute([':id'=>$tid]);
-  $t = $tq->fetch(PDO::FETCH_ASSOC);
-  if (!$t) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
-  if ($t['status']!=='open') { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
-  if (!empty($t['lock_at']) && strtotime($t['lock_at'])<=time()) { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
-
-  // Deve essere iscritto e life_no valido
-  $lq = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
-  $lq->execute([':u'=>$uid, ':t'=>$tid]);
-  $lives = (int)$lq->fetchColumn();
-  if ($lives<=0) { echo json_encode(['ok'=>false,'error'=>'not_enrolled']); exit; }
-  if ($life<0 || $life >= $lives) { echo json_encode(['ok'=>false,'error'=>'bad_life']); exit; }
-
-  // L'event_id deve appartenere al torneo ed essere attivo
-  $eq = $pdo->prepare("SELECT id FROM tournament_events WHERE id=:e AND tournament_id=:t AND is_active=1 LIMIT 1");
-  $eq->execute([':e'=>$event, ':t'=>$tid]);
-  if (!$eq->fetchColumn()) { echo json_encode(['ok'=>false,'error'=>'bad_event']); exit; }
-
-  // UPSERT su tournament_selections (una per vita/round)
-  $round = 1; // se in futuro gestirai round>1, calcolalo qui
-  // prova update
-  $up = $pdo->prepare("
-    UPDATE tournament_selections
-       SET event_id=:e, team_side=:s
-     WHERE tournament_id=:t AND user_id=:u AND round_no=:r AND life_no=:l AND locked=0
+  // carico selections utente per il torneo
+  $q = $pdo->prepare("
+    SELECT life_index, event_id, side
+    FROM tournament_selections
+    WHERE user_id = ? AND tournament_id = ?
+    ORDER BY life_index ASC
   ");
-  $up->execute([':e'=>$event,':s'=>$side,':t'=>$tid,':u'=>$uid,':r'=>$round,':l'=>$life]);
+  $q->execute([$user_id, $tournament_id]);
+  $rows = $q->fetchAll(PDO::FETCH_ASSOC);
 
-  if ($up->rowCount()===0) {
-    // insert
-    $code = generate_unique_code8($pdo,'tournament_selections','selection_code',8);
-    $ins = $pdo->prepare("
-      INSERT INTO tournament_selections
-        (selection_code, tournament_id, user_id, round_no, life_no, event_id, team_side)
-      VALUES
-        (:c, :t, :u, :r, :l, :e, :s)
-    ");
-    $ins->execute([':c'=>$code,':t'=>$tid,':u'=>$uid,':r'=>$round,':l'=>$life,':e'=>$event,':s'=>$side]);
-  }
+  out(['ok'=>true, 'picks'=>$rows]);
 
-  echo json_encode(['ok'=>true]);
 } catch (Throwable $e) {
-  echo json_encode(['ok'=>false,'error'=>'exception']);
+  if (!defined('APP_ENV') || APP_ENV !== 'production') {
+    out(['ok'=>false,'error'=>'exception','detail'=>$e->getMessage()], 500);
+  }
+  out(['ok'=>false,'error'=>'exception'], 500);
 }
