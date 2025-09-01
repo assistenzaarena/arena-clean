@@ -7,7 +7,9 @@ $ROOT = dirname(__DIR__); // /var/www/html
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php';   // generate_unique_code / generate_unique_code8
+require_once $ROOT . '/src/game_rules.php'; // [STEP 2] regole lock (-5' & round)
 
+// helper
 function jexit(array $p){ echo json_encode($p); exit; }
 
 // Requisiti base
@@ -26,14 +28,21 @@ if ($tid <= 0 || $uid <= 0) jexit(['ok'=>false,'error'=>'bad_params']);
 try {
   // 1) Torneo: OPEN e prima del lock
   try {
-    $tq = $pdo->prepare("SELECT status, lock_at, cost_per_life FROM tournaments WHERE id = ? LIMIT 1");
+    // [STEP 2] includo id + current_round_no per il controllo regola
+    $tq = $pdo->prepare("SELECT id, current_round_no, status, lock_at, cost_per_life FROM tournaments WHERE id = ? LIMIT 1");
     $tq->execute([$tid]);
     $t = $tq->fetch(PDO::FETCH_ASSOC);
   } catch (Throwable $e) {
     jexit(['ok'=>false,'error'=>'exception','stage'=>'sel_tournament','msg'=>$e->getMessage()]);
   }
-  if (!$t)                            jexit(['ok'=>false,'error'=>'not_found']);
+  if (!$t)                             jexit(['ok'=>false,'error'=>'not_found']);
   if (($t['status'] ?? '') !== 'open') jexit(['ok'=>false,'error'=>'not_open']);
+
+  // [STEP 2] blocco iscrizione dal round 2 in poi, o a -5' dal primo kickoff del round 1
+  if (enroll_family_blocked_now($pdo, $t)) {
+    jexit(['ok'=>false,'error'=>'locked']);
+  }
+
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time())
                                        jexit(['ok'=>false,'error'=>'locked']);
 
