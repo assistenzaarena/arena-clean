@@ -141,7 +141,10 @@ function team_logo_path(string $name): string {
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_user.css">
   <link rel="stylesheet" href="/assets/lobby.css">
-  <style>
+  <link rel="stylesheet" href="/assets/lobby.css">
+<script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>  <!-- ADDED -->
+<style>
+/* … resto invariato … */
     .torneo-wrap{max-width:1000px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
     .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
     .torneo-title{font-size:24px; font-weight:900;}
@@ -321,7 +324,7 @@ function team_logo_path(string $name): string {
           ?>
           <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
           <div class="event-card"
-               data-event-id="<?php echo (int)$ev['id']; ?>"
+               data-event-id="<?php echo (int)$ev['id']; ?>"             <!-- ADDED -->
                data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
                data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
             <div class="ec-team team-side" data-side="home" title="Seleziona casa">
