@@ -163,14 +163,6 @@ $potNow = max($g, $totLives * $buyin * ($pp/100));
         }
       ?>
     </div>
-
-    <!-- Notare: il countdown è ora dentro la card; questa sezione rimane per coerenza layout -->
-    <div style="margin-left:auto; text-align:center;">
-      <?php if (!empty($torneo['lock_at'])): ?>
-        <div style="font-size:12px;color:#c9c9c9;margin-bottom:2px;">&nbsp;</div>
-        <div>&nbsp;</div>
-      <?php endif; ?>
-    </div>
   </section>
 
   <!-- Eventi -->
