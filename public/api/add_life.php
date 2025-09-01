@@ -12,7 +12,6 @@ $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php';
-require_once $ROOT . '/src/game_rules.php'; // [STEP 2] regole lock (-5' & round)
 
 function out($arr, $code = 200){ http_response_code($code); echo json_encode($arr); exit; }
 
@@ -28,21 +27,16 @@ $tid     = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
 if ($tid <= 0 || $user_id <= 0) out(['ok'=>false,'error'=>'bad_params'], 400);
 
 try {
-  // 1) Torneo: open + non lockato
+  // 1) Torneo: open + non lockato + choices_locked
   try {
-    // [STEP 2] includo id + current_round_no per la regola
-    $st = $pdo->prepare("SELECT id, current_round_no, status, lock_at, cost_per_life, max_lives_per_user FROM tournaments WHERE id = ? LIMIT 1");
+    $st = $pdo->prepare("SELECT status, lock_at, cost_per_life, max_lives_per_user, choices_locked FROM tournaments WHERE id = ? LIMIT 1");
     $st->execute([$tid]);
     $t = $st->fetch(PDO::FETCH_ASSOC);
   } catch (Throwable $e) { out(['ok'=>false,'error'=>'exception','stage'=>'sel_tournament','msg'=>$e->getMessage()], 500); }
 
   if (!$t)                                 out(['ok'=>false,'error'=>'not_found'], 404);
+  if ((int)($t['choices_locked'] ?? 0) === 1) out(['ok'=>false,'error'=>'locked'], 409);
   if (($t['status'] ?? '') !== 'open')     out(['ok'=>false,'error'=>'not_open'], 409);
-
-  // [STEP 2] blocco famiglia ENROLL/BUY-LIFE: dal round 2 in poi SEMPRE,
-  // nel round 1 a -5' dal primo kickoff del torneo
-  if (enroll_family_blocked_now($pdo, $t)) out(['ok'=>false,'error'=>'locked'], 409);
-
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time())
                                            out(['ok'=>false,'error'=>'locked'], 409);
 
