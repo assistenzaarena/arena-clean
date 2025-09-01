@@ -226,28 +226,28 @@ $csrf = $_SESSION['csrf'];
     }
 
     btn.addEventListener('click', function(){
-      fetch('/api/add_life.php', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-        body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
-            + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
-      })
-      .then(async (r) => {
-        // DIAGNOSTICA: leggo SEMPRE il testo e provo il JSON.
-        const status = r.status;
-        let text = '';
-        try { text = await r.text(); } catch(_) {}
-        let js = null;
-        try { js = text ? JSON.parse(text) : null; } catch(_) {}
+      fetch(window.location.origin + '/api/add_life.php', {
+  method: 'POST',
+  credentials: 'same-origin',
+  cache: 'no-store', // <-- forza no cache lato fetch
+  headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+  body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
+      + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
+      + '&_ts=' + Date.now() // <-- cache buster ulteriore
+})
+.then(async (r) => {
+  const status = r.status;
+  let text = '';
+  try { text = await r.text(); } catch(_) {}
+  let js = null;
+  try { js = text ? JSON.parse(text) : null; } catch(_) {}
 
-        if (!js) {
-          // se non è JSON mostro cosa ha risposto il server
-          alert('HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'));
-          throw new Error('non_json');
-        }
-        return js;
-      })
+  if (!js) {
+    alert('HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'));
+    throw new Error('non_json');
+  }
+  return js;
+})
       .then(function(js){
         if (!js.ok) {
           // messaggi più chiari se l’API risponde con error code
