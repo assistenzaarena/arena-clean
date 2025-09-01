@@ -73,7 +73,6 @@ try {
 
 /* Helpers per logo/iniziali */
 function team_slug(string $name): string {
-  // slug minimale per /assets/logos/<slug>.webp
   $slug = strtolower($name);
   $slug = iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$slug);
   $slug = preg_replace('/[^a-z0-9]+/','', $slug);
@@ -113,31 +112,33 @@ function team_initials(string $name): string {
     .modal-card h3{margin:0 0 10px;}
     .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
-    /* ====== STILI CARD EVENTI (NUOVO) ====== */
+    /* ====== STILI CARD EVENTI (aggiornati) ====== */
     .events-grid{
       display:grid;
-      grid-template-columns: repeat(2, minmax(280px, 1fr));
-      gap:12px;
+      grid-template-columns: repeat(2, minmax(320px, 1fr)); /* due card per riga */
+      gap:14px;
       margin-top:10px;
     }
     .event-card{
       background:#0f1114;
       border:1px solid rgba(255,255,255,.12);
-      border-radius:10px;
-      padding:10px 12px;
+      border-radius:14px;
+      padding:16px;
       display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 8px 28px rgba(0,0,0,.18);
     }
     .ec-team{
-      display:flex; align-items:center; gap:10px; min-width:0;
+      display:flex; align-items:center; gap:12px; min-width:0;
     }
     .ec-vs{
-      margin:0 8px; font-weight:900; color:#c9c9c9;
+      margin:0 10px; font-weight:900; color:#c9c9c9;
       letter-spacing:.04em;
     }
     .logo-wrap{
-      width:24px; height:24px; position:relative; flex:0 0 24px;
+      width:28px; height:28px; position:relative; flex:0 0 28px;
       border-radius:9999px; overflow:hidden; background:#1a1d22;
       display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(255,255,255,.12);
     }
     .team-logo{
       width:100%; height:100%; object-fit:contain; display:block;
@@ -146,14 +147,23 @@ function team_initials(string $name): string {
     .team-initials{
       position:absolute; inset:0;
       display:none; align-items:center; justify-content:center;
-      font-size:11px; font-weight:900; color:#fff;
-      background:#2a2f36; border:1px solid rgba(255,255,255,.12);
-      border-radius:9999px;
+      font-size:12px; font-weight:900; color:#fff;
+      background:#2a2f36; border-radius:9999px;
     }
     .team-name{
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      max-width:140px; color:#e6e6e6; font-weight:700;
+      max-width:160px; color:#e6e6e6; font-weight:800;
     }
+    .team-side{ cursor:pointer; } /* rende cliccabili i lati squadra */
+
+    /* Stato “vita selezionata” */
+    .life-heart{ cursor:pointer; }
+    .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
+    /* Logo scelto affianco al cuore */
+    .life-heart .pick-logo{
+      width:16px; height:16px; vertical-align:middle; margin-left:6px;
+    }
+
     @media (max-width: 720px){
       .events-grid{ grid-template-columns: 1fr; }
     }
@@ -236,7 +246,7 @@ function team_initials(string $name): string {
           echo '<span class="muted">Nessuna vita</span>';
         } else {
           for ($i=0; $i<$hearts; $i++) {
-            echo '<span class="life-heart" title="Vita '.($i+1).'" style="font-size:18px;">❤️</span>';
+            echo '<span class="life-heart" data-life="'.($i).'" title="Vita '.($i+1).'" style="font-size:18px;">❤️</span>';
           }
         }
       ?>
@@ -265,8 +275,8 @@ function team_initials(string $name): string {
             $hLogo = "/assets/logos/{$hSlug}.webp";
             $aLogo = "/assets/logos/{$aSlug}.webp";
           ?>
-          <div class="event-card">
-            <div class="ec-team">
+          <div class="event-card" data-home-logo="<?php echo htmlspecialchars($hLogo); ?>" data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
+            <div class="ec-team team-side" data-side="home" title="Seleziona casa">
               <span class="logo-wrap">
                 <img class="team-logo"
                      src="<?php echo htmlspecialchars($hLogo); ?>"
@@ -279,7 +289,7 @@ function team_initials(string $name): string {
 
             <div class="ec-vs">VS</div>
 
-            <div class="ec-team" style="justify-content:flex-end;">
+            <div class="ec-team team-side" data-side="away" title="Seleziona trasferta" style="justify-content:flex-end;">
               <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
               <span class="logo-wrap">
                 <img class="team-logo"
@@ -372,6 +382,44 @@ function team_initials(string $name): string {
     var btn = document.getElementById('btnAddLife');
     if (!btn) return;
 
+    // Evidenzia vita selezionata
+    var selectedLife = null;
+    document.querySelectorAll('.life-heart').forEach(function(h){
+      h.addEventListener('click', function(){
+        document.querySelectorAll('.life-heart').forEach(function(x){ x.classList.remove('life-heart--active'); });
+        h.classList.add('life-heart--active');
+        selectedLife = parseInt(h.getAttribute('data-life')||'0',10);
+      });
+    });
+
+    // Quando scegli una squadra (click su un lato card), se c’è una vita selezionata
+    // attacca il logo a fianco del cuoricino relativo
+    document.querySelectorAll('.event-card .team-side').forEach(function(side){
+      side.addEventListener('click', function(){
+        if (selectedLife === null){
+          showMsg('Seleziona una vita', 'Per favore seleziona prima un cuore (vita) e poi la squadra.', 'error');
+          return;
+        }
+        var card = side.closest('.event-card');
+        if (!card) return;
+        var sideName = side.getAttribute('data-side'); // 'home' | 'away'
+        var logoUrl = (sideName === 'home') ? card.getAttribute('data-home-logo') : card.getAttribute('data-away-logo');
+
+        var heart = document.querySelector('.life-heart[data-life="'+selectedLife+'"]');
+        if (!heart) return;
+
+        // rimuovo precedente pick
+        var old = heart.querySelector('.pick-logo'); if (old) old.remove();
+
+        var img = document.createElement('img');
+        img.className = 'pick-logo';
+        img.src = logoUrl;
+        img.alt = 'Pick';
+        img.onerror = function(){ this.remove(); }; // se per caso manca, non lascia buchi
+        heart.appendChild(img);
+      });
+    });
+
     function renderHearts(n){
       var w = document.getElementById('livesWrap');
       if (!w) return;
@@ -382,14 +430,22 @@ function team_initials(string $name): string {
         s.className = 'muted';
         s.textContent = 'Nessuna vita';
         w.appendChild(s);
+        selectedLife = null;
         return;
       }
-      for (var i=0;i<n;i++){
+      for (var i=0; i<n; i++){
         var h = document.createElement('span');
         h.className = 'life-heart';
+        h.setAttribute('data-life', i);
         h.title = 'Vita '+(i+1);
         h.textContent = '❤️';
         h.style.fontSize = '18px';
+        h.style.cursor = 'pointer';
+        h.addEventListener('click', function(ev){
+          document.querySelectorAll('.life-heart').forEach(function(x){ x.classList.remove('life-heart--active'); });
+          ev.currentTarget.classList.add('life-heart--active');
+          selectedLife = parseInt(ev.currentTarget.getAttribute('data-life')||'0',10);
+        });
         w.appendChild(h);
       }
     }
@@ -405,6 +461,7 @@ function team_initials(string $name): string {
         }).catch(()=>{});
     }
 
+    // acquisto vita (invariato nella logica, solo UI migliorata)
     btn.addEventListener('click', function(){
       fetch(window.location.origin + '/api/add_life.php', {
         method: 'POST',
@@ -421,7 +478,6 @@ function team_initials(string $name): string {
         try { text = await r.text(); } catch(_) {}
         let js = null;
         try { js = text ? JSON.parse(text) : null; } catch(_) {}
-
         if (!js) { showMsg('Errore', 'HTTP '+status+' (non JSON):\n'+(text ? text.slice(0,400) : '(vuota)'), 'error'); throw new Error('non_json'); }
         return js;
       })
@@ -437,6 +493,8 @@ function team_initials(string $name): string {
           return;
         }
         renderHearts(js.lives);
+        // reset selezione vita (la nuova non è selezionata automaticamente)
+        selectedLife = null;
         if (typeof js.header_credits !== 'undefined') {
           var el = document.getElementById('headerCrediti');
           if (el) el.textContent = js.header_credits;
