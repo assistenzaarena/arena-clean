@@ -8,23 +8,19 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 
-// Utente loggato
 require_login();
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 if ($user_id <= 0) { echo json_encode(['ok'=>false,'error'=>'not_logged']); exit; }
 
-// Solo POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   echo json_encode(['ok'=>false,'error'=>'bad_method']); exit;
 }
 
-// CSRF
 $csrf = $_POST['csrf'] ?? '';
 if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
   echo json_encode(['ok'=>false,'error'=>'bad_csrf']); exit;
 }
 
-// Parametri
 $tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
 $event_id      = isset($_POST['event_id'])      ? (int)$_POST['event_id']      : 0;
 $life_index    = isset($_POST['life_index'])    ? (int)$_POST['life_index']    : -1;
@@ -35,26 +31,26 @@ if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || ($side !== 'home
 }
 
 try {
-  // Verifica che il torneo sia open e non lockato
+  // Torneo open + non lockato
   $tq = $pdo->prepare("SELECT status, lock_at FROM tournaments WHERE id=:id LIMIT 1");
   $tq->execute([':id'=>$tournament_id]);
   $t = $tq->fetch(PDO::FETCH_ASSOC);
-  if (!$t)                             { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
-  if ($t['status'] !== 'open')         { echo json_encode(['ok'=>false,'error'=>'locked']);    exit; }
+  if (!$t) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
+  if ($t['status'] !== 'open') { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
     echo json_encode(['ok'=>false,'error'=>'locked']); exit;
   }
 
-  // L'utente deve essere iscritto
+  // Iscrizione e numero vite
   $ck = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
   $ck->execute([':u'=>$user_id, ':t'=>$tournament_id]);
-  $livesRow = $ck->fetch(PDO::FETCH_ASSOC);
-  if (!$livesRow) { echo json_encode(['ok'=>false,'error'=>'not_enrolled']); exit; }
+  $enr = $ck->fetch(PDO::FETCH_ASSOC);
+  if (!$enr) { echo json_encode(['ok'=>false,'error'=>'not_enrolled']); exit; }
 
-  $userLives = (int)$livesRow['lives'];
+  $userLives = (int)$enr['lives'];
   if ($life_index >= $userLives) { echo json_encode(['ok'=>false,'error'=>'bad_params']); exit; }
 
-  // Recupero i dati dell'evento per capire che squadra è stata scelta
+  // Evento
   $eq = $pdo->prepare("
       SELECT home_team_name, away_team_name
       FROM tournament_events
@@ -66,11 +62,9 @@ try {
   if (!$ev) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
 
   $team_name = ($side === 'home') ? (string)$ev['home_team_name'] : (string)$ev['away_team_name'];
+  $team_logo = team_logo_local($team_name); // path in /assets/logos/*.webp
 
-  // Determino logo (coerente con torneo.php -> team_logo_path)
-  $team_logo = team_logo_local($team_name);
-
-  // UPSERT della scelta (una scelta per utente+torneo+evento+vita)
+  // UPSERT
   $sql = "
     INSERT INTO tournament_selections
       (user_id, tournament_id, event_id, life_index, side, team_name, team_logo, created_at, updated_at)
@@ -90,24 +84,29 @@ try {
     ':logo' => $team_logo,
   ]);
 
-  echo json_encode([
-    'ok'        => true,
-    'life'      => $life_index,
-    'team_name' => $team_name,
-    'team_logo' => $team_logo,
-  ]);
+  echo json_encode(['ok'=>true, 'life'=>$life_index, 'team_name'=>$team_name, 'team_logo'=>$team_logo]);
 } catch (Throwable $e) {
-  // Se vuoi: error_log($e->getMessage());
-  echo json_encode(['ok'=>false,'error'=>'exception']); // risposta compatibile con il tuo showMsg
-  exit;
+  // error_log($e->getMessage()); // se vuoi investigare
+  echo json_encode(['ok'=>false,'error'=>'exception']); exit;
 }
 
 /**
- * Funzione helper: calcola il path locale del logo come in torneo.php (alias inclusi)
+ * Slug/alias sicuro per prendere i loghi locali (senza dipendere da iconv).
  */
 function team_logo_local(string $name): string {
   $base = strtolower($name);
-  $base = iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$base);
+
+  // 1) transliterator (se disponibile)
+  if (class_exists('Transliterator')) {
+    $tr = \Transliterator::create('Any-Latin; Latin-ASCII; [:Nonspacing Mark:] Remove; Lower();');
+    if ($tr) $base = $tr->transliterate($base);
+  }
+  // 2) iconv (fallback opzionale)
+  elseif (function_exists('iconv')) {
+    $conv = @iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$base);
+    if ($conv !== false) $base = $conv;
+  }
+  // 3) ripulitura
   $base = preg_replace('/[^a-z0-9]+/','', $base);
 
   static $alias = [
@@ -141,6 +140,6 @@ function team_logo_local(string $name): string {
   if ($base === 'as' && stripos($name, 'roma')  !== false)     $base = 'asroma';
   if (strpos($base,'hellas')!==false || strpos($base,'verona')!==false) $base = 'hellasverona';
 
-  $slug = $alias[$base] ?? $base;
+  $slug = $alias[$base] ?? $base ?: 'team';
   return "/assets/logos/{$slug}.webp";
 }
