@@ -60,6 +60,18 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
 <?php require $ROOT . '/header_admin.php'; ?>
 
 <main class="wrap">
+  <?php if (!empty($_SESSION['flash'])): ?>
+  <div id="flashModal" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:9999">
+    <div style="background:#111;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:16px 18px;max-width:420px;width:100%;color:#fff;text-align:center">
+      <h3 style="margin:0 0 8px;color:<?php echo (($_SESSION['flash_type']??'')==='error')?'#ff6b6b':'#00c074'; ?>">
+        <?php echo (($_SESSION['flash_type']??'')==='error')?'Operazione non riuscita':'Operazione riuscita'; ?>
+      </h3>
+      <p style="margin:0 0 12px;color:#ddd;"><?php echo htmlspecialchars($_SESSION['flash']); ?></p>
+      <button onclick="document.getElementById('flashModal').remove()" class="btn">OK</button>
+    </div>
+  </div>
+  <?php unset($_SESSION['flash'], $_SESSION['flash_type']); ?>
+<?php endif; ?>
   <div class="kpi"><strong>Tornei in corso:</strong> <?php echo $tot_open; ?></div>
 
   <form class="filters" method="get" action="/admin/gestisci_tornei.php">
