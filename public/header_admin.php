@@ -54,7 +54,7 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
 
       <!-- Gestisci Tornei (separeremo in una pagina dedicata in futuro; per ora può coincidere con crea_torneo) -->
       <li class="subhdr__item">
-        <a class="subhdr__link" href="/admin/crea_torneo.php">Gestisci Tornei</a>
+        <a class="subhdr__link" href="/admin/gestisci_tornei.php">Gestisci Tornei</a>
       </li>
 
       <!-- Amministrazione (home admin o altra pagina riassuntiva) -->
