@@ -94,24 +94,33 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <td><?php echo $t['lock_at'] ? date('d/m/Y H:i', strtotime($t['lock_at'])) : '—'; ?></td>
     <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
     <td>
-      <!-- Link gestione esistente -->
-      <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
+  <!-- Link gestione esistente -->
+  <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
 
-      <!-- NUOVO: Finalizza scelte -->
-      <form method="post"
-            action="/api/finalize_round.php"
-            style="display:inline-block; margin-left:6px;"
-            onsubmit="return confirm('Finalizzare le scelte di questo torneo?');">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-        <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
-        <button class="btn" type="submit">Finalizza scelte</button>
-      </form>
-    </td>
-  </tr>
-<?php endforeach; ?>
-      </tbody>
-    </table>
+  <?php if (empty($t['lock_at']) || strtotime($t['lock_at']) > time()): ?>
+    <!-- Finalizza scelte -->
+    <form method="post"
+          action="/api/finalize_round.php"
+          style="display:inline-block; margin-left:6px;"
+          onsubmit="return confirm('Finalizzare le scelte di questo torneo?');">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
+      <input type="hidden" name="action" value="finalize">
+      <button class="btn" type="submit">Finalizza scelte</button>
+    </form>
+  <?php else: ?>
+    <!-- Riapri scelte -->
+    <form method="post"
+          action="/api/finalize_round.php"
+          style="display:inline-block; margin-left:6px;"
+          onsubmit="return confirm('Vuoi riaprire le scelte di questo torneo?');">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
+      <input type="hidden" name="action" value="reopen">
+      <button class="btn" type="submit">Riapri scelte</button>
+    </form>
   <?php endif; ?>
+</td>
 </main>
 
 </body>
