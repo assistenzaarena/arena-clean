@@ -7,6 +7,7 @@ $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php';   // generate_unique_code8
+require_once $ROOT . '/src/game_rules.php'; // [STEP 2] regole lock (-5' & round)
 
 // helper: JSON oppure redirect (se arriva redirect=1)
 $wantRedirect = !empty($_POST['redirect']);
@@ -60,7 +61,7 @@ if ($tournament_id <= 0) { respond(false, [], 'bad_params'); }
 try {
     // 1) Torneo deve essere OPEN e non oltre lock primo round
     $tq = $pdo->prepare("
-        SELECT status, lock_at, cost_per_life
+        SELECT id, current_round_no, status, lock_at, cost_per_life
         FROM tournaments
         WHERE id = :id
         LIMIT 1
@@ -70,6 +71,12 @@ try {
 
     if (!$t) { respond(false, [], 'not_found'); }
     if ($t['status'] !== 'open') { respond(false, [], 'not_open'); }
+
+    // [STEP 2] blocco famiglia ENROLL: dal round 2 in poi SEMPRE, nel round 1 a -5' dal primo kickoff
+    if (enroll_family_blocked_now($pdo, $t)) {
+        respond(false, [], 'locked');
+    }
+
     if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
         respond(false, [], 'locked');
     }
