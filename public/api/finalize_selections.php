@@ -1,57 +1,88 @@
 <?php
 // public/api/finalize_selections.php
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
 $ROOT = dirname(__DIR__);
-require_once $ROOT.'/src/config.php';
-require_once $ROOT.'/src/db.php';
-require_once $ROOT.'/src/utils.php';
+require_once $ROOT . '/src/config.php';
+require_once $ROOT . '/src/db.php';
+require_once $ROOT . '/src/utils.php'; // per generate_unique_code8()
 
-if ($_SERVER['REQUEST_METHOD']!=='POST') { echo json_encode(['ok'=>false,'error'=>'bad_method']); exit; }
+// (a) Permessi minimi: serve una sessione valida (utente loggato)
+if (empty($_SESSION['user_id'])) {
+    echo json_encode(['ok' => false, 'error' => 'not_logged']); exit;
+}
 
-$tid  = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-if ($tid<=0) { echo json_encode(['ok'=>false,'error'=>'bad_params']); exit; }
+// (b) Solo POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['ok' => false, 'error' => 'bad_method']); exit;
+}
+
+// (c) CSRF
+$csrf = $_POST['csrf'] ?? '';
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
+    echo json_encode(['ok' => false, 'error' => 'bad_csrf']); exit;
+}
+
+// (d) Parametri
+$tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
+if ($tournament_id <= 0) {
+    echo json_encode(['ok' => false, 'error' => 'bad_params']); exit;
+}
 
 try {
-  // scatta solo dopo/alla lock_at
-  $tq = $pdo->prepare("SELECT lock_at FROM tournaments WHERE id=:id LIMIT 1");
-  $tq->execute([':id'=>$tid]);
-  $lockAt = $tq->fetchColumn();
-  if (!$lockAt || strtotime($lockAt) > time()) { echo json_encode(['ok'=>false,'error'=>'not_yet']); exit; }
+    // 1) Verifica torneo: deve essere OPEN e oltre il lock
+    $tq = $pdo->prepare("SELECT status, lock_at FROM tournaments WHERE id = ? LIMIT 1");
+    $tq->execute([$tournament_id]);
+    $t = $tq->fetch(PDO::FETCH_ASSOC);
 
-  $pdo->beginTransaction();
-
-  // blocca tutte le scelte ancora aperte del torneo
-  $up = $pdo->prepare("
-    UPDATE tournament_selections
-       SET locked=1, finalized_at=NOW()
-     WHERE tournament_id=:t AND locked=0
-  ");
-  $up->execute([':t'=>$tid]);
-
-  // logga un movimento "choices_locked" per tutti gli utenti che hanno scelte nel torneo
-  $uq = $pdo->prepare("
-    SELECT DISTINCT user_id FROM tournament_selections
-     WHERE tournament_id=:t AND round_no=1
-  ");
-  $uq->execute([':t'=>$tid]);
-  $users = $uq->fetchAll(PDO::FETCH_COLUMN);
-
-  if ($users) {
-    $mov = $pdo->prepare("
-      INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
-      VALUES (:m, :u, :t, 'choices_locked', 0, NOW())
-    ");
-    foreach ($users as $u){
-      $code = generate_unique_code8($pdo,'credit_movements','movement_code',8);
-      $mov->execute([':m'=>$code, ':u'=>$u, ':t'=>$tid]);
+    if (!$t) {
+        echo json_encode(['ok' => false, 'error' => 'not_found']); exit;
     }
-  }
+    if (($t['status'] ?? '') !== 'open') {
+        echo json_encode(['ok' => false, 'error' => 'not_open']); exit;
+    }
+    if (empty($t['lock_at']) || strtotime($t['lock_at']) > time()) {
+        // non ancora scaduto → non si può finalizzare
+        echo json_encode(['ok' => false, 'error' => 'not_locked']); exit;
+    }
 
-  $pdo->commit();
-  echo json_encode(['ok'=>true,'locked'=>$up->rowCount(),'users'=>count($users)]);
+    // 2) Finalizza SOLO le selezioni non finalizzate
+    $pdo->beginTransaction();
+
+    // Blocchiamo logicamente le righe da finalizzare
+    $sel = $pdo->prepare("SELECT id, selection_code FROM tournament_selections WHERE tournament_id = ? AND finalized_at IS NULL");
+    $sel->execute([$tournament_id]);
+    $rows = $sel->fetchAll(PDO::FETCH_ASSOC);
+
+    $updated = 0;
+
+    if ($rows) {
+        // aggiorniamo ogni selezione, assegnando selection_code se mancante
+        $upd = $pdo->prepare("UPDATE tournament_selections
+                              SET selection_code = ?, 
+                                  locked_at = COALESCE(locked_at, NOW()),
+                                  finalized_at = NOW()
+                              WHERE id = ?");
+        foreach ($rows as $r) {
+            $code = $r['selection_code'];
+            if ($code === null || $code === '') {
+                // 8 char alfanumerico univoco su colonna selection_code
+                $code = generate_unique_code8($pdo, 'tournament_selections', 'selection_code', 8);
+            }
+            $upd->execute([$code, (int)$r['id']]);
+            $updated += $upd->rowCount();
+        }
+    }
+
+    $pdo->commit();
+
+    echo json_encode([
+        'ok'        => true,
+        'finalized' => $updated
+    ]);
 } catch (Throwable $e) {
-  if ($pdo->inTransaction()) $pdo->rollBack();
-  echo json_encode(['ok'=>false,'error'=>'exception']);
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    // Se vuoi loggare: error_log('[finalize] '.$e->getMessage());
+    echo json_encode(['ok' => false, 'error' => 'exception']);
 }
