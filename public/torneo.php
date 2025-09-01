@@ -71,7 +71,7 @@ try {
   $events = [];
 }
 
-/* Helpers per logo/iniziali */
+/* Helpers per logo/iniziali ——— (MODIFICA) mappa alias → slug file presenti in /assets/logos/ */
 function team_slug(string $name): string {
   $slug = strtolower($name);
   $slug = iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$slug);
@@ -87,6 +87,49 @@ function team_initials(string $name): string {
     if (mb_strlen($ini) >= 2) break;
   }
   return $ini !== '' ? $ini : '??';
+}
+/* (MODIFICA) restituisce il path del logo locale tenendo conto degli alias */
+function team_logo_path(string $name): string {
+  // slug "di base"
+  $base = team_slug($name);
+
+  // alias comuni → slug di file effettivi caricati in /assets/logos/
+  static $alias = [
+    'juventus'      => 'juve',
+    'inter'         => 'inter',
+    'internazionale'=> 'inter',
+    'acmilan'       => 'milan',
+    'milan'         => 'milan',
+    'asroma'        => 'roma',
+    'roma'          => 'roma',
+    'hellasverona'  => 'hellasverona',
+    'verona'        => 'hellasverona',
+    // i seguenti sono “identity” (già coerenti, li metto per chiarezza):
+    'atalanta'      => 'atalanta',
+    'bologna'       => 'bologna',
+    'cagliari'      => 'cagliari',
+    'como'          => 'como',
+    'cremonese'     => 'cremonese',
+    'fiorentina'    => 'fiorentina',
+    'genoa'         => 'genoa',
+    'lazio'         => 'lazio',
+    'lecce'         => 'lecce',
+    'napoli'        => 'napoli',
+    'parma'         => 'parma',
+    'pisa'          => 'pisa',
+    'sassuolo'      => 'sassuolo',
+    'torino'        => 'torino',
+    'udinese'       => 'udinese',
+  ];
+
+  $key = $base;
+  // prova con "acmilan", "asroma", "hellasverona" su nomi composti
+  if ($base === 'ac' && stripos($name, 'milan') !== false)     $key = 'acmilan';
+  if ($base === 'as' && stripos($name, 'roma') !== false)      $key = 'asroma';
+  if (strpos($base, 'hellas') !== false || strpos($base, 'verona') !== false) $key = 'hellasverona';
+
+  $slug = $alias[$key] ?? $base;
+  return "/assets/logos/{$slug}.webp";
 }
 ?>
 <!doctype html>
@@ -112,7 +155,7 @@ function team_initials(string $name): string {
     .modal-card h3{margin:0 0 10px;}
     .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
-    /* ====== STILI CARD EVENTI (aggiornati) ====== */
+    /* ====== STILI CARD EVENTI (aggiornati: VS centrato) ====== */
     .events-grid{
       display:grid;
       grid-template-columns: repeat(2, minmax(320px, 1fr)); /* due card per riga */
@@ -124,16 +167,23 @@ function team_initials(string $name): string {
       border:1px solid rgba(255,255,255,.12);
       border-radius:14px;
       padding:16px;
-      display:flex; align-items:center; justify-content:space-between;
+      display:grid;             /* <— grid a 3 colonne: sinistra | centro | destra */
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      column-gap:12px;
       box-shadow:0 8px 28px rgba(0,0,0,.18);
     }
     .ec-team{
       display:flex; align-items:center; gap:12px; min-width:0;
     }
+    .event-card .ec-team:first-child{ justify-content:flex-start; }
+    .event-card .ec-team:last-child{  justify-content:flex-end;  }
+
     .ec-vs{
-      margin:0 10px; font-weight:900; color:#c9c9c9;
-      letter-spacing:.04em;
+      font-weight:900; color:#c9c9c9; letter-spacing:.04em;
+      text-align:center; min-width:28px;
     }
+
     .logo-wrap{
       width:28px; height:28px; position:relative; flex:0 0 28px;
       border-radius:9999px; overflow:hidden; background:#1a1d22;
@@ -141,8 +191,7 @@ function team_initials(string $name): string {
       border:1px solid rgba(255,255,255,.12);
     }
     .team-logo{
-      width:100%; height:100%; object-fit:contain; display:block;
-      background:transparent;
+      width:100%; height:100%; object-fit:contain; display:block; background:transparent;
     }
     .team-initials{
       position:absolute; inset:0;
@@ -154,15 +203,13 @@ function team_initials(string $name): string {
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       max-width:160px; color:#e6e6e6; font-weight:800;
     }
-    .team-side{ cursor:pointer; } /* rende cliccabili i lati squadra */
+    .team-side{ cursor:pointer; } /* clic selezione squadra */
 
     /* Stato “vita selezionata” */
     .life-heart{ cursor:pointer; }
     .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
     /* Logo scelto affianco al cuore */
-    .life-heart .pick-logo{
-      width:16px; height:16px; vertical-align:middle; margin-left:6px;
-    }
+    .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
 
     @media (max-width: 720px){
       .events-grid{ grid-template-columns: 1fr; }
@@ -266,14 +313,11 @@ function team_initials(string $name): string {
             $hn = trim($ev['home_team_name'] ?? 'Casa');
             $an = trim($ev['away_team_name'] ?? 'Trasferta');
 
-            $hSlug = team_slug($hn);
-            $aSlug = team_slug($an);
+            $hLogo = team_logo_path($hn);  // (MODIFICA) alias + path locale
+            $aLogo = team_logo_path($an);
 
             $hIni  = team_initials($hn);
             $aIni  = team_initials($an);
-
-            $hLogo = "/assets/logos/{$hSlug}.webp";
-            $aLogo = "/assets/logos/{$aSlug}.webp";
           ?>
           <div class="event-card" data-home-logo="<?php echo htmlspecialchars($hLogo); ?>" data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
             <div class="ec-team team-side" data-side="home" title="Seleziona casa">
@@ -289,7 +333,7 @@ function team_initials(string $name): string {
 
             <div class="ec-vs">VS</div>
 
-            <div class="ec-team team-side" data-side="away" title="Seleziona trasferta" style="justify-content:flex-end;">
+            <div class="ec-team team-side" data-side="away" title="Seleziona trasferta">
               <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
               <span class="logo-wrap">
                 <img class="team-logo"
@@ -392,8 +436,7 @@ function team_initials(string $name): string {
       });
     });
 
-    // Quando scegli una squadra (click su un lato card), se c’è una vita selezionata
-    // attacca il logo a fianco del cuoricino relativo
+    // Click su un lato (home/away) → se c’è vita selezionata, aggancia logo accanto al cuore
     document.querySelectorAll('.event-card .team-side').forEach(function(side){
       side.addEventListener('click', function(){
         if (selectedLife === null){
@@ -408,14 +451,13 @@ function team_initials(string $name): string {
         var heart = document.querySelector('.life-heart[data-life="'+selectedLife+'"]');
         if (!heart) return;
 
-        // rimuovo precedente pick
         var old = heart.querySelector('.pick-logo'); if (old) old.remove();
 
         var img = document.createElement('img');
         img.className = 'pick-logo';
         img.src = logoUrl;
         img.alt = 'Pick';
-        img.onerror = function(){ this.remove(); }; // se per caso manca, non lascia buchi
+        img.onerror = function(){ this.remove(); };
         heart.appendChild(img);
       });
     });
@@ -461,7 +503,6 @@ function team_initials(string $name): string {
         }).catch(()=>{});
     }
 
-    // acquisto vita (invariato nella logica, solo UI migliorata)
     btn.addEventListener('click', function(){
       fetch(window.location.origin + '/api/add_life.php', {
         method: 'POST',
@@ -493,7 +534,6 @@ function team_initials(string $name): string {
           return;
         }
         renderHearts(js.lives);
-        // reset selezione vita (la nuova non è selezionata automaticamente)
         selectedLife = null;
         if (typeof js.header_credits !== 'undefined') {
           var el = document.getElementById('headerCrediti');
