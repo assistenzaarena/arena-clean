@@ -1,5 +1,8 @@
 <?php
 // public/api/unenroll.php
+// Disiscrizione torneo: rimborsa i crediti all’utente, elimina l’enrollment
+// [AGGIUNTA] Controllo su choices_locked: se =1 → blocco disiscrizione
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
@@ -7,7 +10,6 @@ $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php';   // generate_unique_code8
-require_once $ROOT . '/src/game_rules.php'; // [STEP 2] regole lock (-5' & round)
 
 // helper: JSON oppure redirect (se arriva redirect=1)
 $wantRedirect = !empty($_POST['redirect']);
@@ -24,11 +26,12 @@ function respond(bool $ok, array $payload = [], ?string $err = null) {
     if ($wantRedirect) {
         if ($ok) {
             $_SESSION['flash'] = $flashOk;
+            $_SESSION['flash_type'] = 'success';
             header('Location: ' . $redirectUrl);
             exit;
         } else {
-            // piccolo messaggio generico; se vuoi puoi specializzare in base a $err
             $_SESSION['flash'] = $flashErr;
+            $_SESSION['flash_type'] = 'error';
             header('Location: ' . $redirectUrl);
             exit;
         }
@@ -59,24 +62,21 @@ $user_id = (int)$_SESSION['user_id'];
 if ($tournament_id <= 0) { respond(false, [], 'bad_params'); }
 
 try {
-    // 1) Torneo deve essere OPEN e non oltre lock primo round
+    // 1) Torneo deve essere OPEN, non oltre lock e non con choices_locked=1
     $tq = $pdo->prepare("
-        SELECT id, current_round_no, status, lock_at, cost_per_life
+        SELECT status, lock_at, cost_per_life, choices_locked
         FROM tournaments
-        WHERE id = :id
+        WHERE id = ?
         LIMIT 1
     ");
-    $tq->execute([':id' => $tournament_id]);
+    $tq->execute([$tournament_id]);
     $t = $tq->fetch(PDO::FETCH_ASSOC);
 
     if (!$t) { respond(false, [], 'not_found'); }
     if ($t['status'] !== 'open') { respond(false, [], 'not_open'); }
-
-    // [STEP 2] blocco famiglia ENROLL: dal round 2 in poi SEMPRE, nel round 1 a -5' dal primo kickoff
-    if (enroll_family_blocked_now($pdo, $t)) {
-        respond(false, [], 'locked');
+    if ((int)$t['choices_locked'] === 1) {
+        respond(false, [], 'choices_locked'); // blocco manuale da admin
     }
-
     if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
         respond(false, [], 'locked');
     }
@@ -85,10 +85,10 @@ try {
     $eq = $pdo->prepare("
         SELECT lives
         FROM tournament_enrollments
-        WHERE user_id = :u AND tournament_id = :t
+        WHERE user_id = ? AND tournament_id = ?
         LIMIT 1
     ");
-    $eq->execute([':u' => $user_id, ':t' => $tournament_id]);
+    $eq->execute([$user_id, $tournament_id]);
     $enroll = $eq->fetch(PDO::FETCH_ASSOC);
 
     if (!$enroll) { respond(false, [], 'not_enrolled'); }
@@ -104,35 +104,30 @@ try {
     // 3.1) Delete iscrizione
     $del = $pdo->prepare("
         DELETE FROM tournament_enrollments
-        WHERE user_id = :u AND tournament_id = :t
+        WHERE user_id = ? AND tournament_id = ?
         LIMIT 1
     ");
-    $del->execute([':u' => $user_id, ':t' => $tournament_id]);
+    $del->execute([$user_id, $tournament_id]);
 
     // 3.2) Accredito crediti all'utente
     $up = $pdo->prepare("
         UPDATE utenti
-        SET crediti = crediti + :r
-        WHERE id = :u
+        SET crediti = crediti + ?
+        WHERE id = ?
     ");
-    $up->execute([':r' => $refund, ':u' => $user_id]);
+    $up->execute([$refund, $user_id]);
 
     // 3.3) Log movimento (accredito: importo positivo)
     $movCode = generate_unique_code8($pdo, 'credit_movements', 'movement_code', 8);
     $mov = $pdo->prepare("
         INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
-        VALUES (:mcode, :uid, :tid, 'unenroll', :amount, NOW())
+        VALUES (?, ?, ?, 'unenroll', ?, NOW())
     ");
-    $mov->execute([
-        ':mcode'  => $movCode,
-        ':uid'    => $user_id,
-        ':tid'    => $tournament_id,
-        ':amount' => $refund,   // accredito
-    ]);
+    $mov->execute([$movCode, $user_id, $tournament_id, $refund]);
 
     $pdo->commit();
 
-    // Successo: JSON oppure redirect (già gestiti da respond)
+    // Successo: JSON oppure redirect
     respond(true, ['redirect' => '/lobby.php']);
 
 } catch (Throwable $e) {
