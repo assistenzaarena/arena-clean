@@ -90,14 +90,14 @@ if (!empty($_SESSION['user_id'])) {
   </script>
 </header>
 
-<!-- Sub-header (uguale al guest) -->
+<!-- Sub-header -->
 <nav class="subhdr" role="navigation" aria-label="Navigazione principale">
   <div class="subhdr__inner">
     <ul class="subhdr__menu">
-      <li class="subhdr__item"><a class="subhdr__link" href="/">Lobby</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/il-gioco">Storico Tornei</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">lista movimenti</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/contatti">Dati Utente</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/lobby.php">Lobby</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/storico_tornei.php">Storico Tornei</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/lista_movimenti.php">Lista movimenti</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/dati_utente.php">Dati Utente</a></li>
     </ul>
   </div>
 </nav>
