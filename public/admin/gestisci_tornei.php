@@ -24,7 +24,17 @@ if ($q !== '') {
 }
 
 $sql = "
-  SELECT id, tournament_code, name, league_name, season, current_round_no, lock_at, created_at, updated_at
+  SELECT
+    id,
+    tournament_code,
+    name,
+    league_name,
+    season,
+    current_round_no,
+    lock_at,
+    choices_locked,         -- << NUOVO: per colonna 'Stato scelte'
+    created_at,
+    updated_at
   FROM tournaments
   WHERE {$where}
   ORDER BY updated_at DESC, created_at DESC
@@ -91,6 +101,7 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
           <th>Stagione</th>
           <th>Round attuale</th>
           <th>Lock scelte</th>
+          <th>Stato scelte</th> <!-- << NUOVO -->
           <th>Aggiornato</th>
           <th>Azioni</th>
         </tr>
@@ -104,6 +115,11 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <td><?php echo htmlspecialchars($t['season']); ?></td>
     <td><?php echo (int)($t['current_round_no'] ?? 1); ?></td>
     <td><?php echo $t['lock_at'] ? date('d/m/Y H:i', strtotime($t['lock_at'])) : '—'; ?></td>
+    <td>
+      <?php echo ((int)($t['choices_locked'] ?? 0) === 1)
+        ? '<span style="color:#e62329;">Bloccate</span>'
+        : '<span style="color:#00c074;">Aperte</span>'; ?>
+    </td>
     <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
  <td>
   <!-- Link gestione esistente -->
