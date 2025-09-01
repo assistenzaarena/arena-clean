@@ -7,6 +7,8 @@ $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php'; // per generate_unique_code8()
+// [AGGIUNTA STEP 2] modulo regole (lock a -5' e lock_at)
+require_once $ROOT . '/src/game_rules.php';
 
 // ---------- helper risposta ----------
 function respond(array $js, int $http = 200) {
@@ -40,12 +42,15 @@ if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || !in_array($side,
 
 try {
     // 1) torneo deve essere OPEN e prima del lock
-    $st = $pdo->prepare("SELECT status, lock_at, max_lives_per_user FROM tournaments WHERE id = ? LIMIT 1");
+    // [MODIFICA STEP 2] includo id + current_round_no perché servono a choices_locked_now()
+    $st = $pdo->prepare("SELECT id, current_round_no, status, lock_at, max_lives_per_user FROM tournaments WHERE id = ? LIMIT 1");
     $st->execute([$tournament_id]);
     $t = $st->fetch(PDO::FETCH_ASSOC);
-    if (!$t)                respond(['ok'=>false,'error'=>'not_found'], 404);
+    if (!$t)                   respond(['ok'=>false,'error'=>'not_found'], 404);
     if ($t['status']!=='open') respond(['ok'=>false,'error'=>'not_open'], 400);
-    if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
+
+    // [AGGIUNTA STEP 2] blocco scelte: -5' dal primo kickoff del round oppure lock_at passato
+    if (choices_locked_now($pdo, $t)) {
         respond(['ok'=>false,'error'=>'locked'], 400);
     }
 
