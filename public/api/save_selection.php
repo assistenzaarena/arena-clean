@@ -7,8 +7,6 @@ $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php'; // per generate_unique_code8()
-// [AGGIUNTA STEP 2] modulo regole (lock a -5' e lock_at)
-require_once $ROOT . '/src/game_rules.php';
 
 // ---------- helper risposta ----------
 function respond(array $js, int $http = 200) {
@@ -41,16 +39,16 @@ if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || !in_array($side,
 }
 
 try {
-    // 1) torneo deve essere OPEN e prima del lock
-    // [MODIFICA STEP 2] includo id + current_round_no perché servono a choices_locked_now()
-    $st = $pdo->prepare("SELECT id, current_round_no, status, lock_at, max_lives_per_user FROM tournaments WHERE id = ? LIMIT 1");
+    // 1) torneo deve essere OPEN e prima del lock (+ controllo choices_locked)
+    $st = $pdo->prepare("SELECT status, lock_at, max_lives_per_user, choices_locked FROM tournaments WHERE id = ? LIMIT 1");
     $st->execute([$tournament_id]);
     $t = $st->fetch(PDO::FETCH_ASSOC);
-    if (!$t)                   respond(['ok'=>false,'error'=>'not_found'], 404);
-    if ($t['status']!=='open') respond(['ok'=>false,'error'=>'not_open'], 400);
-
-    // [AGGIUNTA STEP 2] blocco scelte: -5' dal primo kickoff del round oppure lock_at passato
-    if (choices_locked_now($pdo, $t)) {
+    if (!$t)                    respond(['ok'=>false,'error'=>'not_found'], 404);
+    if ((int)($t['choices_locked'] ?? 0) === 1) {
+        respond(['ok'=>false,'error'=>'locked'], 400);
+    }
+    if ($t['status']!=='open')  respond(['ok'=>false,'error'=>'not_open'], 400);
+    if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
         respond(['ok'=>false,'error'=>'locked'], 400);
     }
 
@@ -72,19 +70,15 @@ try {
         respond(['ok'=>false,'error'=>'event_invalid'], 400);
     }
 
-    // 4) upsert della selezione (unica per user+tournament+life_index)
-    //    - se non esiste: insert con selection_code (8)
-    //    - se esiste: update event_id/side
+    // 4) upsert selezione
     $pdo->beginTransaction();
 
-    // esiste già una selezione per questa vita?
     $sx = $pdo->prepare("SELECT id, selection_code FROM tournament_selections
                          WHERE user_id=? AND tournament_id=? AND life_index=? LIMIT 1");
     $sx->execute([$user_id, $tournament_id, $life_index]);
     $row = $sx->fetch(PDO::FETCH_ASSOC);
 
     if ($row) {
-        // UPDATE
         $up = $pdo->prepare("UPDATE tournament_selections
                              SET event_id=?, side=?, locked_at=NULL, finalized_at=NULL
                              WHERE id=?");
@@ -95,7 +89,6 @@ try {
             $up2->execute([$selCode, (int)$row['id']]);
         }
     } else {
-        // INSERT
         $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
         $ins = $pdo->prepare("INSERT INTO tournament_selections
               (tournament_id, user_id, life_index, event_id, side, selection_code, created_at, locked_at, finalized_at)
@@ -105,12 +98,10 @@ try {
 
     $pdo->commit();
 
-    // opzionale: rimandiamo indietro anche un logo se vuoi ri-usare quello della card
     respond(['ok'=>true, 'selection_code'=>$selCode]);
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
-    // LOG sul server per capire subito l’origine
     error_log('[save_selection] '.$e->getMessage());
     respond(['ok'=>false,'error'=>'exception'], 500);
 }
