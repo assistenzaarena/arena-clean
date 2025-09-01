@@ -275,18 +275,6 @@ $csrf = $_SESSION['csrf'];
       });
     });
   })();
-        // aggiorna cuori
-        renderHearts(parseInt(js.lives || 0, 10));
-
-        // aggiorna saldo header, se presente
-        if (typeof js.header_credits !== 'undefined') {
-          var el = document.getElementById('headerCrediti');
-          if (el) el.textContent = js.header_credits;
-        }
-      })
-      .catch(function(){ alert('Errore di rete'); });
-    });
-  })();
 
   // Countdown semplice (riuso logica lobby)
   (function(){
