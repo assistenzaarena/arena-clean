@@ -104,7 +104,7 @@ function team_logo_path(string $name): string {
     'roma'          => 'roma',
     'hellasverona'  => 'hellasverona',
     'verona'        => 'hellasverona',
-    // i seguenti sono “identity” (già coerenti, li metto per chiarezza):
+    // i seguenti sono “identity”
     'atalanta'      => 'atalanta',
     'bologna'       => 'bologna',
     'cagliari'      => 'cagliari',
@@ -123,13 +123,23 @@ function team_logo_path(string $name): string {
   ];
 
   $key = $base;
-  // prova con "acmilan", "asroma", "hellasverona" su nomi composti
   if ($base === 'ac' && stripos($name, 'milan') !== false)     $key = 'acmilan';
   if ($base === 'as' && stripos($name, 'roma') !== false)      $key = 'asroma';
   if (strpos($base, 'hellas') !== false || strpos($base, 'verona') !== false) $key = 'hellasverona';
 
   $slug = $alias[$key] ?? $base;
   return "/assets/logos/{$slug}.webp";
+}
+
+/* ====== AGGIUNTA MINIMA: verifica eventi del round corrente per mostrare messaggio "in attesa" ====== */
+$currentRoundNo = (int)($torneo['current_round_no'] ?? 1);
+$waitingRound = false;
+try {
+  $st = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid AND round_no=:r");
+  $st->execute([':tid'=>$id, ':r'=>$currentRoundNo]);
+  $waitingRound = ($torneo['status'] === 'open') && ((int)$st->fetchColumn() === 0);
+} catch (Throwable $e) {
+  $waitingRound = false;
 }
 ?>
 <!doctype html>
@@ -161,7 +171,7 @@ function team_logo_path(string $name): string {
     /* ====== STILI CARD EVENTI (aggiornati: VS centrato) ====== */
     .events-grid{
       display:grid;
-      grid-template-columns: repeat(2, minmax(320px, 1fr)); /* due card per riga */
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
       gap:14px;
       margin-top:10px;
     }
@@ -170,60 +180,36 @@ function team_logo_path(string $name): string {
       border:1px solid rgba(255,255,255,.12);
       border-radius:14px;
       padding:16px;
-      display:grid;             /* <— grid a 3 colonne: sinistra | centro | destra */
+      display:grid;
       grid-template-columns: 1fr auto 1fr;
       align-items:center;
       column-gap:12px;
       box-shadow:0 8px 28px rgba(0,0,0,.18);
     }
-    .ec-team{
-      display:flex; align-items:center; gap:12px; min-width:0;
-    }
+    .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
     .event-card .ec-team:first-child{ justify-content:flex-start; }
     .event-card .ec-team:last-child{  justify-content:flex-end;  }
-
-    .ec-vs{
-      font-weight:900; color:#c9c9c9; letter-spacing:.04em;
-      text-align:center; min-width:28px;
-    }
-
-    .logo-wrap{
-      width:28px; height:28px; position:relative; flex:0 0 28px;
-      border-radius:9999px; overflow:hidden; background:#1a1d22;
-      display:flex; align-items:center; justify-content:center;
-      border:1px solid rgba(255,255,255,.12);
-    }
-    .team-logo{
-      width:100%; height:100%; object-fit:contain; display:block; background:transparent;
-    }
-    .team-initials{
-      position:absolute; inset:0;
-      display:none; align-items:center; justify-content:center;
-      font-size:12px; font-weight:900; color:#fff;
-      background:#2a2f36; border-radius:9999px;
-    }
-    .team-name{
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      max-width:160px; color:#e6e6e6; font-weight:800;
-    }
-    .team-side{ cursor:pointer; } /* clic selezione squadra */
-
-    /* Stato “vita selezionata” */
+    .ec-vs{ font-weight:900; color:#c9c9c9; letter-spacing:.04em; text-align:center; min-width:28px; }
+    .logo-wrap{ width:28px; height:28px; position:relative; flex:0 0 28px; border-radius:9999px; overflow:hidden; background:#1a1d22; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.12); }
+    .team-logo{ width:100%; height:100%; object-fit:contain; display:block; background:transparent; }
+    .team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
+    .team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
+    .team-side{ cursor:pointer; }
     .life-heart{ cursor:pointer; }
     .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
-    /* Logo scelto affianco al cuore */
     .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
 
-    @media (max-width: 720px){
-      .events-grid{ grid-template-columns: 1fr; }
-    }
-  </style>
+    @media (max-width: 720px){ .events-grid{ grid-template-columns: 1fr; } }
+
+    /* ====== AGGIUNTA: banner "in attesa" ====== */
+    .notice-wait{background:#262a31;border:1px solid rgba(255,255,255,.15);padding:12px;border-radius:10px;margin:12px 0;color:#c9c9c9;}
+</style>
 </head>
 <body>
 
 <?php require $ROOT . '/header_user.php'; ?>
 
-<main class="torneo-wrap">
+<main class="torneo-wrap" data-waiting="<?php echo $waitingRound ? '1' : '0'; ?>">
   <div class="torneo-head">
     <h1 class="torneo-title">
       Torneo <?php echo htmlspecialchars($torneo['name']); ?>
@@ -241,7 +227,7 @@ function team_logo_path(string $name): string {
     <?php endif; ?>
   </div>
 
-  <!-- ======= CARD INFO: nome + buy-in + vite in gioco + montepremi + countdown + vite max ======= -->
+  <!-- ======= CARD INFO ======= -->
   <section class="card card--ps" data-tid="<?php echo (int)$id; ?>">
     <h3 class="card__title">
       <?php echo htmlspecialchars($torneo['name']); ?>
@@ -279,11 +265,17 @@ function team_logo_path(string $name): string {
       </div>
     </dl>
   </section>
-  <!-- =========================================================================================== -->
 
-  <!-- ====== Azioni vite + cuori (resto invariato) ====== -->
+  <!-- ====== Messaggio "in attesa" se round corrente senza eventi ====== -->
+  <?php if ($waitingRound): ?>
+    <div class="notice-wait">
+      In attesa del <strong>round <?php echo (int)$currentRoundNo; ?></strong>. Torna tra poco: stiamo pubblicando la nuova giornata.
+    </div>
+  <?php endif; ?>
+
+  <!-- ====== Azioni vite + cuori ====== -->
   <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
-    <?php if ($enrolled): ?>
+    <?php if ($enrolled && !$waitingRound): ?>
       <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;">
         + Aggiungi vita
       </button>
@@ -307,52 +299,56 @@ function team_logo_path(string $name): string {
   <section style="margin-top:20px;">
     <h2>Eventi del torneo</h2>
 
-    <?php if (empty($events)): ?>
-      <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
+    <?php if ($waitingRound): ?>
+      <div class="muted">Le partite verranno mostrate appena il round sarà pubblicato.</div>
     <?php else: ?>
-      <div class="events-grid">
-        <?php foreach ($events as $ev): ?>
-          <?php
-            $hn = trim($ev['home_team_name'] ?? 'Casa');
-            $an = trim($ev['away_team_name'] ?? 'Trasferta');
+      <?php if (empty($events)): ?>
+        <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
+      <?php else: ?>
+        <div class="events-grid">
+          <?php foreach ($events as $ev): ?>
+            <?php
+              $hn = trim($ev['home_team_name'] ?? 'Casa');
+              $an = trim($ev['away_team_name'] ?? 'Trasferta');
 
-            $hLogo = team_logo_path($hn);  // (MODIFICA) alias + path locale
-            $aLogo = team_logo_path($an);
+              $hLogo = team_logo_path($hn);
+              $aLogo = team_logo_path($an);
 
-            $hIni  = team_initials($hn);
-            $aIni  = team_initials($an);
-          ?>
-          <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
-         <div class="event-card"
-     data-event-id="<?php echo (int)$ev['id']; ?>"
-     data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
-     data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
-            <div class="ec-team team-side" data-side="home" title="Seleziona casa">
-              <span class="logo-wrap">
-                <img class="team-logo"
-                     src="<?php echo htmlspecialchars($hLogo); ?>"
-                     alt="<?php echo htmlspecialchars($hn); ?>"
-                     onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
-                <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
-              </span>
-              <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+              $hIni  = team_initials($hn);
+              $aIni  = team_initials($an);
+            ?>
+            <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
+            <div class="event-card"
+                 data-event-id="<?php echo (int)$ev['id']; ?>"
+                 data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
+                 data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
+              <div class="ec-team team-side" data-side="home" title="Seleziona casa">
+                <span class="logo-wrap">
+                  <img class="team-logo"
+                       src="<?php echo htmlspecialchars($hLogo); ?>"
+                       alt="<?php echo htmlspecialchars($hn); ?>"
+                       onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
+                  <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
+                </span>
+                <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+              </div>
+
+              <div class="ec-vs">VS</div>
+
+              <div class="ec-team team-side" data-side="away" title="Seleziona trasferta">
+                <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
+                <span class="logo-wrap">
+                  <img class="team-logo"
+                       src="<?php echo htmlspecialchars($aLogo); ?>"
+                       alt="<?php echo htmlspecialchars($an); ?>"
+                       onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
+                  <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
+                </span>
+              </div>
             </div>
-
-            <div class="ec-vs">VS</div>
-
-            <div class="ec-team team-side" data-side="away" title="Seleziona trasferta">
-              <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
-              <span class="logo-wrap">
-                <img class="team-logo"
-                     src="<?php echo htmlspecialchars($aLogo); ?>"
-                     alt="<?php echo htmlspecialchars($an); ?>"
-                     onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
-                <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
-              </span>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     <?php endif; ?>
 
   </section>
@@ -430,6 +426,7 @@ function team_logo_path(string $name): string {
 
   // Acquisto vita (+ aggiornamento cuori e saldo header) — versione diagnostica (invariato)
   (function(){
+    // Se round in attesa, niente bottone (non renderizzato) e niente selezioni (gestito più sotto)
     var btn = document.getElementById('btnAddLife');
     if (!btn) return;
 
@@ -446,14 +443,15 @@ function team_logo_path(string $name): string {
     // Click su un lato (home/away) → se c’è vita selezionata, aggancia logo accanto al cuore
     document.querySelectorAll('.event-card .team-side').forEach(function(side){
       side.addEventListener('click', function(){
-        if (selectedLife === null){
-          showMsg('Seleziona una vita', 'Per favore seleziona prima un cuore (vita) e poi la squadra.', 'error');
-          return;
-        }
         var card = side.closest('.event-card');
         if (!card) return;
         var sideName = side.getAttribute('data-side'); // 'home' | 'away'
         var logoUrl = (sideName === 'home') ? card.getAttribute('data-home-logo') : card.getAttribute('data-away-logo');
+
+        if (selectedLife === null){
+          showMsg('Seleziona una vita', 'Per favore seleziona prima un cuore (vita) e poi la squadra.', 'error');
+          return;
+        }
 
         var heart = document.querySelector('.life-heart[data-life="'+selectedLife+'"]');
         if (!heart) return;
@@ -588,6 +586,18 @@ function team_logo_path(string $name): string {
     upd();
     setInterval(upd, 10000);
   })();
+
+  // ===== Disabilita selezioni quando round è "in attesa" =====
+  (function(){
+    var waiting = document.querySelector('main.torneo-wrap')?.getAttribute('data-waiting') === '1';
+    if (!waiting) return;
+    // Disattiva click sulle squadre
+    document.querySelectorAll('.event-card .team-side').forEach(function(el){
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.5';
+      el.title = 'Round non pubblicato';
+    });
+  })();
 </script>
   
 <script src="/assets/torneo_selections.js?v=1"></script>
@@ -612,13 +622,11 @@ function team_logo_path(string $name): string {
       el.style.opacity = '0.5';
       el.title = 'Scelte chiuse';
     });
-    // se hai un pulsante "Aggiungi vita", nascondilo
     var add = document.getElementById('btnAddLife');
     if (add) add.style.display = 'none';
   }
 
   applyLockUI();
-  // in caso la pagina rimanga aperta, ricontrollo ogni 15s
   setInterval(applyLockUI, 15000);
 })();
 </script>
