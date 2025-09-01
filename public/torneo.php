@@ -319,7 +319,11 @@ function team_logo_path(string $name): string {
             $hIni  = team_initials($hn);
             $aIni  = team_initials($an);
           ?>
-          <div class="event-card" data-home-logo="<?php echo htmlspecialchars($hLogo); ?>" data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
+          <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
+          <div class="event-card"
+               data-event-id="<?php echo (int)$ev['id']; ?>"
+               data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
+               data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
             <div class="ec-team team-side" data-side="home" title="Seleziona casa">
               <span class="logo-wrap">
                 <img class="team-logo"
