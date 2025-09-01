@@ -582,6 +582,8 @@ function team_logo_path(string $name): string {
     setInterval(upd, 10000);
   })();
 </script>
-
+  
+<script src="/assets/torneo_selections.js?v=1"></script>
+  
 </body>
 </html>
