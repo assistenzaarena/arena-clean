@@ -591,6 +591,37 @@ function team_logo_path(string $name): string {
 </script>
   
 <script src="/assets/torneo_selections.js?v=1"></script>
+
+  <script>
+// Disabilita selezioni quando lock è passato (UI)
+(function(){
+  var due = document.querySelector('.countdown[data-due]');
+  if (!due) return;
+
+  function isClosed() {
+    var attr = due.getAttribute('data-due');
+    if (!attr) return false;
+    var t = new Date(attr.replace(' ','T')).getTime();
+    return (Date.now() >= t);
+  }
+
+  function applyLockUI() {
+    if (!isClosed()) return;
+    document.querySelectorAll('.event-card .team-side').forEach(function(el){
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.5';
+      el.title = 'Scelte chiuse';
+    });
+    // se hai un pulsante "Aggiungi vita", nascondilo
+    var add = document.getElementById('btnAddLife');
+    if (add) add.style.display = 'none';
+  }
+
+  applyLockUI();
+  // in caso la pagina rimanga aperta, ricontrollo ogni 15s
+  setInterval(applyLockUI, 15000);
+})();
+</script>
   
 </body>
 </html>
