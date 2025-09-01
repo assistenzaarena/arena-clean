@@ -105,6 +105,7 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
     <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
     <input type="hidden" name="action" value="finalize">
+    <input type="hidden" name="redirect" value="1">
     <button class="btn" type="submit">Finalizza scelte</button>
   </form>
 
@@ -116,6 +117,7 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
     <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
     <input type="hidden" name="action" value="reopen">
+    <input type="hidden" name="redirect" value="1">
     <button class="btn" type="submit">Riapri scelte</button>
   </form>
 </td>
