@@ -40,6 +40,20 @@ if ($enrolled) {
 }
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
+
+/* ====== AGGIUNTA: vite in gioco totali + montepremi iniziale ====== */
+$totLives = 0;
+try {
+  $sl = $pdo->prepare("SELECT COALESCE(SUM(lives),0) FROM tournament_enrollments WHERE tournament_id=:t");
+  $sl->execute([':t'=>$id]);
+  $totLives = (int)$sl->fetchColumn();
+} catch (Throwable $e) {
+  $totLives = 0;
+}
+$buyin  = (int)($torneo['cost_per_life'] ?? 0);
+$pp     = isset($torneo['prize_percent']) ? (int)$torneo['prize_percent'] : 100;
+$g      = isset($torneo['guaranteed_prize']) ? (float)$torneo['guaranteed_prize'] : 0.0;
+$potNow = max($g, $totLives * $buyin * ($pp/100));
 /* ============================================ */
 ?>
 <!doctype html>
@@ -88,18 +102,48 @@ $csrf = $_SESSION['csrf'];
     <?php endif; ?>
   </div>
 
-  <!-- Info torneo -->
-  <section class="card card--ps">
-    <h3 class="card__title"><?php echo htmlspecialchars($torneo['league_name']); ?> • Stagione <?php echo htmlspecialchars($torneo['season']); ?></h3>
+  <!-- ======= CARD INFO: nome + buy-in + vite in gioco + montepremi + countdown + vite max ======= -->
+  <section class="card card--ps" data-tid="<?php echo (int)$id; ?>">
+    <!-- Titolo card: Nome torneo • Buy-in -->
+    <h3 class="card__title">
+      <?php echo htmlspecialchars($torneo['name']); ?>
+      • Buy-in <?php echo number_format($buyin, 0, ',', '.'); ?> crediti
+    </h3>
+
     <dl class="grid">
-      <div><dt>Buy-in</dt><dd><?php echo (int)$torneo['cost_per_life']; ?> crediti</dd></div>
-      <div><dt>Posti disp.</dt><dd><?php echo (int)$torneo['max_slots']; ?></dd></div>
-      <div><dt>Vite max/utente</dt><dd><?php echo (int)$torneo['max_lives_per_user']; ?></dd></div>
-      <div><dt>Montepremi garantito</dt><dd><?php echo $torneo['guaranteed_prize'] ? (int)$torneo['guaranteed_prize'].' crediti' : '—'; ?></dd></div>
+      <div>
+        <dt>Vite in gioco</dt>
+        <dd><span class="lives-in-play"><?php echo (int)$totLives; ?></span></dd>
+      </div>
+
+      <div>
+        <dt>Montepremi</dt>
+        <dd><span class="pot"><?php echo number_format($potNow, 0, ',', '.'); ?></span> crediti</dd>
+      </div>
+
+      <div>
+        <dt>Countdown scelte</dt>
+        <dd>
+          <?php if (!empty($torneo['lock_at'])): ?>
+            <time class="lock" datetime="<?php echo htmlspecialchars($torneo['lock_at']); ?>">
+              <?php echo date('d/m/Y H:i', strtotime($torneo['lock_at'])); ?>
+            </time>
+            <span class="countdown" data-due="<?php echo htmlspecialchars($torneo['lock_at']); ?>"></span>
+          <?php else: ?>
+            —
+          <?php endif; ?>
+        </dd>
+      </div>
+
+      <div>
+        <dt>Vite max utente</dt>
+        <dd><?php echo (int)($torneo['max_lives_per_user'] ?? 1); ?></dd>
+      </div>
     </dl>
   </section>
+  <!-- =========================================================================================== -->
 
-  <!-- ====== Azioni vite + cuori + countdown ====== -->
+  <!-- ====== Azioni vite + cuori (resto invariato) ====== -->
   <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
     <?php if ($enrolled): ?>
       <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;">
@@ -120,19 +164,14 @@ $csrf = $_SESSION['csrf'];
       ?>
     </div>
 
+    <!-- Notare: il countdown è ora dentro la card; questa sezione rimane per coerenza layout -->
     <div style="margin-left:auto; text-align:center;">
       <?php if (!empty($torneo['lock_at'])): ?>
-        <div style="font-size:12px;color:#c9c9c9;margin-bottom:2px;">Lock scelte</div>
-        <div>
-          <time class="lock" datetime="<?php echo htmlspecialchars($torneo['lock_at']); ?>">
-            <?php echo date('d/m/Y H:i', strtotime($torneo['lock_at'])); ?>
-          </time>
-          <span class="countdown" data-due="<?php echo htmlspecialchars($torneo['lock_at']); ?>"></span>
-        </div>
+        <div style="font-size:12px;color:#c9c9c9;margin-bottom:2px;">&nbsp;</div>
+        <div>&nbsp;</div>
       <?php endif; ?>
     </div>
   </section>
-  <!-- ============================================ -->
 
   <!-- Eventi -->
   <section style="margin-top:20px;">
@@ -143,7 +182,7 @@ $csrf = $_SESSION['csrf'];
 
 <?php require $ROOT . '/footer.php'; ?>
 
-<!-- Popup Disiscrizione -->
+<!-- Popup Disiscrizione (invariato) -->
 <div id="unenrollModal" class="modal-overlay">
   <div class="modal-card">
     <h3>Conferma disiscrizione</h3>
@@ -155,7 +194,7 @@ $csrf = $_SESSION['csrf'];
   </div>
 </div>
 
-<!-- Popup messaggi (riutilizzabile per errori/successi) -->
+<!-- Popup messaggi riutilizzabile (invariato) -->
 <div id="msgModal" class="modal-overlay">
   <div class="modal-card">
     <h3 id="msgTitle" style="margin:0 0 10px;">Messaggio</h3>
@@ -167,7 +206,7 @@ $csrf = $_SESSION['csrf'];
 </div>
 
 <script>
-  // Popup disiscrizione
+  // Popup disiscrizione (invariato)
   (function(){
     var btn = document.getElementById('unenrollBtn');
     var modal = document.getElementById('unenrollModal');
@@ -176,29 +215,20 @@ $csrf = $_SESSION['csrf'];
     var form = document.getElementById('unenrollForm');
 
     if(btn){
-      btn.addEventListener('click', function(){
-        modal.style.display = 'flex';
-      });
+      btn.addEventListener('click', function(){ modal.style.display = 'flex'; });
     }
     if(cancelBtn){
-      cancelBtn.addEventListener('click', function(){
-        modal.style.display = 'none';
-      });
+      cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
     }
     if(confirmBtn){
-      confirmBtn.addEventListener('click', function(){
-        modal.style.display = 'none';
-        form.submit();
-      });
+      confirmBtn.addEventListener('click', function(){ modal.style.display = 'none'; form.submit(); });
     }
     if(modal){
-      modal.addEventListener('click', function(e){
-        if(e.target === modal){ modal.style.display = 'none'; }
-      });
+      modal.addEventListener('click', function(e){ if(e.target === modal){ modal.style.display = 'none'; } });
     }
   })();
 
-  // ===== Popup messaggi riutilizzabile =====
+  // ===== Popup messaggi riutilizzabile (invariato) =====
   (function(){
     var modal = document.getElementById('msgModal');
     var title = document.getElementById('msgTitle');
@@ -213,7 +243,6 @@ $csrf = $_SESSION['csrf'];
       else                       title.style.color = '#fff';
       modal.style.display = 'flex';
     };
-
     window.closeMsg = function(){ modal.style.display = 'none'; };
 
     okBtn.addEventListener('click', closeMsg);
@@ -221,7 +250,7 @@ $csrf = $_SESSION['csrf'];
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMsg(); });
   })();
 
-  // Acquisto vita (+ aggiornamento cuori e saldo header) — VERSIONE DIAGNOSTICA
+  // Acquisto vita (+ aggiornamento cuori e saldo header) — versione diagnostica (invariato)
   (function(){
     var btn = document.getElementById('btnAddLife');
     if (!btn) return;
@@ -265,8 +294,8 @@ $csrf = $_SESSION['csrf'];
         credentials: 'same-origin',
         cache: 'no-store',
         headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-        body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($csrf); ?>')
-            + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
+        body: 'csrf=' + encodeURIComponent('<?php echo htmlspecialchars($GLOBALS["csrf"]); ?>')
+            + '&tournament_id=' + encodeURIComponent('<?php echo (int)$GLOBALS["id"]; ?>')
             + '&_ts=' + Date.now()
       })
       .then(async (r) => {
@@ -276,25 +305,20 @@ $csrf = $_SESSION['csrf'];
         let js = null;
         try { js = text ? JSON.parse(text) : null; } catch(_) {}
 
-        if (!js) {
-          showMsg('Errore', 'HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'), 'error');
-          throw new Error('non_json');
-        }
+        if (!js) { showMsg('Errore', 'HTTP '+status+' (non JSON):\n'+(text ? text.slice(0,400) : '(vuota)'), 'error'); throw new Error('non_json'); }
         return js;
       })
       .then(function(js){
         if (!js.ok) {
           var msg = (js.msg || js.error || 'errore');
-          if (msg === 'insufficient_funds')          msg = 'Crediti insufficienti.';
+          if (msg === 'insufficient_funds')                msg = 'Crediti insufficienti.';
           if (msg === 'lives_limit' || msg==='max_reached') msg = 'Hai raggiunto il limite di vite consentite.';
-          if (msg === 'locked')                      msg = 'Le scelte sono bloccate per questo torneo.';
-          if (msg === 'not_enrolled')                msg = 'Non sei iscritto a questo torneo.';
-          if (msg === 'bad_csrf')                    msg = 'Sessione scaduta: ricarica la pagina e riprova.';
+          if (msg === 'locked')                            msg = 'Le scelte sono bloccate per questo torneo.';
+          if (msg === 'not_enrolled')                      msg = 'Non sei iscritto a questo torneo.';
+          if (msg === 'bad_csrf')                          msg = 'Sessione scaduta: ricarica la pagina e riprova.';
           showMsg('Acquisto vita non riuscito', msg, 'error');
           return;
         }
-
-        // tutto ok → aggiorno cuori e saldo header
         renderHearts(js.lives);
         if (typeof js.header_credits !== 'undefined') {
           var el = document.getElementById('headerCrediti');
@@ -303,13 +327,11 @@ $csrf = $_SESSION['csrf'];
           refreshHeaderCredits();
         }
       })
-      .catch(function(){
-        showMsg('Errore di rete', 'Controlla la connessione e riprova.', 'error');
-      });
+      .catch(function(){ showMsg('Errore di rete', 'Controlla la connessione e riprova.', 'error'); });
     });
   })();
 
-  // Countdown semplice (riuso logica lobby)
+  // Countdown semplice
   (function(){
     function tick(el){
       var due = el.getAttribute('data-due'); if(!due) return;
@@ -321,6 +343,28 @@ $csrf = $_SESSION['csrf'];
       setTimeout(function(){ tick(el); }, 1000);
     }
     document.querySelectorAll('.countdown').forEach(tick);
+  })();
+
+  /* ===== Polling “vite in gioco” + “montepremi” (ogni 10s) ===== */
+  (function(){
+    var card = document.querySelector('.card.card--ps[data-tid]');
+    if (!card) return;
+    var tid  = card.getAttribute('data-tid');
+    var potEl = card.querySelector('.pot');
+    var livEl = card.querySelector('.lives-in-play');
+
+    function upd(){
+      fetch('/api/tournament_stats.php?id='+encodeURIComponent(tid), {credentials:'same-origin'})
+        .then(r => r.ok ? r.json() : null)
+        .then(js => {
+          if (!js || !js.ok) return;
+          if (potEl) potEl.textContent = (js.pot || 0).toLocaleString('it-IT');
+          if (livEl) livEl.textContent = (js.lives || 0);
+        })
+        .catch(()=>{});
+    }
+    upd();
+    setInterval(upd, 10000);
   })();
 </script>
 
