@@ -1,123 +1,109 @@
 <?php
+// public/api/add_life.php — versione diagnostica definitiva
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
+// header + no-cache
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// ... resto del file invariato ...
-
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/utils.php'; // generate_unique_code8
+require_once $ROOT . '/src/utils.php';
 
-// must be logged in
-if (empty($_SESSION['user_id'])) { echo json_encode(['ok'=>false,'error'=>'not_logged']); exit; }
+function out($arr, $code = 200){ http_response_code($code); echo json_encode($arr); exit; }
 
-// only POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { echo json_encode(['ok'=>false,'error'=>'bad_method']); exit; }
+// ---- Pre-controlli
+if (empty($_SESSION['user_id']))           out(['ok'=>false,'error'=>'not_logged'], 401);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') out(['ok'=>false,'error'=>'bad_method'], 405);
 
-// CSRF
 $csrf = $_POST['csrf'] ?? '';
-if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) { echo json_encode(['ok'=>false,'error'=>'bad_csrf']); exit; }
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) out(['ok'=>false,'error'=>'bad_csrf'], 403);
 
-// params
-$tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-$user_id       = (int)($_SESSION['user_id'] ?? 0);
-if ($tournament_id <= 0) { echo json_encode(['ok'=>false,'error'=>'bad_params']); exit; }
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+$tid     = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
+if ($tid <= 0 || $user_id <= 0) out(['ok'=>false,'error'=>'bad_params'], 400);
 
 try {
-    // 1) torneo: deve essere open + prima del lock
-    $tq = $pdo->prepare("
-        SELECT status, lock_at, cost_per_life, max_lives_per_user
-        FROM tournaments
-        WHERE id = :tid
-        LIMIT 1
-    ");
-    $tq->execute([':tid' => $tournament_id]);
-    $t = $tq->fetch(PDO::FETCH_ASSOC);
-    if (!$t) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
-    if ($t['status'] !== 'open') { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
-    if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
+  // 1) Torneo: open + non lockato
+  try {
+    $st = $pdo->prepare("SELECT status, lock_at, cost_per_life, max_lives_per_user FROM tournaments WHERE id = ? LIMIT 1");
+    $st->execute([$tid]);
+    $t = $st->fetch(PDO::FETCH_ASSOC);
+  } catch (Throwable $e) { out(['ok'=>false,'error'=>'exception','stage'=>'sel_tournament','msg'=>$e->getMessage()], 500); }
 
-    $cost = (int)$t['cost_per_life'];
-    $maxL = (int)$t['max_lives_per_user'];
+  if (!$t)                                 out(['ok'=>false,'error'=>'not_found'], 404);
+  if (($t['status'] ?? '') !== 'open')     out(['ok'=>false,'error'=>'not_open'], 409);
+  if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time())
+                                           out(['ok'=>false,'error'=>'locked'], 409);
 
-    // 2) deve esistere l’iscrizione
-    $eq = $pdo->prepare("
-        SELECT lives
-        FROM tournament_enrollments
-        WHERE user_id = :uid AND tournament_id = :tid
-        LIMIT 1
-    ");
-    $eq->execute([':uid' => $user_id, ':tid' => $tournament_id]);
-    $enroll = $eq->fetch(PDO::FETCH_ASSOC);
-    if (!$enroll) { echo json_encode(['ok'=>false,'error'=>'not_enrolled']); exit; }
+  $cost = (int)$t['cost_per_life'];
+  $maxL = (int)$t['max_lives_per_user'];
 
-    $curLives = (int)$enroll['lives'];
-    if ($maxL > 0 && $curLives >= $maxL) {
-        echo json_encode(['ok'=>false,'error'=>'lives_limit']); exit;
-    }
+  // 2) Deve essere iscritto + vite correnti
+  try {
+    $st = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id = ? AND tournament_id = ? LIMIT 1");
+    $st->execute([$user_id, $tid]);
+    $en = $st->fetch(PDO::FETCH_ASSOC);
+  } catch (Throwable $e) { out(['ok'=>false,'error'=>'exception','stage'=>'sel_enroll','msg'=>$e->getMessage()], 500); }
 
-    // 3) transazione: addebito crediti, +1 vita, log movimento
-    $pdo->beginTransaction();
+  if (!$en)                                out(['ok'=>false,'error'=>'not_enrolled'], 409);
+  $curLives = (int)$en['lives'];
+  if ($maxL > 0 && $curLives >= $maxL)     out(['ok'=>false,'error'=>'lives_limit'], 409);
 
-    // 3.1) addebito: crediti sufficienti?
-    $deb = $pdo->prepare("
-        UPDATE utenti
-        SET crediti = crediti - :c
-        WHERE id = :uid AND crediti >= :c
-    ");
-    $deb->execute([':c' => $cost, ':uid' => $user_id]);
-    if ($deb->rowCount() !== 1) {
-        $pdo->rollBack();
-        echo json_encode(['ok'=>false,'error'=>'insufficient_funds']); exit;
-    }
+  // 3) Transazione: addebito -> +1 vita -> log movimento
+  $pdo->beginTransaction();
 
-    // 3.2) +1 vita
-    $up = $pdo->prepare("
-        UPDATE tournament_enrollments
-        SET lives = lives + 1
-        WHERE user_id = :uid AND tournament_id = :tid
-    ");
-    $up->execute([':uid'=>$user_id, ':tid'=>$tournament_id]);
+  // 3.1 addebito
+  try {
+    $st = $pdo->prepare("UPDATE utenti SET crediti = crediti - ? WHERE id = ? AND crediti >= ?");
+    $st->execute([$cost, $user_id, $cost]);
+    if ($st->rowCount() !== 1) { $pdo->rollBack(); out(['ok'=>false,'error'=>'insufficient_funds'], 409); }
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    out(['ok'=>false,'error'=>'exception','stage'=>'upd_user_debit','msg'=>$e->getMessage()], 500);
+  }
 
-    // 3.3) log movimento
+  // 3.2 incrementa vite
+  try {
+    $st = $pdo->prepare("UPDATE tournament_enrollments SET lives = lives + 1 WHERE user_id = ? AND tournament_id = ?");
+    $st->execute([$user_id, $tid]);
+    if ($st->rowCount() !== 1) { $pdo->rollBack(); out(['ok'=>false,'error'=>'enroll_update_failed'], 500); }
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    out(['ok'=>false,'error'=>'exception','stage'=>'upd_enroll_lives','msg'=>$e->getMessage()], 500);
+  }
+
+  // 3.3 log movimento (amount negativo = addebito)
+  try {
     $movCode = generate_unique_code8($pdo, 'credit_movements', 'movement_code', 8);
-    $log = $pdo->prepare("
-        INSERT INTO credit_movements
-            (movement_code, user_id, tournament_id, type, amount, created_at)
-        VALUES
-            (:mcode, :uid, :tid, 'buy_life', :amount, NOW())
-    ");
-    $log->execute([
-        ':mcode'  => $movCode,
-        ':uid'    => $user_id,
-        ':tid'    => $tournament_id,
-        // amount: importo “speso” -> negativo
-        ':amount' => -$cost,
-    ]);
+    $st = $pdo->prepare("INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at) VALUES (?, ?, ?, 'buy_life', ?, NOW())");
+    $st->execute([$movCode, $user_id, $tid, -$cost]);
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    out(['ok'=>false,'error'=>'exception','stage'=>'ins_movement','msg'=>$e->getMessage()], 500);
+  }
 
-    // 3.4) leggo vite aggiornate e saldo aggiornato per la risposta
-    $lv = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:uid AND tournament_id=:tid LIMIT 1");
-    $lv->execute([':uid'=>$user_id, ':tid'=>$tournament_id]);
-    $newLives = (int)$lv->fetchColumn();
+  // 4) valori aggiornati per UI
+  try {
+    $st = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id = ? AND tournament_id = ? LIMIT 1");
+    $st->execute([$user_id, $tid]);
+    $newLives = (int)$st->fetchColumn();
 
-    $hc = $pdo->prepare("SELECT crediti FROM utenti WHERE id=:uid LIMIT 1");
-    $hc->execute([':uid'=>$user_id]);
-    $headerCredits = (int)$hc->fetchColumn();
+    $st = $pdo->prepare("SELECT crediti FROM utenti WHERE id = ? LIMIT 1");
+    $st->execute([$user_id]);
+    $headerCredits = (int)$st->fetchColumn();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    out(['ok'=>false,'error'=>'exception','stage'=>'sel_refresh','msg'=>$e->getMessage()], 500);
+  }
 
-    $pdo->commit();
+  $pdo->commit();
+  out(['ok'=>true, 'lives'=>$newLives, 'header_credits'=>$headerCredits]);
 
-    echo json_encode([
-        'ok'             => true,
-        'lives'          => $newLives,
-        'header_credits' => $headerCredits
-    ]);
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) { $pdo->rollBack(); }
-    // se vuoi vedere il messaggio esatto per debugging:
-    // echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]);
-    echo json_encode(['ok'=>false,'error'=>'exception']);
+  if ($pdo->inTransaction()) $pdo->rollBack();
+  out(['ok'=>false,'error'=>'exception','stage'=>'outer','msg'=>$e->getMessage()], 500);
 }
