@@ -236,6 +236,9 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       <button class="btn" type="submit">Salva meta</button>
     </form>
     <div class="muted" style="margin-top:6px">Il lock scelte blocca globalmente il torneo al momento indicato.</div>
+
+    <!-- (AGGIUNTA RICHIESTA) Link Round (storico) -->
+    <a class="btn" href="/admin/torneo_round.php?id=<?php echo (int)$id; ?>" style="margin-top:8px;">Round (storico)</a>
   </div>
 
   <div class="card">
