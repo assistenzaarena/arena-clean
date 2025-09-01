@@ -1,194 +1,199 @@
 <?php
 // public/api/compute_round.php
+// Calcola il round corrente: determina quali vite sopravvivono o vengono eliminate
+// in base a tournament_events.result_status e alle scelte finalizzate degli utenti.
 //
-// [SCOPO] Calcolo manuale del round corrente (admin):
-//   - Per ogni utente: prende l'ULTIMA selezione finalizzata per ciascuna vita
-//     e valuta sopravvivenza in base a result_status dell'evento.
-//   - Aggiorna lives = #sopravvissuti
-//   - Se rimane 1 solo utente vivo -> chiude il torneo (status='closed')
-//     altrimenti avanza: current_round_no += 1, choices_locked = 0 (riapre scelte).
-//
-// [NOTE IMPLEMENTATIVE]
-//   - Non usiamo round_no nelle selections (non presente). Per distinguere
-//     il round corrente prendiamo per ogni vita la selection con finalized_at più recente.
-//   - Idempotente: ricalcolare produce lo stesso risultato (perché lives vengono impostate
-//     al numero di sopravvissuti calcolato, non incrementate/decrementate).
+// Accesso: solo admin. Risposta: JSON { ok:bool, ... } con "stage" in caso d'errore.
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
-
 header('Content-Type: application/json; charset=utf-8');
 
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/guards.php';     // require_admin()
-require_once $ROOT . '/src/utils.php';      // generate_unique_code8()
+require_once $ROOT . '/src/guards.php';   // require_admin()
 
-// --- helper JSON
-function out(array $js, int $code = 200) {
-  http_response_code($code);
-  echo json_encode($js);
+// Helper risposta JSON con stage (debug gentile)
+function jexit(array $p, int $http = 200) {
+  http_response_code($http);
+  echo json_encode($p);
   exit;
 }
 
-// --- solo admin
-require_admin();
+// ---------- Guardie ----------
+try {
+  require_admin(); // solo admin
+} catch (Throwable $e) {
+  jexit(['ok'=>false,'error'=>'not_admin'], 403);
+}
 
-// --- metodo e CSRF
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') out(['ok'=>false,'error'=>'bad_method'], 405);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  jexit(['ok'=>false,'error'=>'bad_method'], 405);
+}
+
 $csrf = $_POST['csrf'] ?? '';
-if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) out(['ok'=>false,'error'=>'bad_csrf'], 403);
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
+  jexit(['ok'=>false,'error'=>'bad_csrf'], 403);
+}
 
-// --- input
 $tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-if ($tournament_id <= 0) out(['ok'=>false,'error'=>'bad_params'], 400);
-
-// opzionale: forzare chiusura o avanzamento anche se scelte non finalizzate (non usato ora)
-// $force = !empty($_POST['force']) ? 1 : 0;
+if ($tournament_id <= 0) {
+  jexit(['ok'=>false,'error'=>'bad_params'], 400);
+}
 
 try {
   // 1) Carico torneo
+  $stage = 'load_tournament';
   $st = $pdo->prepare("SELECT id, name, status, current_round_no FROM tournaments WHERE id = ? LIMIT 1");
   $st->execute([$tournament_id]);
   $T = $st->fetch(PDO::FETCH_ASSOC);
-  if (!$T) out(['ok'=>false,'error'=>'not_found'], 404);
-  if (($T['status'] ?? '') !== 'open') out(['ok'=>false,'error'=>'not_open'], 409);
+  if (!$T) jexit(['ok'=>false,'error'=>'not_found','stage'=>$stage], 404);
+  if (($T['status'] ?? '') !== 'open') jexit(['ok'=>false,'error'=>'not_open','stage'=>$stage], 409);
 
   $roundNo = (int)($T['current_round_no'] ?? 1);
 
-  // 2) Mappa risultati eventi del torneo
-  $ev = $pdo->prepare("SELECT id, result_status FROM tournament_events WHERE tournament_id = ?");
+  // 2) Carico risultati eventi del torneo (devono avere result_status)
+  $stage = 'load_events';
+  $ev = $pdo->prepare("
+    SELECT id, result_status
+    FROM tournament_events
+    WHERE tournament_id = ?
+  ");
   $ev->execute([$tournament_id]);
-  $eventResult = []; // event_id => result_status
-  while ($r = $ev->fetch(PDO::FETCH_ASSOC)) {
-    $eventResult[(int)$r['id']] = $r['result_status'] ?? null;
+  $events = $ev->fetchAll(PDO::FETCH_KEY_PAIR); // [event_id => result_status]
+
+  if (!$events) {
+    jexit(['ok'=>false,'error'=>'no_events','stage'=>$stage], 400);
   }
 
-  // 3) Elenco iscritti (user_id, lives correnti)
+  // Mappa risultato -> lato vincente/neutral
+  // - home_win => vive chi ha side='home'
+  // - away_win => vive chi ha side='away'
+  // - draw     => nessuno (eliminate le vite che hanno scelto quell'evento)
+  // - postponed/void => tutti sopravvivono (consideriamo neutro)
+  $resultKeep = [
+    'home_win' => 'home',
+    'away_win' => 'away',
+    'draw'     => 'none',
+    'postponed'=> 'both',
+    'void'     => 'both',
+  ];
+
+  // 3) Carico scelte finalizzate (finalized_at non NULL) per round corrente
+  $stage = 'load_finalized_selections';
+  $sel = $pdo->prepare("
+    SELECT s.user_id, s.life_index, s.event_id, s.side
+    FROM tournament_selections s
+    WHERE s.tournament_id = ?
+      AND s.finalized_at IS NOT NULL
+      AND (s.round_no IS NULL OR s.round_no = ?)
+  ");
+  $sel->execute([$tournament_id, $roundNo]);
+  $finalized = $sel->fetchAll(PDO::FETCH_ASSOC);
+
+  // Se non ci sono scelte finalizzate, non tocchiamo niente
+  if (!$finalized) {
+    jexit([
+      'ok'=>true,
+      'msg'=>'Nessuna selezione finalizzata nel round corrente: nessuna modifica.',
+      'frozen'=>0,
+      'survivors'=>0,
+      'eliminated'=>0
+    ]);
+  }
+
+  // 4) Valuto sopravvivenza per ogni (user_id, life_index)
+  $stage = 'evaluate';
+  $lifeOutcome = []; // key "uid:life" => 'keep' | 'elim' | 'neutral'
+  foreach ($finalized as $r) {
+    $uid  = (int)$r['user_id'];
+    $life = (int)$r['life_index'];
+    $eid  = (int)$r['event_id'];
+    $side = (string)$r['side'];
+
+    $key = $uid . ':' . $life;
+
+    $res = $events[$eid] ?? null; // result_status dell'evento
+    if (!$res) {
+      // se non c'è risultato, non decido nulla
+      if (!isset($lifeOutcome[$key])) $lifeOutcome[$key] = 'neutral';
+      continue;
+    }
+
+    $rule = $resultKeep[$res] ?? 'neutral';
+
+    if ($rule === 'both') {
+      // partita rinviata/void: vita sopravvive
+      $lifeOutcome[$key] = 'keep';
+    } elseif ($rule === 'none') {
+      // pareggio: vita eliminata
+      $lifeOutcome[$key] = 'elim';
+    } else {
+      // 'home' o 'away'
+      if ($side === $rule) {
+        $lifeOutcome[$key] = 'keep';
+      } else {
+        $lifeOutcome[$key] = 'elim';
+      }
+    }
+  }
+
+  // 5) Raggruppo outcome per utente -> conto quante vite da mantenere
+  $stage = 'group_outcome';
+  $keepCount = []; // user_id => quante vite manteniamo
+  $elimCount = 0;
+  $kept      = 0;
+
+  foreach ($lifeOutcome as $key => $out) {
+    list($uidStr, $lifeStr) = explode(':', $key, 2);
+    $uidI = (int)$uidStr;
+    if (!isset($keepCount[$uidI])) $keepCount[$uidI] = 0;
+    if ($out === 'keep') { $keepCount[$uidI]++; $kept++; }
+    elseif ($out === 'elim') { $elimCount++; }
+    else {
+      // neutral: non ha un’influenza diretta; NON conteggio
+    }
+  }
+
+  // 6) Applico risultati su enrollment.lives
+  //    - se un utente non appare in $keepCount ma aveva vite nel round, risulta a zero
+  //    - se nessun outcome (tutti neutral), non tocco niente
+  $stage = 'apply';
+  $pdo->beginTransaction();
+
+  // Scopro tutti gli iscritti (user_id, lives attuali)
   $en = $pdo->prepare("SELECT user_id, lives FROM tournament_enrollments WHERE tournament_id = ?");
   $en->execute([$tournament_id]);
   $enrollments = $en->fetchAll(PDO::FETCH_ASSOC);
 
-  // Se non ci sono iscritti (strano per 'open'), chiudo il torneo
-  if (!$enrollments) {
-    $pdo->prepare("UPDATE tournaments SET status='closed', updated_at=NOW() WHERE id=?")->execute([$tournament_id]);
-    out(['ok'=>true,'closed'=>true,'reason'=>'no_enrollments']);
-  }
-
-  // 4) Per ogni utente calcolo quante vite sopravvivono
-  $survivorsByUser = []; // user_id => survivors_count
-
+  $touched = 0;
   foreach ($enrollments as $row) {
-    $uid   = (int)$row['user_id'];
-    $lives = max(0, (int)$row['lives']);
+    $uidI  = (int)$row['user_id'];
+    $cur   = (int)$row['lives'];
 
-    if ($lives <= 0) {
-      $survivorsByUser[$uid] = 0;
-      continue;
-    }
-
-    // Prendo l'ULTIMA selezione finalizzata per ciascuna vita di questo utente
-    // (no round_no: uso finalized_at DESC per vita_index)
-    $sel = $pdo->prepare("
-      SELECT s.life_index, s.event_id, s.side, s.finalized_at
-      FROM tournament_selections s
-      WHERE s.tournament_id = ? AND s.user_id = ? AND s.finalized_at IS NOT NULL
-      ORDER BY s.life_index ASC, s.finalized_at DESC, s.id DESC
-    ");
-    $sel->execute([$tournament_id, $uid]);
-
-    // Tengo solo la più recente per ciascuna life_index
-    $lastByLife = []; // life_index => [event_id, side]
-    while ($s = $sel->fetch(PDO::FETCH_ASSOC)) {
-      $li = (int)$s['life_index'];
-      if (!array_key_exists($li, $lastByLife)) {
-        $lastByLife[$li] = [
-          'event_id' => (int)$s['event_id'],
-          'side'     => (string)$s['side'],
-        ];
+    // calcolo nuove vite: se non abbiamo outcome su questo utente, salto
+    if (array_key_exists($uidI, $keepCount)) {
+      $newLives = (int)$keepCount[$uidI];
+      if ($newLives !== $cur) {
+        $up = $pdo->prepare("UPDATE tournament_enrollments SET lives = ? WHERE user_id = ? AND tournament_id = ?");
+        $up->execute([$newLives, $uidI, $tournament_id]);
+        $touched += $up->rowCount();
       }
     }
-
-    // Valuto sopravvivenza
-    $survive = 0;
-    for ($li = 0; $li < $lives; $li++) {
-      if (!isset($lastByLife[$li])) {
-        // nessuna selezione finalizzata -> vita muore
-        continue;
-      }
-      $evId = $lastByLife[$li]['event_id'];
-      $side = $lastByLife[$li]['side'];
-
-      $res  = $eventResult[$evId] ?? null;
-
-      // Regole:
-      // - home_win -> sopravvive se side='home'
-      // - away_win -> sopravvive se side='away'
-      // - draw/postponed/void -> sopravvive
-      // - altro/null -> muore
-      $ok = false;
-      if ($res === 'home_win') {
-        $ok = ($side === 'home');
-      } elseif ($res === 'away_win') {
-        $ok = ($side === 'away');
-      } elseif ($res === 'draw' || $res === 'postponed' || $res === 'void') {
-        $ok = true;
-      } else {
-        $ok = false;
-      }
-
-      if ($ok) $survive++;
-    }
-
-    $survivorsByUser[$uid] = $survive;
   }
 
-  // 5) Applico i risultati con transazione
-  $pdo->beginTransaction();
+  $pdo->commit();
 
-  // Aggiorno lives = #sopravvissuti
-  $updLives = $pdo->prepare("UPDATE tournament_enrollments SET lives = ?, updated_at = NOW() WHERE user_id = ? AND tournament_id = ?");
-  foreach ($survivorsByUser as $uid => $cnt) {
-    $updLives->execute([$cnt, $uid, $tournament_id]);
-  }
-
-  // Log movimento informativo (0 crediti) round_result
-  $insMov = $pdo->prepare("
-    INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
-    VALUES (?, ?, ?, 'round_result', 0, NOW())
-  ");
-  foreach (array_keys($survivorsByUser) as $uid) {
-    $code = generate_unique_code8($pdo, 'credit_movements', 'movement_code', 8);
-    $insMov->execute([$code, $uid, $tournament_id]);
-  }
-
-  // 6) Decido se chiudere o proseguire
-  //   - conteggio utenti con lives > 0
-  $st = $pdo->prepare("SELECT COUNT(*) FROM tournament_enrollments WHERE tournament_id = ? AND lives > 0");
-  $st->execute([$tournament_id]);
-  $aliveUsers = (int)$st->fetchColumn();
-
-  if ($aliveUsers <= 1) {
-    // chiudo il torneo
-    $pdo->prepare("UPDATE tournaments SET status='closed', updated_at=NOW() WHERE id=?")->execute([$tournament_id]);
-    $pdo->commit();
-    out(['ok'=>true,'closed'=>true,'alive_users'=>$aliveUsers]);
-  } else {
-    // avanzo round e riapro scelte (l'admin aggiornerà lock_at per il nuovo round)
-    $pdo->prepare("
-      UPDATE tournaments
-         SET current_round_no = current_round_no + 1,
-             choices_locked   = 0,
-             updated_at       = NOW()
-       WHERE id = ?
-    ")->execute([$tournament_id]);
-
-    $pdo->commit();
-    out(['ok'=>true,'closed'=>false,'alive_users'=>$aliveUsers,'next_round'=>$roundNo+1]);
-  }
+  jexit([
+    'ok'=>true,
+    'msg'=>'Calcolo round completato.',
+    'round'=>$roundNo,
+    'users_touched'=>$touched,
+    'survivor_lives'=>$kept,
+    'eliminated_lives'=>$elimCount
+  ]);
 
 } catch (Throwable $e) {
-  if ($pdo->inTransaction()) $pdo->rollBack();
-  error_log('[compute_round] '.$e->getMessage());
-  out(['ok'=>false,'error'=>'exception'], 500);
+  if ($pdo->inTransaction()) { $pdo->rollBack(); }
+  jexit(['ok'=>false,'error'=>'exception','stage'=>($stage ?? 'outer'),'msg'=>$e->getMessage()], 500);
 }
