@@ -6,116 +6,101 @@ header('Content-Type: application/json; charset=utf-8');
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/utils.php'; // per eventuale generate_unique_code8()
-/**
- * Requisiti DB (già verificati):
- * - tabella tournament_selections:
- *   id PK AI,
- *   tournament_id INT UNSIGNED NOT NULL,
- *   user_id INT UNSIGNED NOT NULL,
- *   life_index INT UNSIGNED NOT NULL,       (0,1,2,...)
- *   event_id INT UNSIGNED NOT NULL,
- *   side ENUM('home','away') NOT NULL,
- *   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
- *   locked TINYINT(1) NOT NULL DEFAULT 0,
- *   finalized_at DATETIME NULL,
- *   selection_code CHAR(8) UNIQUE NULL,
- *   UNIQUE KEY uk_sel (user_id, tournament_id, life_index)
- */
+require_once $ROOT . '/src/utils.php'; // per generate_unique_code8 se serve
 
-// ===== helper per risposta coerente =====
-function jexit(array $p) {
-  echo json_encode($p);
-  exit;
-}
+function out($arr, $code=200){ http_response_code($code); echo json_encode($arr); exit; }
 
-// ===== login obbligatorio =====
-if (empty($_SESSION['user_id'])) {
-  jexit(['ok' => false, 'error' => 'not_logged']);
-}
-
-// ===== solo POST + CSRF =====
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  jexit(['ok' => false, 'error' => 'bad_method']);
-}
+// --- Guardie base ---
+if (empty($_SESSION['user_id'])) out(['ok'=>false,'error'=>'not_logged'], 401);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') out(['ok'=>false,'error'=>'bad_method'], 405);
 $csrf = $_POST['csrf'] ?? '';
-if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
-  jexit(['ok' => false, 'error' => 'bad_csrf']);
-}
+if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) out(['ok'=>false,'error'=>'bad_csrf'], 400);
 
-// ===== parametri =====
-$user_id      = (int)$_SESSION['user_id'];
-$tournament_id= isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
-$event_id     = isset($_POST['event_id'])      ? (int)$_POST['event_id']      : 0;
-$life_index   = isset($_POST['life_index'])    ? (int)$_POST['life_index']    : -1;
-$side         = $_POST['side'] ?? '';
-$side         = ($side === 'home' || $side === 'away') ? $side : '';
+// --- Input ---
+$user_id       = (int)$_SESSION['user_id'];
+$tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
+$event_id      = isset($_POST['event_id'])      ? (int)$_POST['event_id']      : 0;
+$life_index    = isset($_POST['life_index'])    ? (int)$_POST['life_index']    : -1;
+$side          = strtolower((string)($_POST['side'] ?? ''));
 
-if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || $side === '') {
-  jexit(['ok' => false, 'error' => 'bad_params']);
+if ($tournament_id<=0 || $event_id<=0 || $life_index<0 || !in_array($side,['home','away'],true)) {
+  out(['ok'=>false,'error'=>'bad_params'], 400);
 }
 
 try {
-  // 1) torneo deve esistere, essere OPEN e non oltre lock
-  $tq = $pdo->prepare("SELECT status, lock_at FROM tournaments WHERE id=:id LIMIT 1");
-  $tq->execute([':id' => $tournament_id]);
+  // 1) Torneo open e non oltre lock
+  $tq = $pdo->prepare("SELECT status, lock_at, max_lives_per_user FROM tournaments WHERE id=:id LIMIT 1");
+  $tq->execute([':id'=>$tournament_id]);
   $t = $tq->fetch(PDO::FETCH_ASSOC);
-  if (!$t) {
-    jexit(['ok' => false, 'error' => 'not_found']);
-  }
-  if ($t['status'] !== 'open') {
-    jexit(['ok' => false, 'error' => 'locked']); // chiuso ai fini scelte
-  }
-  if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
-    jexit(['ok' => false, 'error' => 'locked']);
-  }
+  if (!$t) out(['ok'=>false,'error'=>'not_found'], 404);
+  if ($t['status'] !== 'open') out(['ok'=>false,'error'=>'locked'], 400);
+  if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) out(['ok'=>false,'error'=>'locked'], 400);
 
-  // 2) utente deve essere iscritto e life_index < lives
+  // 2) Iscrizione + vite disponibili
   $eq = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
-  $eq->execute([':u' => $user_id, ':t' => $tournament_id]);
+  $eq->execute([':u'=>$user_id, ':t'=>$tournament_id]);
   $en = $eq->fetch(PDO::FETCH_ASSOC);
-  if (!$en) {
-    jexit(['ok' => false, 'error' => 'not_enrolled']);
-  }
+  if (!$en) out(['ok'=>false,'error'=>'not_enrolled'], 400);
   $lives = (int)$en['lives'];
-  if ($life_index >= $lives) {
-    jexit(['ok' => false, 'error' => 'bad_params']); // life index fuori range
-  }
+  if ($life_index >= $lives) out(['ok'=>false,'error'=>'life_out_of_range'], 400);
 
-  // 3) evento deve appartenere al torneo ed essere attivo
+  // 3) Evento valido e attivo nel torneo
   $vq = $pdo->prepare("SELECT 1 FROM tournament_events WHERE id=:e AND tournament_id=:t AND is_active=1 LIMIT 1");
-  $vq->execute([':e' => $event_id, ':t' => $tournament_id]);
-  if (!$vq->fetchColumn()) {
-    jexit(['ok' => false, 'error' => 'bad_params']); // evento non valido per il torneo
+  $vq->execute([':e'=>$event_id, ':t'=>$tournament_id]);
+  if (!$vq->fetchColumn()) out(['ok'=>false,'error'=>'bad_event'], 400);
+
+  // 4) UPSERT su UNIQUE (user_id, tournament_id, life_index)
+  //    Nota: la TUA TABELLAs non ha 'locked' TINYINT: NON lo usiamo.
+  //    Colonne reali: tournament_id, user_id, life_index, event_id, side, selection_code, created_at
+  $pdo->beginTransaction();
+
+  // Esiste già una selezione per quella vita?
+  $sq = $pdo->prepare("
+    SELECT id, selection_code
+    FROM tournament_selections
+    WHERE user_id=:u AND tournament_id=:t AND life_index=:l
+    LIMIT 1
+  ");
+  $sq->execute([':u'=>$user_id, ':t'=>$tournament_id, ':l'=>$life_index]);
+  $row = $sq->fetch(PDO::FETCH_ASSOC);
+
+  if ($row) {
+    // Aggiorno solo event_id/side (mantengo selection_code)
+    $up = $pdo->prepare("
+      UPDATE tournament_selections
+         SET event_id=:e, side=:s
+       WHERE id=:id
+       LIMIT 1
+    ");
+    $up->execute([':e'=>$event_id, ':s'=>$side, ':id'=>$row['id']]);
+    $selCode = $row['selection_code'];
+    $isNew   = false;
+  } else {
+    // Inserisco e genero selection_code (8 char univoco) SOLO se la tua colonna è NOT NULL; altrimenti potresti lasciarlo NULL
+    // Per sicurezza lo genero sempre:
+    $selCode = generate_unique_code8($pdo, 'tournament_selections', 'selection_code', 8);
+    $in = $pdo->prepare("
+      INSERT INTO tournament_selections
+        (tournament_id, user_id, life_index, event_id, side, selection_code, created_at)
+      VALUES
+        (:t, :u, :l, :e, :s, :c, NOW())
+    ");
+    $in->execute([
+      ':t'=>$tournament_id, ':u'=>$user_id, ':l'=>$life_index,
+      ':e'=>$event_id, ':s'=>$side, ':c'=>$selCode
+    ]);
+    $isNew = true;
   }
 
-  // 4) upsert selezione (una riga per vita: uk_sel (user_id,tournament_id,life_index))
-  $sql = "
-    INSERT INTO tournament_selections
-      (tournament_id, user_id, life_index, event_id, side, created_at, locked, finalized_at, selection_code)
-    VALUES
-      (:t, :u, :l, :e, :s, NOW(), 0, NULL, NULL)
-    ON DUPLICATE KEY UPDATE
-      event_id = VALUES(event_id),
-      side     = VALUES(side)
-  ";
-  $ins = $pdo->prepare($sql);
-  $ins->execute([
-    ':t' => $tournament_id,
-    ':u' => $user_id,
-    ':l' => $life_index,
-    ':e' => $event_id,
-    ':s' => $side,
+  $pdo->commit();
+
+  out([
+    'ok' => true,
+    'new'=> $isNew,
+    'selection_code' => $selCode
   ]);
-
-  // 5) risposta OK (team_logo lo può usare la UI per appiccicare il logo al cuore)
-  //    (Se vuoi passare il logo corretto lato server, puoi calcolarlo come in torneo.php)
-  jexit(['ok' => true]);
-
 } catch (Throwable $e) {
-  // in sviluppo mostra il dettaglio, in produzione no
-  if (defined('APP_ENV') && APP_ENV !== 'production') {
-    jexit(['ok' => false, 'error' => 'exception', 'error_detail' => $e->getMessage()]);
-  }
-  jexit(['ok' => false, 'error' => 'exception']);
+  if ($pdo->inTransaction()) $pdo->rollBack();
+  // DEBUG: in sviluppo mostra il dettaglio (se vuoi nasconderlo, togli 'detail')
+  out(['ok'=>false,'error'=>'exception','detail'=>$e->getMessage()], 500);
 }
