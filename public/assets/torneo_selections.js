@@ -39,25 +39,19 @@
 
   // Carica scelte correnti e attacca i loghi accanto ai cuori
   function loadSelections() {
-    fetch('/api/select_team.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'csrf=' + encodeURIComponent(CSRF) +
-            '&tournament_id=' + encodeURIComponent(TOURNAMENT_ID)
+    fetch('/api/get_selections.php?tournament_id=' + encodeURIComponent(TOURNAMENT_ID), {
+      method: 'GET',
+      credentials: 'same-origin'
     })
     .then(function (r) { return r.text(); })
     .then(function (txt) {
       var js = null; try { js = txt ? JSON.parse(txt) : null; } catch (e) {}
-      if (!js || !js.ok) return;
+      if (!js || !js.ok || !Array.isArray(js.items)) return;
 
-      // Per ogni pick attacca il logo corretto
-      js.picks.forEach(function (p) {
-        var evCard = document.querySelector('.event-card[data-event-id="' + p.event_id + '"]');
-        if (!evCard) return;
-        var logo = (p.side === 'home') ? evCard.getAttribute('data-home-logo')
-                                       : evCard.getAttribute('data-away-logo');
-        attachLogoToHeart(p.life_index, logo);
+      // Per ogni item (life_index + logo_url) attacca il logo corretto
+      js.items.forEach(function (it) {
+        if (typeof it.life_index === 'undefined' || !it.logo_url) return;
+        attachLogoToHeart(parseInt(it.life_index,10), it.logo_url);
       });
     })
     .catch(function(){ /* silenzioso */ });
@@ -108,18 +102,18 @@
         }
         if (!js.ok) {
           var msg = js.error || 'errore';
-          if      (msg === 'bad_params')   msg = 'Parametri non validi.';
-          else if (msg === 'locked')       msg = 'Le scelte sono bloccate.';
-          else if (msg === 'not_enrolled') msg = 'Non sei iscritto a questo torneo.';
-          else if (msg === 'bad_csrf')     msg = 'Sessione scaduta: ricarica la pagina.';
-          else if (msg === 'life_out_of_range') msg = 'Indice vita non valido.';
-          else if (msg === 'bad_event')    msg = 'Evento non valido.';
-          else if (msg === 'exception')    msg = 'Errore interno.';
+          if      (msg === 'bad_params')         msg = 'Parametri non validi.';
+          else if (msg === 'locked')             msg = 'Le scelte sono bloccate.';
+          else if (msg === 'not_enrolled')       msg = 'Non sei iscritto a questo torneo.';
+          else if (msg === 'bad_csrf')           msg = 'Sessione scaduta: ricarica la pagina.';
+          else if (msg === 'life_out_of_range')  msg = 'Indice vita non valido.';
+          else if (msg === 'event_invalid')      msg = 'Evento non valido.';
+          else if (msg === 'exception')          msg = 'Errore interno.';
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
         }
         // OK -> UI
-        attachLogoToHeart(selectedLife, logoUrl);
+        attachLogoToHeart(selectedLife, js.team_logo || logoUrl);
         if (window.showMsg) window.showMsg('Scelta salvata', 'Selezione registrata.', 'success');
       })
       .catch(function () {
