@@ -187,7 +187,7 @@ $csrf = $_SESSION['csrf'];
     }
   })();
 
-  // Acquisto vita (+ aggiornamento cuori e saldo header)
+  // Acquisto vita (+ aggiornamento cuori e saldo header) — VERSIONE DIAGNOSTICA
   (function(){
     var btn = document.getElementById('btnAddLife');
     if (!btn) return;
@@ -196,6 +196,7 @@ $csrf = $_SESSION['csrf'];
       var w = document.getElementById('livesWrap');
       if (!w) return;
       w.innerHTML = '';
+      n = parseInt(n||0,10);
       if (n <= 0) {
         var s = document.createElement('span');
         s.className = 'muted';
@@ -213,6 +214,17 @@ $csrf = $_SESSION['csrf'];
       }
     }
 
+    function refreshHeaderCredits(){
+      fetch('/api/user_credits.php', { credentials:'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .then(js => {
+          if (js && js.ok && typeof js.crediti !== 'undefined') {
+            var el = document.getElementById('headerCrediti');
+            if (el) el.textContent = js.crediti;
+          }
+        }).catch(()=>{});
+    }
+
     btn.addEventListener('click', function(){
       fetch('/api/add_life.php', {
         method: 'POST',
@@ -222,23 +234,47 @@ $csrf = $_SESSION['csrf'];
             + '&tournament_id=' + encodeURIComponent('<?php echo (int)$id; ?>')
       })
       .then(async (r) => {
-        let txt = '';
-        try { txt = await r.text(); } catch(_) {}
+        // DIAGNOSTICA: leggo SEMPRE il testo e provo il JSON.
+        const status = r.status;
+        let text = '';
+        try { text = await r.text(); } catch(_) {}
         let js = null;
-        try { js = txt ? JSON.parse(txt) : null; } catch(_) {}
-        if (!js) { alert('Errore'); throw new Error('non_json'); }
+        try { js = text ? JSON.parse(text) : null; } catch(_) {}
+
+        if (!js) {
+          // se non è JSON mostro cosa ha risposto il server
+          alert('HTTP ' + status + ' (non JSON):\n' + (text ? text.slice(0,400) : '(vuota)'));
+          throw new Error('non_json');
+        }
         return js;
       })
       .then(function(js){
         if (!js.ok) {
-          var msg = 'Errore';
-          if (js.error === 'insufficient_funds') msg = 'Crediti insufficienti';
-          else if (js.error === 'max_reached')     msg = 'Hai raggiunto il limite di vite';
-          else if (js.error === 'locked')         msg = 'Scelte bloccate';
-          else if (js.error === 'not_enrolled')   msg = 'Non sei iscritto a questo torneo';
-          alert(msg);
+          // messaggi più chiari se l’API risponde con error code
+          var msg = (js.msg || js.error || 'errore');
+          if (msg === 'insufficient_funds') msg = 'Crediti insufficienti';
+          if (msg === 'lives_limit'        || msg === 'max_reached') msg = 'Hai raggiunto il limite di vite';
+          if (msg === 'locked')             msg = 'Scelte bloccate';
+          if (msg === 'not_enrolled')       msg = 'Non sei iscritto a questo torneo';
+          alert('Acquisto vita non riuscito: ' + msg);
           return;
         }
+
+        // tutto ok → aggiorno cuori e saldo header
+        renderHearts(js.lives);
+        if (typeof js.header_credits !== 'undefined') {
+          var el = document.getElementById('headerCrediti');
+          if (el) el.textContent = js.header_credits;
+        } else {
+          // fallback: rileggo i crediti via API header
+          refreshHeaderCredits();
+        }
+      })
+      .catch(function(){
+        alert('Errore di rete');
+      });
+    });
+  })();
         // aggiorna cuori
         renderHearts(parseInt(js.lives || 0, 10));
 
