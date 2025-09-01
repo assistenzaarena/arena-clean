@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-// =============== SYNC INIZIALE SE NESSUN EVENTO ===============
+// =============== SYNC INIZIALE SE NESSUN EVENTO (a livello torneo) ===============
 $has = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid");
 $has->execute([':tid'=>$id]);
 $hasRows = ((int)$has->fetchColumn() > 0);
@@ -176,7 +176,12 @@ if (!$hasRows) {
   }
 }
 
-// =============== CARICO EVENTI PER TABELLA ===============
+// =============== VERIFICA EVENTI DEL ROUND CORRENTE (BANNER ADMIN) ===============
+$stCR = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid AND round_no=:r");
+$stCR->execute([':tid'=>$id, ':r'=>$current_round_no]);
+$eventsCountCurrentRound = (int)$stCR->fetchColumn();
+
+// =============== CARICO EVENTI PER TABELLA (come in origine: tutti del torneo) ===============
 $ev = $pdo->prepare("
   SELECT id, fixture_id, home_team_name, away_team_name, is_active
   FROM tournament_events
@@ -205,6 +210,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     .err{color:#ff6b6b;margin:8px 0}
     .muted{color:#aaa}
     .row-actions{display:flex; gap:8px}
+    .banner-admin{background:#6a0000;color:#fff;padding:10px;border-radius:8px;margin-bottom:12px}
   </style>
   <!-- ESPONGO CSRF PER L'ESEMPIO AJAX -->
   <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
@@ -217,6 +223,10 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 
   <?php if ($flash): ?><div class="flash"><?php echo htmlspecialchars($flash); ?></div><?php endif; ?>
   <?php if ($err_fetch): ?><div class="err"><?php echo htmlspecialchars($err_fetch); ?></div><?php endif; ?>
+
+  <?php if ($eventsCountCurrentRound === 0): ?>
+    <div class="banner-admin">Necessario intervento admin: nessun evento presente per il <strong>round corrente (<?php echo (int)$current_round_no; ?>)</strong>. Carica o pubblica la giornata successiva.</div>
+  <?php endif; ?>
 
   <div class="card">
     <h3 style="margin:0 0 10px;">Meta torneo</h3>
@@ -336,26 +346,48 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       Esegue il calcolo del round corrente (conferma vincitori/perdenti in base ai risultati impostati).
       Non cambia il lock né lo stato “scelte aperte/chiuse”.
     </p>
-    <form method="post"
-          action="/api/compute_round.php"
-          style="display:inline-flex; gap:8px; align-items:center;">
+
+    <!-- CAMBIO RICHIESTO: da submit tradizionale ad AJAX verso /admin/calc_round.php -->
+    <form id="calc-round-form" style="display:inline-flex; gap:8px; align-items:center;">
       <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
       <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
       <button class="btn" type="submit">Calcola round adesso</button>
     </form>
   </div>
+
   <div>
-    
     <a class="btn" href="/admin/gestisci_tornei.php">Torna alla lista</a>
   </div>
 </div>
 
 <!-- =========================
-     (AGGIUNTA 2) Helper AJAX opzionale
+     (AGGIUNTA 2) Helper AJAX: calcolo round + popup + redirect
      ========================= -->
 <script>
-  // Esempio opzionale: aggiorna risultato via fetch senza ricaricare
-  // Usa: aggiornaRisultato(<?php echo (int)$id; ?>, EVENT_ID, 'home_win'|'away_win'|'draw'|'postponed'|'void')
+  (function(){
+    const form = document.getElementById('calc-round-form');
+    if(!form) return;
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      const fd = new FormData(form);
+      try{
+        const resp = await fetch('/admin/calc_round.php', { method:'POST', body: fd, credentials:'same-origin' });
+        const js = await resp.json();
+        if(!js || js.ok !== true){
+          alert(js && js.msg ? js.msg : 'Errore nel calcolo round');
+          return;
+        }
+        const nextMsg = (js.closed ? 'Torneo chiuso.' : ('Si passa al round ' + (js.round + 1) + (js.next_round_loaded===false ? ' (attenzione: eventi non caricati)' : '')));
+        alert(`Calcolo round ${js.round} effettuato. ${nextMsg}`);
+        // redirect alla stessa pagina (ora dovrebbe mostrare round incrementato e, se preload fallito, banner admin)
+        window.location.href = '/admin/torneo_open.php?id=<?php echo (int)$id; ?>';
+      }catch(err){
+        alert('Errore di rete durante il calcolo round');
+      }
+    });
+  })();
+
+  // Esempio opzionale: aggiorna risultato via fetch senza ricaricare (lasciato invariato)
   function aggiornaRisultato(tid, evId, outcome) {
     fetch('/admin/set_event_result.php', {
       method: 'POST',
