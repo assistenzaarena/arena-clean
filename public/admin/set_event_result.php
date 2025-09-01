@@ -66,17 +66,10 @@ try {
       : respond_json(['ok'=>false,'error'=>'event_not_found'], 404);
   }
 
-  // 2) Aggiorna lo stato risultato + result_at coerente
-  //    - esiti finali (home_win, away_win, draw, void) => result_at = NOW()
-  //    - postponed => result_at = NULL
-  $finalOutcomes = ['home_win','away_win','draw','void'];
-  if (in_array($status, $finalOutcomes, true)) {
-    $up = $pdo->prepare("UPDATE tournament_events SET result_status = ?, result_at = NOW() WHERE id = ? LIMIT 1");
-    $up->execute([$status, $event_id]);
-  } else { // postponed
-    $up = $pdo->prepare("UPDATE tournament_events SET result_status = ?, result_at = NULL WHERE id = ? LIMIT 1");
-    $up->execute([$status, $event_id]);
-  }
+  // 2) Aggiorna lo stato risultato + result_at coerente con roadmap 5C.2
+  //    (sempre NOW(), anche per 'postponed'/'void')
+  $up = $pdo->prepare("UPDATE tournament_events SET result_status = ?, result_at = NOW() WHERE id = ? LIMIT 1");
+  $up->execute([$status, $event_id]);
 
   // 3) Risposta
   if ($wantRedirect) {
