@@ -120,7 +120,12 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
       <button class="btn" type="submit">Riapri scelte</button>
     </form>
   <?php endif; ?>
-</td>
+    </td>
+  </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
 </main>
 
 </body>
