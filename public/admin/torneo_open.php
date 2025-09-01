@@ -326,8 +326,23 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <div class="muted" style="margin-top:6px">Gli eventi manuali non hanno fixture_id; puoi comunque attivarli/disattivarli ed eliminarli.</div>
   </div>
-
+  
+  <div class="card">
+    <h3 style="margin:0 0 10px;">Calcolo round corrente</h3>
+    <p class="muted" style="margin:0 0 10px;">
+      Esegue il calcolo del round corrente (conferma vincitori/perdenti in base ai risultati impostati).
+      Non cambia il lock né lo stato “scelte aperte/chiuse”.
+    </p>
+    <form method="post"
+          action="/api/compute_round.php"
+          style="display:inline-flex; gap:8px; align-items:center;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+      <button class="btn" type="submit">Calcola round adesso</button>
+    </form>
+  </div>
   <div>
+    
     <a class="btn" href="/admin/gestisci_tornei.php">Torna alla lista</a>
   </div>
 </div>
