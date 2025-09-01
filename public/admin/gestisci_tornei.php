@@ -85,19 +85,30 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
       </thead>
       <tbody>
         <?php foreach ($list as $t): ?>
-          <tr>
-            <td>#<?php echo htmlspecialchars($t['tournament_code'] ?: sprintf('%05d',(int)$t['id'])); ?></td>
-            <td><?php echo htmlspecialchars($t['name']); ?></td>
-            <td><?php echo htmlspecialchars($t['league_name']); ?></td>
-            <td><?php echo htmlspecialchars($t['season']); ?></td>
-            <td><?php echo (int)($t['current_round_no'] ?? 1); ?></td>
-            <td><?php echo $t['lock_at'] ? date('d/m/Y H:i', strtotime($t['lock_at'])) : '—'; ?></td>
-            <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
-            <td>
-              <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
-            </td>
-          </tr>
-        <?php endforeach; ?>
+  <tr>
+    <td>#<?php echo htmlspecialchars($t['tournament_code'] ?: sprintf('%05d',(int)$t['id'])); ?></td>
+    <td><?php echo htmlspecialchars($t['name']); ?></td>
+    <td><?php echo htmlspecialchars($t['league_name']); ?></td>
+    <td><?php echo htmlspecialchars($t['season']); ?></td>
+    <td><?php echo (int)($t['current_round_no'] ?? 1); ?></td>
+    <td><?php echo $t['lock_at'] ? date('d/m/Y H:i', strtotime($t['lock_at'])) : '—'; ?></td>
+    <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
+    <td>
+      <!-- Link gestione esistente -->
+      <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
+
+      <!-- NUOVO: Finalizza scelte -->
+      <form method="post"
+            action="/api/finalize_round.php"
+            style="display:inline-block; margin-left:6px;"
+            onsubmit="return confirm('Finalizzare le scelte di questo torneo?');">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+        <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
+        <button class="btn" type="submit">Finalizza scelte</button>
+      </form>
+    </td>
+  </tr>
+<?php endforeach; ?>
       </tbody>
     </table>
   <?php endif; ?>
