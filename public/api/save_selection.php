@@ -1,145 +1,169 @@
 <?php
-// public/api/save_selection.php
+/**
+ * public/api/save_selection.php
+ * Salva/aggiorna la selezione (vita → evento → side) per l'utente loggato.
+ * Versione DIAGNOSTICA: logga errori e restituisce messaggi espliciti.
+ */
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
+// === LOAD CORE ===
 $ROOT = dirname(__DIR__);
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
+require_once $ROOT . '/src/utils.php';
 
-require_login();
-$user_id = (int)($_SESSION['user_id'] ?? 0);
-if ($user_id <= 0) { echo json_encode(['ok'=>false,'error'=>'not_logged']); exit; }
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  echo json_encode(['ok'=>false,'error'=>'bad_method']); exit;
+function respond(array $arr, int $http = 200) {
+  http_response_code($http);
+  echo json_encode($arr, JSON_UNESCAPED_UNICODE);
+  exit;
 }
 
+// === CSRF ===
 $csrf = $_POST['csrf'] ?? '';
 if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
-  echo json_encode(['ok'=>false,'error'=>'bad_csrf']); exit;
+  error_log('[save_selection] bad_csrf');
+  respond(['ok'=>false,'error'=>'bad_csrf'], 400);
 }
 
+// === LOGIN ===
+if (empty($_SESSION['user_id'])) {
+  error_log('[save_selection] not_logged');
+  respond(['ok'=>false,'error'=>'not_logged'], 401);
+}
+$user_id = (int)$_SESSION['user_id'];
+
+// === PARAMS ===
 $tournament_id = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
 $event_id      = isset($_POST['event_id'])      ? (int)$_POST['event_id']      : 0;
 $life_index    = isset($_POST['life_index'])    ? (int)$_POST['life_index']    : -1;
-$side          = $_POST['side'] ?? '';
+$side          = isset($_POST['side'])          ? trim(strtolower($_POST['side'])) : '';
 
-if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || ($side !== 'home' && $side !== 'away')) {
-  echo json_encode(['ok'=>false,'error'=>'bad_params']); exit;
+if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || !in_array($side, ['home','away'], true)) {
+  error_log('[save_selection] bad_params: tid='.$tournament_id.' ev='.$event_id.' life='.$life_index.' side='.$side);
+  respond(['ok'=>false,'error'=>'bad_params'], 400);
 }
 
 try {
-  // Torneo open + non lockato
-  $tq = $pdo->prepare("SELECT status, lock_at FROM tournaments WHERE id=:id LIMIT 1");
+  // === TORNEO ===
+  $tq = $pdo->prepare("SELECT status, lock_at, max_lives_per_user FROM tournaments WHERE id=:id LIMIT 1");
   $tq->execute([':id'=>$tournament_id]);
   $t = $tq->fetch(PDO::FETCH_ASSOC);
-  if (!$t) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
-  if ($t['status'] !== 'open') { echo json_encode(['ok'=>false,'error'=>'locked']); exit; }
+  if (!$t) {
+    error_log("[save_selection] not_found tournament id=$tournament_id");
+    respond(['ok'=>false,'error'=>'not_found'], 404);
+  }
+  if (($t['status'] ?? '') !== 'open') {
+    error_log("[save_selection] not_open tournament id=$tournament_id");
+    respond(['ok'=>false,'error'=>'not_open'], 400);
+  }
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) {
-    echo json_encode(['ok'=>false,'error'=>'locked']); exit;
+    error_log("[save_selection] locked tournament id=$tournament_id");
+    respond(['ok'=>false,'error'=>'locked'], 400);
+  }
+  $maxLives = isset($t['max_lives_per_user']) ? (int)$t['max_lives_per_user'] : 1;
+  if ($life_index >= $maxLives) {
+    error_log("[save_selection] life_index out of range life_index=$life_index max=$maxLives");
+    respond(['ok'=>false,'error'=>'life_out_of_range'], 400);
   }
 
-  // Iscrizione e numero vite
-  $ck = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
-  $ck->execute([':u'=>$user_id, ':t'=>$tournament_id]);
-  $enr = $ck->fetch(PDO::FETCH_ASSOC);
-  if (!$enr) { echo json_encode(['ok'=>false,'error'=>'not_enrolled']); exit; }
-
-  $userLives = (int)$enr['lives'];
-  if ($life_index >= $userLives) { echo json_encode(['ok'=>false,'error'=>'bad_params']); exit; }
-
-  // Evento
+  // === EVENTO: appartenenza + attivo ===
   $eq = $pdo->prepare("
-      SELECT home_team_name, away_team_name
+      SELECT 1
       FROM tournament_events
-      WHERE id = :e AND tournament_id = :t AND is_active = 1
+      WHERE id=:eid AND tournament_id=:tid AND is_active=1
       LIMIT 1
   ");
-  $eq->execute([':e'=>$event_id, ':t'=>$tournament_id]);
-  $ev = $eq->fetch(PDO::FETCH_ASSOC);
-  if (!$ev) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; }
+  $eq->execute([':eid'=>$event_id, ':tid'=>$tournament_id]);
+  if (!$eq->fetchColumn()) {
+    error_log("[save_selection] bad_event event=$event_id tournament=$tournament_id");
+    respond(['ok'=>false,'error'=>'bad_event'], 400);
+  }
 
-  $team_name = ($side === 'home') ? (string)$ev['home_team_name'] : (string)$ev['away_team_name'];
-  $team_logo = team_logo_local($team_name); // path in /assets/logos/*.webp
+  // === ISCRIZIONE ===
+  $enq = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=:u AND tournament_id=:t LIMIT 1");
+  $enq->execute([':u'=>$user_id, ':t'=>$tournament_id]);
+  $rowEnroll = $enq->fetch(PDO::FETCH_ASSOC);
+  if (!$rowEnroll) {
+    error_log("[save_selection] not_enrolled user=$user_id tournament=$tournament_id");
+    respond(['ok'=>false,'error'=>'not_enrolled'], 400);
+  }
+  $userLives = (int)$rowEnroll['lives'];
+  if ($life_index >= $userLives) {
+    error_log("[save_selection] life_index >= userLives (life=$life_index lives=$userLives)");
+    respond(['ok'=>false,'error'=>'life_out_of_range'], 400);
+  }
 
-  // UPSERT
-  $sql = "
-    INSERT INTO tournament_selections
-      (user_id, tournament_id, event_id, life_index, side, team_name, team_logo, created_at, updated_at)
-    VALUES
-      (:u, :t, :e, :l, :s, :n, :logo, NOW(), NOW())
-    ON DUPLICATE KEY UPDATE
-      side=:s, team_name=:n, team_logo=:logo, updated_at=NOW()
-  ";
-  $st = $pdo->prepare($sql);
-  $st->execute([
-    ':u'    => $user_id,
-    ':t'    => $tournament_id,
-    ':e'    => $event_id,
-    ':l'    => $life_index,
-    ':s'    => $side,
-    ':n'    => $team_name,
-    ':logo' => $team_logo,
+  // === TRANSAZIONE SAVE ===
+  $pdo->beginTransaction();
+
+  // Esiste già una selezione per (user, tournament, life_index)?
+  $selq = $pdo->prepare("
+      SELECT id, selection_code
+      FROM tournament_selections
+      WHERE user_id=:u AND tournament_id=:t AND life_index=:l
+      LIMIT 1
+  ");
+  $selq->execute([':u'=>$user_id, ':t'=>$tournament_id, ':l'=>$life_index]);
+  $existing = $selq->fetch(PDO::FETCH_ASSOC);
+
+  if ($existing) {
+    // UPDATE di evento/side (mantiene selection_code)
+    $upd = $pdo->prepare("
+      UPDATE tournament_selections
+         SET event_id = :e, side = :s
+       WHERE id = :id
+       LIMIT 1
+    ");
+    $upd->execute([
+      ':e'  => $event_id,
+      ':s'  => $side,
+      ':id' => (int)$existing['id'],
+    ]);
+    $selectionCode = $existing['selection_code'];
+    $savedNew = false;
+  } else {
+    // INSERT con nuovo selection_code
+    $selectionCode = generate_unique_code8($pdo, 'tournament_selections', 'selection_code', 8);
+    $ins = $pdo->prepare("
+      INSERT INTO tournament_selections
+        (tournament_id, user_id, life_index, event_id, side, selection_code, created_at)
+      VALUES
+        (:t, :u, :l, :e, :s, :c, NOW())
+    ");
+    $ins->execute([
+      ':t' => $tournament_id,
+      ':u' => $user_id,
+      ':l' => $life_index,
+      ':e' => $event_id,
+      ':s' => $side,
+      ':c' => $selectionCode,
+    ]);
+    $savedNew = true;
+  }
+
+  $pdo->commit();
+
+  // Risposta diagnostica (ok)
+  respond([
+    'ok'             => true,
+    'saved'          => true,
+    'new'            => $savedNew,
+    'selection_code' => $selectionCode,
+    // echo parametri per debug
+    'echo' => [
+      'tournament_id' => $tournament_id,
+      'event_id'      => $event_id,
+      'life_index'    => $life_index,
+      'side'          => $side,
+    ],
   ]);
 
-  echo json_encode(['ok'=>true, 'life'=>$life_index, 'team_name'=>$team_name, 'team_logo'=>$team_logo]);
 } catch (Throwable $e) {
-  // error_log($e->getMessage()); // se vuoi investigare
-  echo json_encode(['ok'=>false,'error'=>'exception']); exit;
-}
-
-/**
- * Slug/alias sicuro per prendere i loghi locali (senza dipendere da iconv).
- */
-function team_logo_local(string $name): string {
-  $base = strtolower($name);
-
-  // 1) transliterator (se disponibile)
-  if (class_exists('Transliterator')) {
-    $tr = \Transliterator::create('Any-Latin; Latin-ASCII; [:Nonspacing Mark:] Remove; Lower();');
-    if ($tr) $base = $tr->transliterate($base);
-  }
-  // 2) iconv (fallback opzionale)
-  elseif (function_exists('iconv')) {
-    $conv = @iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$base);
-    if ($conv !== false) $base = $conv;
-  }
-  // 3) ripulitura
-  $base = preg_replace('/[^a-z0-9]+/','', $base);
-
-  static $alias = [
-    'juventus'      => 'juve',
-    'internazionale'=> 'inter',
-    'inter'         => 'inter',
-    'acmilan'       => 'milan',
-    'milan'         => 'milan',
-    'asroma'        => 'roma',
-    'roma'          => 'roma',
-    'hellasverona'  => 'hellasverona',
-    'verona'        => 'hellasverona',
-    'atalanta'      => 'atalanta',
-    'bologna'       => 'bologna',
-    'cagliari'      => 'cagliari',
-    'como'          => 'como',
-    'cremonese'     => 'cremonese',
-    'fiorentina'    => 'fiorentina',
-    'genoa'         => 'genoa',
-    'lazio'         => 'lazio',
-    'lecce'         => 'lecce',
-    'napoli'        => 'napoli',
-    'parma'         => 'parma',
-    'pisa'          => 'pisa',
-    'sassuolo'      => 'sassuolo',
-    'torino'        => 'torino',
-    'udinese'       => 'udinese',
-  ];
-
-  if ($base === 'ac' && stripos($name, 'milan') !== false)     $base = 'acmilan';
-  if ($base === 'as' && stripos($name, 'roma')  !== false)     $base = 'asroma';
-  if (strpos($base,'hellas')!==false || strpos($base,'verona')!==false) $base = 'hellasverona';
-
-  $slug = $alias[$base] ?? $base ?: 'team';
-  return "/assets/logos/{$slug}.webp";
+  if ($pdo->inTransaction()) { $pdo->rollBack(); }
+  // LOG dettagliato
+  error_log('[save_selection] exception: '.$e->getMessage().' // line '.$e->getLine());
+  respond(['ok'=>false,'error'=>'exception'], 500);
 }
