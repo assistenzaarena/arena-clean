@@ -206,6 +206,8 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     .muted{color:#aaa}
     .row-actions{display:flex; gap:8px}
   </style>
+  <!-- ESPONGO CSRF PER L'ESEMPIO AJAX -->
+  <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
 </head>
 <body>
 <?php require $ROOT . '/header_admin.php'; ?>
@@ -273,6 +275,26 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
                   <input type="hidden" name="row_id" value="<?php echo (int)$e['id']; ?>">
                   <button class="btn" type="submit" style="background:#e62329;border-color:#e62329;">Elimina</button>
                 </form>
+
+                <!-- =========================
+                     (AGGIUNTA 1) Form risultato evento
+                     ========================= -->
+                <form method="post" action="/admin/set_event_result.php" style="display:inline; margin-left:6px;">
+                  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                  <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+                  <input type="hidden" name="event_id" value="<?php echo (int)$e['id']; ?>">
+                  <select name="result_status">
+                    <option value="home_win">Casa vince</option>
+                    <option value="away_win">Trasferta vince</option>
+                    <option value="draw">Pareggio</option>
+                    <option value="postponed">Rinviata</option>
+                    <option value="void">Annullata</option>
+                  </select>
+                  <input type="hidden" name="redirect" value="1">
+                  <button class="btn" type="submit">Aggiorna</button>
+                </form>
+                <!-- ========================= -->
+
               </td>
             </tr>
           <?php endforeach; ?>
@@ -309,6 +331,31 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     <a class="btn" href="/admin/gestisci_tornei.php">Torna alla lista</a>
   </div>
 </div>
+
+<!-- =========================
+     (AGGIUNTA 2) Helper AJAX opzionale
+     ========================= -->
+<script>
+  // Esempio opzionale: aggiorna risultato via fetch senza ricaricare
+  // Usa: aggiornaRisultato(<?php echo (int)$id; ?>, EVENT_ID, 'home_win'|'away_win'|'draw'|'postponed'|'void')
+  function aggiornaRisultato(tid, evId, outcome) {
+    fetch('/admin/set_event_result.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: 'csrf='+encodeURIComponent(window.CSRF)
+          +'&tournament_id='+encodeURIComponent(tid)
+          +'&event_id='+encodeURIComponent(evId)
+          +'&result_status='+encodeURIComponent(outcome)
+    })
+    .then(r=>r.json())
+    .then(js=>{
+      if(js && js.ok){ alert('Risultato aggiornato'); }
+      else{ alert('Errore: '+(js && js.error ? js.error : 'sconosciuto')); }
+    })
+    .catch(()=>alert('Errore di rete'));
+  }
+</script>
 
 </body>
 </html>
