@@ -119,6 +119,7 @@ function fb_extract_fixtures_minimal(array $api_json): array {
     }
     return $out;
 }
+
 /**
  * FETCH singolo fixture per ID (API-FOOTBALL: fixtures?id=...)
  */
@@ -141,4 +142,73 @@ function fb_extract_one_fixture_minimal(array $api_json): ?array {
         'home_id'    => $fx['teams']['home']['id'] ?? null,
         'away_id'    => $fx['teams']['away']['id'] ?? null,
     ];
+}
+
+/* =========================================================================
+ *  AGGIUNTE MINIME per preload round N+1 (richieste)
+ *  - NON rompono nulla: funzioni nuove, gli alias esistenti restano invariati
+ * ========================================================================= */
+
+/** Converte ISO8601 → 'Y-m-d H:i:s' (UTC→locale server via strtotime) */
+function fb_iso_to_mysql_datetime(?string $iso): ?string {
+    if (!$iso) return null;
+    $ts = strtotime($iso);
+    if ($ts === false) return null;
+    return date('Y-m-d H:i:s', $ts);
+}
+
+/**
+ * Variante "compatta" per ottenere direttamente l'elenco pronto
+ * per insert in `tournament_events` (campi minimi).
+ *
+ * Ritorna:
+ *  ['ok'=>true, 'status'=>int, 'fixtures'=>[
+ *      ['fixture_id'=>int, 'home'=>string, 'away'=>string, 'kickoff_at'=>'Y-m-d H:i:s']
+ *  ]]
+ *  (in errore: ['ok'=>false, 'status'=>int, 'error'=>string])
+ */
+function fb_fixtures_matchday_compact(int $league_id, string $season_human, int $matchday, string $roundLabelPattern = 'Regular Season - %d'): array {
+    $resp = fb_fixtures_matchday($league_id, $season_human, $matchday, $roundLabelPattern);
+    if (!$resp['ok']) {
+        return ['ok'=>false, 'status'=>$resp['status'], 'error'=>$resp['error'] ?? 'Errore API'];
+    }
+    $fixtures = [];
+    $json = $resp['data'];
+    if (!isset($json['response']) || !is_array($json['response'])) {
+        return ['ok'=>true, 'status'=>$resp['status'], 'fixtures'=>[]];
+    }
+    foreach ($json['response'] as $fx) {
+        $fixtures[] = [
+            'fixture_id' => $fx['fixture']['id'] ?? null,
+            'home'       => $fx['teams']['home']['name'] ?? null,
+            'away'       => $fx['teams']['away']['name'] ?? null,
+            'kickoff_at' => fb_iso_to_mysql_datetime($fx['fixture']['date'] ?? null),
+        ];
+    }
+    return ['ok'=>true, 'status'=>$resp['status'], 'fixtures'=>$fixtures];
+}
+
+/**
+ * Alias comodo se vuoi recuperare per "label round" (coppe).
+ * Stesso formato della compact precedente.
+ */
+function fb_fixtures_round_label_compact(int $league_id, string $season_human, string $round_label): array {
+    $resp = fb_fixtures_round_label($league_id, $season_human, $round_label);
+    if (!$resp['ok']) {
+        return ['ok'=>false, 'status'=>$resp['status'], 'error'=>$resp['error'] ?? 'Errore API'];
+    }
+    $fixtures = [];
+    $json = $resp['data'];
+    if (!isset($json['response']) || !is_array($json['response'])) {
+        return ['ok'=>true, 'status'=>$resp['status'], 'fixtures'=>[]];
+    }
+    foreach ($json['response'] as $fx) {
+        $fixtures[] = [
+            'fixture_id' => $fx['fixture']['id'] ?? null,
+            'home'       => $fx['teams']['home']['name'] ?? null,
+            'away'       => $fx['teams']['away']['name'] ?? null,
+            'kickoff_at' => fb_iso_to_mysql_datetime($fx['fixture']['date'] ?? null),
+        ];
+    }
+    return ['ok'=>true, 'status'=>$resp['status'], 'fixtures'=>$fixtures];
 }
