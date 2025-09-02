@@ -29,7 +29,7 @@ try {
   // 1) Torneo: OPEN e prima del lock
   try {
     // [STEP 2] includo id + current_round_no per il controllo regola
-    $tq = $pdo->prepare("SELECT id, current_round_no, status, lock_at, cost_per_life FROM tournaments WHERE id = ? LIMIT 1");
+    $tq = $pdo->prepare("SELECT id, current_round_no, status, lock_at, choices_locked, cost_per_life FROM tournaments WHERE id = ? LIMIT 1");
     $tq->execute([$tid]);
     $t = $tq->fetch(PDO::FETCH_ASSOC);
   } catch (Throwable $e) {
@@ -38,13 +38,12 @@ try {
   if (!$t)                             jexit(['ok'=>false,'error'=>'not_found']);
   if (($t['status'] ?? '') !== 'open') jexit(['ok'=>false,'error'=>'not_open']);
 
-  // [STEP 2] blocco iscrizione dal round 2 in poi, o a -5' dal primo kickoff del round 1
-  if (enroll_family_blocked_now($pdo, $t)) {
+  // [NUOVO GUARD FERREO] consentito SOLO prima del lock del round 1
+  $lockedNow = ((int)($t['choices_locked'] ?? 0) === 1)
+            || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time());
+  if ((int)($t['current_round_no'] ?? 1) !== 1 || $lockedNow || enroll_family_blocked_now($pdo, $t)) {
     jexit(['ok'=>false,'error'=>'locked']);
   }
-
-  if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time())
-                                       jexit(['ok'=>false,'error'=>'locked']);
 
   $cost = (int)$t['cost_per_life'];
 
