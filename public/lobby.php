@@ -335,6 +335,7 @@ btnOk.addEventListener('click', function() {
 </script>
 
 <script src="/assets/winner_popup.js?v=1"></script>
+  <script src="/assets/lobby_fix.js?v=1"></script>
 
   <?php require __DIR__ . '/footer.php'; ?>
 
