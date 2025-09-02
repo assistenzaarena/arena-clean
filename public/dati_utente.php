@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $user['phone'] = $phone;
       $success = 'Dati aggiornati con successo.';
     } catch (Throwable $e) {
-      // error_log('[dati_utente] '.$e->getMessage()); // lasciato commentato per non cambiare comportamento
+      // error_log('[dati_utente] '.$e->getMessage());
       $errors['__'] = 'Errore interno. Riprova.';
     }
   }
@@ -158,17 +158,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .readonly{background:#15171c;border:1px solid rgba(255,255,255,.12);color:#cfcfcf}
     .error-inline{color:#ff6b6b;font-size:12px;margin-top:4px}
 
-    /* === AGGIUNTA: biglietto da visita con logo dietro e testi centrati maiuscoli === */
-    .profile-card { position:relative; background:#111; border:1px solid rgba(255,255,255,.15);
-      border-radius:14px; overflow:hidden; padding:40px 20px; margin-bottom:20px; text-align:center; color:#fff; }
-    .profile-card .profile-overlay { position:absolute; inset:0; background:url('/assets/logo_arena.png') no-repeat center center;
-      background-size:220px; opacity:.10; }
-    .profile-card .profile-content { position:relative; z-index:1; letter-spacing:1px; }
-    .profile-card .profile-content div { margin:8px 0; font-weight:900; text-transform:uppercase; }
-    .profile-code{ font-size:14px; color:#ffbaba; }
-    .profile-username{ font-size:22px; }
-    .profile-name{ font-size:18px; }
-    .profile-credits{ font-size:20px; color:#00c074; }
+    /* === AGGIUNTA: biglietto da visita premium === */
+    .profile-card {
+      position:relative;
+      background: radial-gradient(1000px 600px at 50% -120px, rgba(230,35,41,.25) 0%, rgba(0,0,0,0) 60%), #0f1114;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:14px;
+      overflow:hidden;
+      padding:48px 20px 40px;
+      margin-bottom:20px;
+      text-align:center;
+      color:#fff;
+      box-shadow:0 24px 60px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .profile-card .profile-overlay{
+      position:absolute; inset:0;
+      background:url('/assets/logo_arena.png') no-repeat center center;
+      background-size:360px;          /* LOGO PIÙ GRANDE */
+      opacity:.18;                    /* PIÙ VISIBILE */
+      filter: saturate(120%);
+    }
+    .profile-card .profile-content{ position:relative; z-index:1; letter-spacing:.08em; }
+    .profile-card .profile-content div{ margin:10px 0; font-weight:900; text-transform:uppercase; }
+
+    .profile-code    { font-size:28px; color:#ffffff; text-shadow:0 1px 0 rgba(0,0,0,.35); }
+    .profile-username{ font-size:24px; color:#f5f5f5; }
+    .profile-name    { font-size:20px; color:#eaeaea; }
+    .profile-credits { font-size:22px; color:#00c074; letter-spacing:.12em; }
     /* === FINE AGGIUNTA === */
   </style>
 </head>
@@ -191,17 +207,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </ul>
     <?php endif; ?>
 
-    <!-- === SOSTITUZIONE: biglietto da visita (logo + testi centrati) === -->
+    <!-- === Biglietto da visita premium (logo + testi centrati) === -->
     <div class="profile-card">
       <div class="profile-overlay"></div>
       <div class="profile-content">
-        <div class="profile-code">Codice utente: <?php echo strtoupper(htmlspecialchars($user['user_code'] ?? '—')); ?></div>
+        <div class="profile-code"><?php echo strtoupper(htmlspecialchars($user['user_code'] ?? '—')); ?></div>
         <div class="profile-username"><?php echo strtoupper(htmlspecialchars($user['username'] ?? '—')); ?></div>
         <div class="profile-name"><?php echo strtoupper(htmlspecialchars(trim(($user['nome'] ?? '').' '.($user['cognome'] ?? '')))); ?></div>
-        <div class="profile-credits"><?php echo number_format((float)($user['crediti'] ?? 0), 0, ',', '.'); ?> crediti</div>
+        <div class="profile-credits"><?php echo number_format((float)($user['crediti'] ?? 0), 0, ',', '.'); ?> CREDITI</div>
       </div>
     </div>
-    <!-- === FINE SOSTITUZIONE === -->
+    <!-- === FINE biglietto === -->
 
     <!-- Form aggiornamento -->
     <form method="post" action="">
