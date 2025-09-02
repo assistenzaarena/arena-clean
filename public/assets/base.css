@@ -60,50 +60,27 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
-/* Sticky footer universale (robusto) */
-html, body { height: 100%; }
-
+/* Fallback definitivo: il contenitore centrale prende lo spazio rimanente */
 body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
+header.hdr, nav.subhdr, footer { flex: 0 0 auto; }
 
-/* Questi non crescono */
-body > header.hdr,
-body > nav.subhdr,
-body > footer {
-  flex: 0 0 auto;
+/* Se troviamo un main → è lui il contenuto elastico */
+main { flex: 1 0 auto; }
+
+/* Se non c'è main, prendiamo il primo contenitore noto come elastico */
+.page, .page-root, .content, .wrap {
+  flex: 1 0 auto;
 }
 
-/* Footer sempre in fondo quando la pagina è corta */
-body > footer {
-  margin-top: auto;
+/* In ultima istanza, prendiamo il PRIMO figlio utile dopo nav (o dopo header) */
+header.hdr + nav.subhdr + *:not(footer),
+header.hdr + *:not(nav):not(footer) {
+  flex: 1 0 auto;
 }
 
-/* === CONTENUTO ELASTICO: “primo figlio utile” dopo header/subheader === */
-
-/* Caso A: header + subheader + contenuto */
-body > header.hdr + nav.subhdr + *:not(footer) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* Caso B: header senza subheader */
-body > header.hdr + *:not(nav):not(footer) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* Caso C: nessun header/subheader (pagine semplici) */
-body > *:not(header):not(nav):not(footer):first-child {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* (Facoltativo) un filo di respiro sotto i contenuti */
-body > header.hdr + nav.subhdr + *:not(footer),
-body > header.hdr + *:not(nav):not(footer),
-body > *:not(header):not(nav):not(footer):first-child {
-  padding-bottom: 12px;
-}
+/* Spazio di respiro minimo sotto */
+main, .page, .page-root, .content, .wrap { padding-bottom: 12px; }
