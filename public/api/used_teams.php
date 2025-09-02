@@ -1,5 +1,5 @@
 <?php
-// public/api/used_teams.php
+// public/api/used_teams.ph
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
