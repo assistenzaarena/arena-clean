@@ -157,6 +157,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .meta-box dd{margin:0 0 8px 0;font-weight:900}
     .readonly{background:#15171c;border:1px solid rgba(255,255,255,.12);color:#cfcfcf}
     .error-inline{color:#ff6b6b;font-size:12px;margin-top:4px}
+
+    /* === AGGIUNTA: biglietto da visita con logo dietro e testi centrati maiuscoli === */
+    .profile-card { position:relative; background:#111; border:1px solid rgba(255,255,255,.15);
+      border-radius:14px; overflow:hidden; padding:40px 20px; margin-bottom:20px; text-align:center; color:#fff; }
+    .profile-card .profile-overlay { position:absolute; inset:0; background:url('/assets/logo_arena.png') no-repeat center center;
+      background-size:220px; opacity:.10; }
+    .profile-card .profile-content { position:relative; z-index:1; letter-spacing:1px; }
+    .profile-card .profile-content div { margin:8px 0; font-weight:900; text-transform:uppercase; }
+    .profile-code{ font-size:14px; color:#ffbaba; }
+    .profile-username{ font-size:22px; }
+    .profile-name{ font-size:18px; }
+    .profile-credits{ font-size:20px; color:#00c074; }
+    /* === FINE AGGIUNTA === */
   </style>
 </head>
 <body>
@@ -178,19 +191,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </ul>
     <?php endif; ?>
 
-    <!-- Meta non modificabili -->
-    <dl class="meta-box">
-      <dt>Codice utente</dt>
-      <dd><?php echo htmlspecialchars($user['user_code'] ?? '—'); ?></dd>
-      <dt>Nome</dt>
-      <dd><?php echo htmlspecialchars($user['nome'] ?? '—'); ?></dd>
-      <dt>Cognome</dt>
-      <dd><?php echo htmlspecialchars($user['cognome'] ?? '—'); ?></dd>
-      <dt>Username</dt>
-      <dd><?php echo htmlspecialchars($user['username'] ?? '—'); ?></dd>
-      <dt>Crediti</dt>
-      <dd><?php echo number_format((float)($user['crediti'] ?? 0), 0, ',', '.'); ?></dd>
-    </dl>
+    <!-- === SOSTITUZIONE: biglietto da visita (logo + testi centrati) === -->
+    <div class="profile-card">
+      <div class="profile-overlay"></div>
+      <div class="profile-content">
+        <div class="profile-code">Codice utente: <?php echo strtoupper(htmlspecialchars($user['user_code'] ?? '—')); ?></div>
+        <div class="profile-username"><?php echo strtoupper(htmlspecialchars($user['username'] ?? '—')); ?></div>
+        <div class="profile-name"><?php echo strtoupper(htmlspecialchars(trim(($user['nome'] ?? '').' '.($user['cognome'] ?? '')))); ?></div>
+        <div class="profile-credits"><?php echo number_format((float)($user['crediti'] ?? 0), 0, ',', '.'); ?> crediti</div>
+      </div>
+    </div>
+    <!-- === FINE SOSTITUZIONE === -->
 
     <!-- Form aggiornamento -->
     <form method="post" action="">
