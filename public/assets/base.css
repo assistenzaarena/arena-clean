@@ -64,3 +64,11 @@ button {
 body {
   padding-bottom: 40px; /* alza il footer di 40px */
 }
+
+/* Layout a colonna: header + contenuto elastico + footer (più corto) */
+html, body { height: auto; min-height: 100%; }
+body {
+  min-height: 90vh;   /* invece di 100vh, la pagina è più corta */
+  display: flex;
+  flex-direction: column;
+}
