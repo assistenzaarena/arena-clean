@@ -25,35 +25,28 @@ function team_slug(string $name): string {
 
 try {
   // 1) round corrente
-  $stR = $pdo->prepare("SELECT current_round_no FROM tournaments WHERE id=:tid LIMIT 1");
-  $stR->execute([':tid'=>$tid]);
+  $stR = $pdo->prepare("SELECT current_round_no FROM tournaments WHERE id=? LIMIT 1");
+  $stR->execute([$tid]);
   $current_round_no = (int)$stR->fetchColumn();
   if ($current_round_no <= 0) $current_round_no = 1;
 
   // 2) selezioni SOLO del round corrente:
-  //    - unisco ts -> events per leggere round_no
   //    - prendo per ogni life_index la selezione più recente (MAX id) *di questo round*
   $sql = "
     SELECT ts.life_index, ts.side, e.home_team_name, e.away_team_name
     FROM tournament_selections ts
-    JOIN tournament_events e
-      ON e.id = ts.event_id
-     AND e.tournament_id = ts.tournament_id
+    JOIN tournament_events e ON e.id = ts.event_id
     JOIN (
-      SELECT ts2.life_index, MAX(ts2.id) AS max_id
-      FROM tournament_selections ts2
-      JOIN tournament_events e2
-        ON e2.id = ts2.event_id
-       AND e2.tournament_id = ts2.tournament_id
-      WHERE ts2.user_id = :u
-        AND ts2.tournament_id = :t
-        AND e2.round_no = :r
-      GROUP BY ts2.life_index
+      SELECT life_index, MAX(id) AS max_id
+      FROM tournament_selections
+      WHERE user_id = ? AND tournament_id = ? AND round_no = ?
+      GROUP BY life_index
     ) x ON x.max_id = ts.id
+    WHERE ts.tournament_id = ? AND ts.user_id = ? AND ts.round_no = ?
     ORDER BY ts.life_index ASC
   ";
   $q = $pdo->prepare($sql);
-  $q->execute([':u'=>$uid, ':t'=>$tid, ':r'=>$current_round_no]);
+  $q->execute([$uid, $tid, $current_round_no, $tid, $uid, $current_round_no]);
   $rows = $q->fetchAll(PDO::FETCH_ASSOC);
 
   // 3) mappo in output per la UI (logo accanto al cuore)
@@ -69,5 +62,5 @@ try {
   echo json_encode(['ok'=>true,'items'=>$out, 'round'=>$current_round_no]);
 } catch (Throwable $e) {
   error_log('[get_selections] '.$e->getMessage());
-  echo json_encode(['ok'=>false,'error'=>'exception']);
+  echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]);
 }
