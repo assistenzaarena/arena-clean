@@ -284,12 +284,13 @@ try {
         }
 
         // 4) upsert selezione (storico limitato: mantengo il tuo comportamento originale)
+
         $pdo->beginTransaction();
 
-        // Provo a mantenere UNA riga per vita (comportamento precedente) se esiste, altrimenti inserisco
+        // >>> MODIFICA 1 (compat mode): cerca riga esistente **nello stesso round**
         $sx = $pdo->prepare("SELECT id, selection_code FROM tournament_selections
-                             WHERE user_id=? AND tournament_id=? AND life_index=? LIMIT 1");
-        $sx->execute([$user_id, $tournament_id, $life_index]);
+                             WHERE user_id=? AND tournament_id=? AND life_index=? AND round_no=? LIMIT 1");
+        $sx->execute([$user_id, $tournament_id, $life_index, $round_now]);
         $row = $sx->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
@@ -304,10 +305,11 @@ try {
             }
         } else {
             $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
+            // >>> MODIFICA 2 (compat mode): inserisci anche **round_no**
             $ins = $pdo->prepare("INSERT INTO tournament_selections
-                  (tournament_id, user_id, life_index, event_id, side, selection_code, created_at, locked_at, finalized_at)
-                  VALUES (?,?,?,?,?,?, NOW(), NULL, NULL)");
-            $ins->execute([$tournament_id, $user_id, $life_index, $event_id, $side, $selCode]);
+                  (tournament_id, user_id, life_index, round_no, event_id, side, selection_code, created_at, locked_at, finalized_at)
+                  VALUES (?,?,?,?,?,?,?, NOW(), NULL, NULL)");
+            $ins->execute([$tournament_id, $user_id, $life_index, $round_now, $event_id, $side, $selCode]);
         }
 
         $pdo->commit();
