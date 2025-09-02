@@ -20,6 +20,9 @@
         document.querySelectorAll('.life-heart').forEach(function (x) { x.classList.remove('life-heart--active'); });
         h.classList.add('life-heart--active');
         selectedLife = parseInt(h.getAttribute('data-life') || '0', 10);
+
+        // NEW: aggiorna squadre disabilitate per la vita selezionata (usate/bloccate)
+        refreshDisabledTeams(selectedLife);
       });
     });
   }
@@ -35,6 +38,41 @@
     img.alt = 'Pick';
     img.onerror = function(){ this.remove(); };
     heart.appendChild(img);
+  }
+
+  // NEW: colora grigio le squadre già usate o non disponibili nel round corrente
+  function refreshDisabledTeams(lifeIndex){
+    if (lifeIndex === null || typeof lifeIndex === 'undefined') return;
+
+    fetch('/api/used_teams.php?tournament_id=' + encodeURIComponent(TOURNAMENT_ID) + '&life_index=' + encodeURIComponent(String(lifeIndex)), {
+      method: 'GET',
+      credentials: 'same-origin'
+    })
+    .then(function(r){ return r.text(); })
+    .then(function(txt){
+      var js = null; try { js = txt ? JSON.parse(txt) : null; } catch(e){}
+      if (!js || !js.ok) return;
+
+      // reset
+      document.querySelectorAll('.team-side').forEach(function(el){
+        el.classList.remove('disabled');
+      });
+
+      // disabilita già usate
+      (js.used || []).forEach(function(teamId){
+        document.querySelectorAll('.team-side[data-team-id="'+ teamId +'"]').forEach(function(el){
+          el.classList.add('disabled');
+        });
+      });
+
+      // disabilita bloccate (evento non selezionabile nel round corrente)
+      (js.blocked || []).forEach(function(teamId){
+        document.querySelectorAll('.team-side[data-team-id="'+ teamId +'"]').forEach(function(el){
+          el.classList.add('disabled');
+        });
+      });
+    })
+    .catch(function(){ /* silenzioso */ });
   }
 
   // Carica scelte correnti e attacca i loghi accanto ai cuori
@@ -63,6 +101,13 @@
   document.querySelectorAll('.event-card .team-side').forEach(function (sideEl) {
     sideEl.addEventListener('click', function () {
       if (inFlight) return;
+
+      // NEW: blocca click su squadre disabilitate
+      if (sideEl.classList.contains('disabled')) {
+        if (window.showMsg) window.showMsg('Non selezionabile', 'Questa squadra non è disponibile con la vita selezionata.', 'error');
+        return;
+      }
+
       if (selectedLife === null) {
         if (window.showMsg) window.showMsg('Seleziona una vita', 'Seleziona prima un cuore (vita) e poi la squadra.', 'error');
         return;
@@ -108,6 +153,8 @@
           else if (msg === 'bad_csrf')           msg = 'Sessione scaduta: ricarica la pagina.';
           else if (msg === 'life_out_of_range')  msg = 'Indice vita non valido.';
           else if (msg === 'event_invalid')      msg = 'Evento non valido.';
+          else if (msg === 'team_already_used')  msg = 'Con questa vita hai già usato questa squadra.';
+          else if (msg === 'event_wrong_round')  msg = 'L’evento non appartiene al round corrente.';
           else if (msg === 'exception')          msg = 'Errore interno.';
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
