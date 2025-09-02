@@ -1,17 +1,16 @@
-<?php
-// [SCOPO] Footer unico per tutte le pagine (guest, user, admin).
-// [USO]   Includi alla fine di ogni pagina, prima di </body>:
-//         <?php require __DIR__ . '/footer.php'; ?>
-?>
+<!-- Footer unico per tutte le pagine (guest, user, admin).
+     Include questo file a fine pagina, prima di </body>.
+     Richiede che in header_user.php, subito dopo la subheader, sia aperto:
+     <div class="page-root">  (vedi sotto patch 2) -->
+
 <link rel="stylesheet" href="/assets/footer.css">
 
-<!-- Chiusura wrapper centrale elastico aperto dopo la subheader -->
+<!-- Chiudo il wrapper centrale aperto in header_user.php -->
 </div><!-- /.page-root -->
 
 <footer class="site-footer" role="contentinfo">
   <div class="site-footer__inner">
 
-    <!-- NAV LINK LEGALI / INFO -->
     <nav class="site-footer__nav" aria-label="Link utili e legali">
       <ul class="footer-menu">
         <li><a href="/chi-siamo">Chi siamo</a></li>
@@ -27,7 +26,6 @@
       </ul>
     </nav>
 
-    <!-- META: © anno + brand + “torna su” -->
     <div class="site-footer__meta">
       <span>© <span id="footer-year"></span> ARENA. Tutti i diritti riservati.</span>
       <a class="back-to-top" href="#" aria-label="Torna all’inizio">↑</a>
@@ -37,15 +35,15 @@
 </footer>
 
 <script>
-// [RIGA] Inserisce automaticamente l’anno corrente
-var fy = document.getElementById('footer-year');
-if (fy) fy.textContent = new Date().getFullYear();
+  // Anno corrente
+  var fy = document.getElementById('footer-year');
+  if (fy) fy.textContent = new Date().getFullYear();
 
-// [RIGA] Torna su
-document.addEventListener('click', function(e){
-  var a = e.target.closest('.back-to-top');
-  if (!a) return;
-  e.preventDefault();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+  // Torna su
+  document.addEventListener('click', function(e){
+    var a = e.target.closest('.back-to-top');
+    if (!a) return;
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 </script>
