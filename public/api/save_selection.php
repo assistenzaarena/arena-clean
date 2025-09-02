@@ -187,5 +187,6 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     error_log('[save_selection] '.$e->getMessage());
+    // DEBUG TEMPORANEO: esponi il messaggio così capiamo subito
     respond(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()], 500);
 }
