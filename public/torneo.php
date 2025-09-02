@@ -199,6 +199,12 @@ try {
     .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
     .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
 
+  .team-side.disabled {
+  pointer-events: none;
+  opacity: 0.3;
+  filter: grayscale(100%);
+  cursor: not-allowed;
+}
     @media (max-width: 720px){ .events-grid{ grid-template-columns: 1fr; } }
 
     /* ====== AGGIUNTA: banner "in attesa" ====== */
