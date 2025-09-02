@@ -105,36 +105,35 @@
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
 
-/* === Layout lobby: 2 colonne affiancate per le card === */
+/* === LOBBY: 2 colonne per le card, titoli full-width === */
 
-/* Il contenitore principale diventa flessibile e wrappa le card */
+/* Il contenitore principale della lobby diventa una grid */
 .wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  /* non tocchiamo padding/margini già esistenti */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 14px;
 }
 
-/* I titoli/separatori della lobby prendono tutta la riga */
+/* I titoli/separatori della lobby occupano sempre tutta la riga */
 .wrap h2,
 .wrap .lobby-section-title,
 .wrap .section-title {
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
 }
 
-/* Le card si affiancano (2 colonne) */
+/* Le card vengono gestite dalla grid (annulla eventuali width 100%) */
 .wrap .card--ps {
-  /* base: due colonne con gap */
-  flex: 1 1 calc(50% - 16px);
-  min-width: 320px;         /* evita che stringano troppo */
-  margin: 8px;              /* gap uniforme */
+  width: auto !important;
+  margin: 0 !important;      /* lo spazio lo gestisce gap */
 }
 
-/* Responsive: 1 colonna sotto i 900px */
-@media (max-width: 900px) {
-  .wrap .card--ps {
-    flex: 1 1 100%;
-    min-width: 0;
-    margin: 8px 0;
+/* Mobile: una colonna */
+@media (max-width: 900px){
+  .wrap {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
+}
+@media (min-width: 1280px){
+  .wrap { grid-template-columns: repeat(3, minmax(300px, 1fr)); }
 }
