@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .profile-card .profile-overlay{
       position:absolute; inset:0;
       background:url('/assets/logo_arena.png') no-repeat center center;
-      background-size:360px;          /* LOGO PIÙ GRANDE */
+      background-size:300px;          /* LOGO PIÙ GRANDE */
       opacity:.18;                    /* PIÙ VISIBILE */
       filter: saturate(120%);
     }
