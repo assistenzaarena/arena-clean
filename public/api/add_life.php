@@ -29,7 +29,7 @@ if ($tid <= 0 || $user_id <= 0) out(['ok'=>false,'error'=>'bad_params'], 400);
 try {
   // 1) Torneo: open + non lockato + choices_locked
   try {
-    $st = $pdo->prepare("SELECT status, lock_at, cost_per_life, max_lives_per_user, choices_locked FROM tournaments WHERE id = ? LIMIT 1");
+    $st = $pdo->prepare("SELECT status, lock_at, cost_per_life, max_lives_per_user, choices_locked, current_round_no FROM tournaments WHERE id = ? LIMIT 1");
     $st->execute([$tid]);
     $t = $st->fetch(PDO::FETCH_ASSOC);
   } catch (Throwable $e) { out(['ok'=>false,'error'=>'exception','stage'=>'sel_tournament','msg'=>$e->getMessage()], 500); }
@@ -38,6 +38,9 @@ try {
   if ((int)($t['choices_locked'] ?? 0) === 1) out(['ok'=>false,'error'=>'locked'], 409);
   if (($t['status'] ?? '') !== 'open')     out(['ok'=>false,'error'=>'not_open'], 409);
   if (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time())
+                                           out(['ok'=>false,'error'=>'locked'], 409);
+  // >>> NUOVO GUARD: aggiungi vite SOLO al round 1 (prima del lock)
+  if ((int)($t['current_round_no'] ?? 1) !== 1)
                                            out(['ok'=>false,'error'=>'locked'], 409);
 
   $cost = (int)$t['cost_per_life'];
