@@ -7,9 +7,9 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
 
 $ROOT = dirname(__DIR__);
-require_once $ROOT . '/src/config.php';
-require_once $ROOT . '/src/db.php';
-require_once $ROOT . '/src/utils.php';   // generate_unique_code8
+require_once $ROOT.'/src/config.php';
+require_once $ROOT.'/src/db.php';
+require_once $ROOT.'/src/utils.php';   // generate_unique_code8
 
 // helper: JSON oppure redirect (se arriva redirect=1)
 $wantRedirect = !empty($_POST['redirect']);
@@ -64,7 +64,7 @@ if ($tournament_id <= 0) { respond(false, [], 'bad_params'); }
 try {
     // 1) Torneo deve essere OPEN, non oltre lock e non con choices_locked=1
     $tq = $pdo->prepare("
-        SELECT status, lock_at, cost_per_life, choices_locked
+        SELECT status, lock_at, cost_per_life, choices_locked, current_round_no
         FROM tournaments
         WHERE id = ?
         LIMIT 1
@@ -74,6 +74,12 @@ try {
 
     if (!$t) { respond(false, [], 'not_found'); }
     if ($t['status'] !== 'open') { respond(false, [], 'not_open'); }
+
+    // >>> NUOVO GUARD: disiscrizione consentita SOLO al round 1 prima del lock
+    if ((int)($t['current_round_no'] ?? 1) !== 1) {
+        respond(false, [], 'locked');
+    }
+
     if ((int)$t['choices_locked'] === 1) {
         respond(false, [], 'choices_locked'); // blocco manuale da admin
     }
