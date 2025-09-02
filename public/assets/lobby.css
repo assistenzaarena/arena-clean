@@ -105,43 +105,44 @@
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
 
-/* === LOBBY: forza layout a colonne per QUALSIASI contenitore che ospita .card--ps === */
+/* === LOBBY: contenitori che ospitano .card--ps in griglia, 2 colonne (o 3 su schermi larghi) === */
 
-/* 1) Regola universale (Chrome/Edge/Safari): prendi QUALSIASI wrapper che contiene card */
-.wrap :has(> .card--ps) {
+/* Forza il contenitore in griglia quando ha card .card--ps come figli diretti */
+.wrap:has(> .card--ps),
+.lobby-list:has(> .card--ps) {
   display: grid !important;
-  grid-template-columns: repeat(2, minmax(320px, 1fr)) !important;
-  gap: 16px !important;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: stretch;
 }
 
-/* 2) Fallback esplicito per il wrapper reale della lobby (se esiste) */
-.lobby-list {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(320px, 1fr)) !important;
-  gap: 16px !important;
+/* Titoli/separatori dentro lo stesso contenitore su tutta la riga */
+.wrap:has(> .card--ps) > .section-title,
+.wrap:has(> .card--ps) > .lobby-section-title,
+.wrap:has(> .card--ps) > h2 {
+  grid-column: 1 / -1;
+  margin: 8px 0;
 }
 
-/* Le card non impongono larghezze: lascia fare alla grid */
-.wrap .card--ps,
-.lobby-list .card--ps {
+/* Le card dentro la griglia non devono forzare larghezze proprie */
+.wrap:has(> .card--ps) > .card--ps,
+.lobby-list:has(> .card--ps) > .card--ps {
   width: auto !important;
-  margin: 0 !important; /* lo spazio lo dà 'gap' */
+  max-width: none !important;
 }
 
 /* Mobile: 1 colonna */
-@media (max-width: 900px) {
-  .wrap :has(> .card--ps),
-  .lobby-list {
+@media (max-width: 900px){
+  .wrap:has(> .card--ps),
+  .lobby-list:has(> .card--ps) {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
   }
 }
 
-/* Desktop larghi: 3 colonne (opzionale) */
-@media (min-width: 1280px) {
-  .wrap :has(> .card--ps),
-  .lobby-list {
+/* Desktop larghi: 3 colonne (opzionale, tienilo se ti piace) */
+@media (min-width: 1280px){
+  .wrap:has(> .card--ps),
+  .lobby-list:has(> .card--ps) {
     grid-template-columns: repeat(3, minmax(300px, 1fr)) !important;
   }
 }
-
