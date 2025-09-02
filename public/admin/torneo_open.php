@@ -181,14 +181,15 @@ $stCR = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_i
 $stCR->execute([':tid'=>$id, ':r'=>$current_round_no]);
 $eventsCountCurrentRound = (int)$stCR->fetchColumn();
 
-// =============== CARICO EVENTI PER TABELLA (come in origine: tutti del torneo) ===============
+// =============== CARICO EVENTI PER TABELLA (SOLO ROUND CORRENTE) ===============
 $ev = $pdo->prepare("
   SELECT id, fixture_id, home_team_name, away_team_name, is_active
   FROM tournament_events
   WHERE tournament_id = :tid
+    AND round_no = :r
   ORDER BY id ASC
 ");
-$ev->execute([':tid'=>$id]);
+$ev->execute([':tid'=>$id, ':r'=>$current_round_no]);
 $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
