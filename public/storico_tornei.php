@@ -68,7 +68,7 @@ function esito_label(array $payout): string {
     .wrap{max-width:1100px;margin:22px auto;padding:0 16px;color:#fff}
     .page-title{font-size:26px;font-weight:900;margin:0 0 14px}
     .card-red {
-      background: linear-gradient(180deg, #E62329 0%, #8A0F0F 100%); /* stesso rosso delle card lobby */
+      background: linear-gradient(180deg, #5a1516 0%, #8A0F0F 100%); /* stesso rosso delle card lobby */
       border: 1px solid rgba(255,255,255,.15);
       border-radius: 14px;
       box-shadow: 0 8px 28px rgba(0,0,0,.25);
