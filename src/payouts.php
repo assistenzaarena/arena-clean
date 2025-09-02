@@ -86,6 +86,52 @@ function tp_close_and_payout(PDO $pdo, int $tournament_id, array $weights=null):
   $pdo->beginTransaction();
 
   try {
+    /* >>> AGGIUNTA: split forzato se l'admin passa pesi espliciti (anche con n >= 2) */
+    if (is_array($weights) && !empty($weights)) {
+      $den = array_sum($weights);
+      if ($den <= 0 || $pot <= 0) {
+        $pdo->prepare("UPDATE tournaments SET status='closed', closed_at=NOW() WHERE id=?")->execute([$tournament_id]);
+        $pdo->commit();
+        return ['ok'=>true,'mode'=>'proportional','pot'=>0,'weights'=>$weights,'note'=>'forced_no_pot_or_den'];
+      }
+
+      $assigned = 0; $maxUid = null; $maxW = -1;
+      foreach ($weights as $uid => $w) {
+        $uid = (int)$uid; $w = (int)$w;
+        if ($w > $maxW) { $maxW = $w; $maxUid = $uid; }
+        $share = (int) floor($pot * $w / $den);
+        if ($share > 0) {
+          // accredita
+          $pdo->prepare("UPDATE utenti SET crediti = crediti + ? WHERE id = ?")->execute([$share, $uid]);
+          // movement
+          $pdo->prepare("INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
+                         VALUES (?, ?, ?, 'payout', ?, NOW())")
+              ->execute([generate_unique_code8($pdo,'credit_movements','movement_code',8), $uid, $tournament_id, $share]);
+          // rendiconto
+          $pdo->prepare("INSERT INTO tournament_payouts (tournament_id, user_id, amount, reason, ratio_num, ratio_den, note)
+                         VALUES (?, ?, ?, 'proportional', ?, ?, 'Forced split')")
+              ->execute([$tournament_id, $uid, $share, $w, $den]);
+          $assigned += $share;
+        }
+      }
+      // residuo al più pesato
+      $residual = $pot - $assigned;
+      if ($residual > 0 && $maxUid !== null) {
+        $pdo->prepare("UPDATE utenti SET crediti = crediti + ? WHERE id = ?")->execute([$residual, (int)$maxUid]);
+        $pdo->prepare("INSERT INTO credit_movements (movement_code, user_id, tournament_id, type, amount, created_at)
+                       VALUES (?, ?, ?, 'payout', ?, NOW())")
+            ->execute([generate_unique_code8($pdo,'credit_movements','movement_code',8), (int)$maxUid, $tournament_id, $residual]);
+        $pdo->prepare("INSERT INTO tournament_payouts (tournament_id, user_id, amount, reason, ratio_num, ratio_den, note)
+                       VALUES (?, ?, ?, 'proportional', ?, ?, 'Forced residual')")
+            ->execute([$tournament_id, (int)$maxUid, $residual, (int)($weights[$maxUid] ?? 1), (int)$den]);
+      }
+
+      $pdo->prepare("UPDATE tournaments SET status='closed', closed_at=NOW() WHERE id=?")->execute([$tournament_id]);
+      $pdo->commit();
+      return ['ok'=>true,'mode'=>'proportional_forced','pot'=>$pot,'weights'=>$weights];
+    }
+    /* <<< FINE AGGIUNTA */
+
     if ($n === 1) {
       // Winner takes all
       $winner_id = array_key_first($surv);
