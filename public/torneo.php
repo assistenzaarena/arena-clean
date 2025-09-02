@@ -330,34 +330,41 @@ try {
               $aIni  = team_initials($an);
             ?>
             <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
-            <div class="event-card"
-                 data-event-id="<?php echo (int)$ev['id']; ?>"
-                 data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
-                 data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
-              <div class="ec-team team-side" data-side="home" title="Seleziona casa">
-                <span class="logo-wrap">
-                  <img class="team-logo"
-                       src="<?php echo htmlspecialchars($hLogo); ?>"
-                       alt="<?php echo htmlspecialchars($hn); ?>"
-                       onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
-                  <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
-                </span>
-                <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
-              </div>
+            <<div class="event-card"
+     data-event-id="<?php echo (int)$ev['id']; ?>"
+     data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
+     data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
 
-              <div class="ec-vs">VS</div>
+  <div class="ec-team team-side"
+       data-side="home"
+       data-team-id="<?php echo (int)$ev['home_team_id']; ?>"
+       title="Seleziona casa">
+    <span class="logo-wrap">
+      <img class="team-logo"
+           src="<?php echo htmlspecialchars($hLogo); ?>"
+           alt="<?php echo htmlspecialchars($hn); ?>"
+           onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
+      <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
+    </span>
+    <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+  </div>
 
-              <div class="ec-team team-side" data-side="away" title="Seleziona trasferta">
-                <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
-                <span class="logo-wrap">
-                  <img class="team-logo"
-                       src="<?php echo htmlspecialchars($aLogo); ?>"
-                       alt="<?php echo htmlspecialchars($an); ?>"
-                       onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
-                  <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
-                </span>
-              </div>
-            </div>
+  <div class="ec-vs">VS</div>
+
+  <div class="ec-team team-side"
+       data-side="away"
+       data-team-id="<?php echo (int)$ev['away_team_id']; ?>"
+       title="Seleziona trasferta">
+    <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
+    <span class="logo-wrap">
+      <img class="team-logo"
+           src="<?php echo htmlspecialchars($aLogo); ?>"
+           alt="<?php echo htmlspecialchars($an); ?>"
+           onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
+      <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
+    </span>
+  </div>
+</div>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
