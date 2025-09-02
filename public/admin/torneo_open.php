@@ -385,6 +385,23 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     </form>
   </div>
 
+    <div class="card">
+    <h3 style="margin:0 0 10px;">Chiusura torneo</h3>
+    <p class="muted" style="margin:0 0 10px;">
+      Usa questo pulsante solo quando il torneo deve terminare:
+      - se resta 1 solo sopravvissuto → 100% del montepremi a lui;<br>
+      - se non resta nessuno → distribuzione proporzionale.
+    </p>
+    <form method="POST" action="/admin/close_tournament.php" 
+          onsubmit="return confirm('Confermi chiusura e payout del torneo?');">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+      <button class="btn" type="submit" style="background:#0a7;border:1px solid #0a7;color:#fff;">
+        Chiudi torneo &amp; paga
+      </button>
+    </form>
+  </div>
+
   <div>
     <a class="btn" href="/admin/gestisci_tornei.php">Torna alla lista</a>
   </div>
