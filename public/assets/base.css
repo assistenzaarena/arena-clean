@@ -11,6 +11,7 @@ html, body {
   color: #fff;           /* colore testo default */
   font-family: "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.4;
+  height: 100%;          /* base per sticky footer */
 }
 
 /* Box sizing prevedibile */
@@ -60,15 +61,22 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
-/* Spazio extra per il footer in tutte le pagine */
-body {
-  padding-bottom: 40px; /* alza il footer di 40px */
-}
+/* --- Layout base: header + contenuto elastico + footer --- */
 
-/* Layout a colonna: header + contenuto elastico + footer (più corto) */
-html, body { height: auto; min-height: 100%; }
-body {
-  min-height: 60vh;   /* invece di 100vh, la pagina è più corta */
+/* Wrapper centrale (aperto in header, chiuso in footer) */
+.page-root {
+  min-height: 100vh;              /* occupa tutta l’altezza viewport */
   display: flex;
   flex-direction: column;
+}
+
+/* Tutto ciò che non è footer cresce/spinge verso il basso */
+.page-root > :not(footer) {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+/* Footer sempre in fondo, senza gonfiare il body */
+footer {
+  margin-top: auto;
 }
