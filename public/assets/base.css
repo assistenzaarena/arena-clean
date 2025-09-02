@@ -103,4 +103,4 @@ footer {
 }
 
 /* Esempio: pagina profilo volutamente più stretta */
-.auth__card { max-width: 560px; }
+.auth__card { max-width: 860px; }
