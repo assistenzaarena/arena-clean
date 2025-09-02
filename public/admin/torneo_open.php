@@ -14,6 +14,19 @@ require_once $ROOT . '/src/db.php';
 $competitions = require $ROOT . '/src/config/competitions.php';
 require_once $ROOT . '/src/services/football_api.php';
 
+/* === HELPER event_code: genera e tronca alla lunghezza colonna === */
+function gen_event_code(PDO $pdo): string {
+  $sql = "SELECT CHARACTER_MAXIMUM_LENGTH
+          FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'tournament_events'
+            AND COLUMN_NAME = 'event_code'
+          LIMIT 1";
+  $len = (int)($pdo->query($sql)->fetchColumn() ?: 12);
+  $raw = strtoupper(bin2hex(random_bytes(8))); // 16 char
+  return substr($raw, 0, max(1, $len));
+}
+
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 $flash = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
@@ -74,8 +87,8 @@ if ($action === 'add_fixture_api') {
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
 
-  // NEW: genera un event_code univoco
-  $eventCode = 'EV'.bin2hex(random_bytes(4)); // es. EVa1b2c3d
+  // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
+  $eventCode = gen_event_code($pdo);
 
   $pdo->prepare("
     INSERT IGNORE INTO tournament_events
@@ -106,8 +119,8 @@ if ($action === 'add_fixture_manual') {
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
 
-  // NEW: genera un event_code univoco
-  $eventCode = 'EV'.bin2hex(random_bytes(4));
+  // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
+  $eventCode = gen_event_code($pdo);
 
   $pdo->prepare("
     INSERT INTO tournament_events
