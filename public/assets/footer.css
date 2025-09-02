@@ -82,7 +82,6 @@ html, body {
 
 body {
   display: flex;
-  flex-direction: column;
 }
 
 main {
