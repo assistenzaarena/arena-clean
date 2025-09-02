@@ -97,13 +97,13 @@ try {
     $HAS_FALLBACK = !empty($cols['is_fallback']);
     $HAS_CYCLE_NO = !empty($cols['cycle_no']);
 
-    // set di TUTTE le squadre del torneo (home/away)
+    // set di TUTTE le squadre del torneo (home/away) — solo ID > 0
     $stTeams = $pdo->prepare("
       SELECT DISTINCT x.team_id FROM (
-        SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=?
+        SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND home_team_id IS NOT NULL AND home_team_id > 0
         UNION
-        SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=?
-      ) x WHERE x.team_id IS NOT NULL
+        SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND away_team_id IS NOT NULL AND away_team_id > 0
+      ) x
     ");
     $stTeams->execute([$tournament_id, $tournament_id]);
     $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
@@ -143,15 +143,19 @@ try {
         $curCycle = (int)$stC->fetchColumn();
         if ($curCycle <= 0) $curCycle = 1;
 
-        // usate nel ciclo corrente (solo scelte "normali", non fallback)
+        // usate nel ciclo corrente (solo scelte "normali", non fallback), SOLO finalizzate e in round precedenti
         $stU = $pdo->prepare("
           SELECT DISTINCT team_id
           FROM tournament_selections
-          WHERE tournament_id=? AND user_id=? AND life_index=? AND cycle_no=? AND COALESCE(is_fallback,0)=0 AND team_id IS NOT NULL
+          WHERE tournament_id=? AND user_id=? AND life_index=? AND cycle_no=? 
+            AND COALESCE(is_fallback,0)=0 
+            AND team_id IS NOT NULL
+            AND finalized_at IS NOT NULL
+            AND (round_no IS NULL OR round_no < ?)
         ");
-        $stU->execute([$tournament_id, $user_id, $life_index, $curCycle]);
+        $roundNow = (int)$ev['round_no']; // round dell'evento corrente
+        $stU->execute([$tournament_id, $user_id, $life_index, $curCycle, $roundNow]);
         $usedNow   = array_map('intval', $stU->fetchAll(PDO::FETCH_COLUMN));
-        $usedSet   = array_flip($usedNow);
         $usedCount = count($usedNow);
 
         $startNewCycle = ($allCount > 0 && $usedCount >= $allCount);
@@ -176,35 +180,32 @@ try {
                     'msg'=>'Con questa vita hai già usato questa squadra in questo giro.'
                 ], 400);
             }
-            $isFallbackNow = 0; // scelta "normale": avanza il giro
+            $isFallbackNow = 0; // scelta "normale"
         } else {
-            // BLOCCO TOTALE → fallback consentito ma non ripetere la stessa fallback del round precedente
+            // BLOCCO TOTALE → fallback consentito ma non ripetere l'ultima squadra scelta in fallback per questa vita
             $isFallbackNow = 1;
 
-            // ultima selezione di questa vita
-            $stLast = $pdo->prepare("
-              SELECT team_id, COALESCE(is_fallback,0) AS is_fallback, COALESCE(round_no,0) AS round_no
+            // ultima fallback storica di questa vita (non necessariamente il round precedente)
+            $stLastFb = $pdo->prepare("
+              SELECT team_id
               FROM tournament_selections
-              WHERE tournament_id=? AND user_id=? AND life_index=?
+              WHERE tournament_id=? AND user_id=? AND life_index=? AND COALESCE(is_fallback,0)=1
               ORDER BY id DESC
               LIMIT 1
             ");
-            $stLast->execute([$tournament_id, $user_id, $life_index]);
-            $last = $stLast->fetch(PDO::FETCH_ASSOC);
+            $stLastFb->execute([$tournament_id, $user_id, $life_index]);
+            $lastFbTeam = (int)($stLastFb->fetchColumn() ?: 0);
 
-            if ($last && (int)$last['is_fallback'] === 1) {
-                // se round precedente e fallback, vieta ripetere stessa squadra
-                if ($team_chosen_id === (int)$last['team_id']) {
-                    respond([
-                        'ok'=>false,
-                        'error'=>'fallback_same_twice',
-                        'msg'=>'Blocco totale: non puoi ripetere la stessa fallback del round precedente.'
-                    ], 400);
-                }
+            if ($lastFbTeam > 0 && $team_chosen_id === $lastFbTeam) {
+              respond([
+                  'ok'=>false,
+                  'error'=>'fallback_same_twice',
+                  'msg'=>'Blocco totale: non puoi ripetere la stessa fallback della scorsa volta.'
+              ], 400);
             }
         }
 
-        // 4) INSERT **nuova riga** (mantengo storico round per vita) + metadati ciclo/fallback
+        // 4) UPSERT (una riga per round/vita) + metadati ciclo/fallback
         $pdo->beginTransaction();
 
         $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
@@ -227,6 +228,15 @@ try {
           VALUES (?,?,?,?,?,?, NOW(), NULL, NULL"
             . (empty($placeExtra) ? "" : ", " . implode(',', $placeExtra)) .
             ")
+          ON DUPLICATE KEY UPDATE
+            event_id = VALUES(event_id),
+            side     = VALUES(side),
+            ".($HAS_TEAM_ID  ? "team_id = VALUES(team_id)," : "")."
+            ".($HAS_FALLBACK ? "is_fallback = VALUES(is_fallback)," : "")."
+            ".($HAS_CYCLE_NO ? "cycle_no = VALUES(cycle_no)," : "")."
+            locked_at = NULL,
+            finalized_at = NULL,
+            selection_code = IFNULL(selection_code, VALUES(selection_code))
         ";
         $ins = $pdo->prepare($sql);
         $params = [$tournament_id, $user_id, $life_index, $event_id, $side, $selCode];
@@ -258,6 +268,18 @@ try {
         $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
         $usedByLife = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
 
+        // set di TUTTE le squadre (ID > 0)
+        $stTeams = $pdo->prepare("
+          SELECT DISTINCT x.team_id FROM (
+            SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND home_team_id IS NOT NULL AND home_team_id > 0
+            UNION
+            SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND away_team_id IS NOT NULL AND away_team_id > 0
+          ) x
+        ");
+        $stTeams->execute([$tournament_id, $tournament_id]);
+        $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
+        $allCount = count($teamsAll);
+
         // eccezione A: giro completo (approssimata all'intera storia)
         $usedAll = ($allCount > 0 && count(array_unique($usedByLife)) >= $allCount);
 
@@ -265,6 +287,26 @@ try {
         $remaining = $usedAll ? $teamsAll : array_values(array_diff($teamsAll, $usedByLife));
 
         // rimanenti selezionabili nel round corrente
+        $checkSelectable = function(array $remaining) use ($pdo, $tournament_id, $ev) : bool {
+          if (empty($remaining)) return false;
+          $place = implode(',', array_fill(0, count($remaining), '?'));
+          $sql = "
+            SELECT COUNT(*) FROM tournament_events
+            WHERE tournament_id = ?
+              AND round_no = ?
+              AND is_active = 1
+              AND pick_locked = 0
+              AND (
+                home_team_id IN ($place)
+                OR
+                away_team_id IN ($place)
+              )
+          ";
+          $params = array_merge([$tournament_id, (int)$ev['round_no']], $remaining, $remaining);
+          $st = $pdo->prepare($sql);
+          $st->execute($params);
+          return ((int)$st->fetchColumn() > 0);
+        };
         $hasSelectableRemaining = $checkSelectable($remaining);
 
         $alreadyUsed = in_array($team_chosen_id, $usedByLife, true);
@@ -280,17 +322,15 @@ try {
             }
         } else {
             // BLOCCO TOTALE → fallback consentito (in compat non posso marcare né bloccare ripetizione consecutiva in modo certo)
-            // niente altro da fare
         }
 
         // 4) upsert selezione (storico limitato: mantengo il tuo comportamento originale)
-
         $pdo->beginTransaction();
 
-        // >>> MODIFICA 1 (compat mode): cerca riga esistente **nello stesso round**
+        // Una riga per vita → aggiorno se esiste, altrimenti inserisco
         $sx = $pdo->prepare("SELECT id, selection_code FROM tournament_selections
-                             WHERE user_id=? AND tournament_id=? AND life_index=? AND round_no=? LIMIT 1");
-        $sx->execute([$user_id, $tournament_id, $life_index, $round_now]);
+                             WHERE user_id=? AND tournament_id=? AND life_index=? LIMIT 1");
+        $sx->execute([$user_id, $tournament_id, $life_index]);
         $row = $sx->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
@@ -305,11 +345,10 @@ try {
             }
         } else {
             $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
-            // >>> MODIFICA 2 (compat mode): inserisci anche **round_no**
             $ins = $pdo->prepare("INSERT INTO tournament_selections
-                  (tournament_id, user_id, life_index, round_no, event_id, side, selection_code, created_at, locked_at, finalized_at)
-                  VALUES (?,?,?,?,?,?,?, NOW(), NULL, NULL)");
-            $ins->execute([$tournament_id, $user_id, $life_index, $round_now, $event_id, $side, $selCode]);
+                  (tournament_id, user_id, life_index, event_id, side, selection_code, created_at, locked_at, finalized_at)
+                  VALUES (?,?,?,?,?,?, NOW(), NULL, NULL)");
+            $ins->execute([$tournament_id, $user_id, $life_index, $event_id, $side, $selCode]);
         }
 
         $pdo->commit();
