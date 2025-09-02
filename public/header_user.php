@@ -101,4 +101,8 @@ if (!empty($_SESSION['user_id'])) {
     </ul>
   </div>
 </nav>
+</nav>
+
+<!-- Apertura wrapper centrale elastico -->
+<div class="page-root">
 <script src="/assets/movements_popup.js?v=1"></script>
