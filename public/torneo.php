@@ -56,11 +56,23 @@ $g      = isset($torneo['guaranteed_prize']) ? (float)$torneo['guaranteed_prize'
 $potNow = max($g, $totLives * $buyin * ($pp/100));
 /* ============================================ */
 
+/* ====== Round corrente + flag "in attesa" ====== */
+$currentRoundNo = (int)($torneo['current_round_no'] ?? 1);
+$waitingRound = false;
+try {
+  $st = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=:tid AND round_no=:r");
+  $st->execute([':tid'=>$id, ':r'=>$currentRoundNo]);
+  $waitingRound = ($torneo['status'] === 'open') && ((int)$st->fetchColumn() === 0);
+} catch (Throwable $e) {
+  $waitingRound = false;
+}
+
 /* ====== Eventi SOLO del round corrente ====== */
 $events = [];
 try {
   $ev = $pdo->prepare("
-    SELECT id, fixture_id, home_team_name, away_team_name, home_team_id, away_team_id, kickoff
+    SELECT id, fixture_id, home_team_name, away_team_name,
+           home_team_id, away_team_id, kickoff
     FROM tournament_events
     WHERE tournament_id = :tid
       AND round_no = :r
