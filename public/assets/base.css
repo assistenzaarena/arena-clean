@@ -80,3 +80,27 @@ button {
 footer {
   margin-top: auto;
 }
+
+/* ===== Container unico: allinea tutte le pagine alla larghezza header (lobby style) ===== */
+
+/* Ogni sezione di pagina (figlio diretto di .page-root) usa lo stesso container del header */
+.page-root > * {
+  max-width: var(--container-w);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--pad-x);
+  padding-right: var(--pad-x);
+}
+
+/* Se qualche pagina aveva un max-width più stretto, lo superiamo qui */
+.torneo-wrap,
+.storico-wrap,
+.auth,
+.content,
+.section,
+.wrap {
+  max-width: var(--container-w) !important;
+}
+
+/* Esempio: pagina profilo volutamente più stretta */
+.auth__card { max-width: 560px; }
