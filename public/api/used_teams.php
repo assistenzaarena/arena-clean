@@ -25,18 +25,20 @@ try {
   $tq->execute([$tournament_id]);
   $round_now = (int)$tq->fetchColumn();
 
-  // squadre già usate con questa vita nei round precedenti (ts.round_no < round_now)
+  // === AGGIORNATO: squadre già usate con questa vita nei round precedenti
+  //     usiamo l'ULTIMA selezione per ciascun round < round_now
   $stUsed = $pdo->prepare("
-    SELECT DISTINCT
+    SELECT
       CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END AS team_id
     FROM tournament_selections ts
     JOIN tournament_events te ON te.id = ts.event_id
-    WHERE ts.tournament_id = ?
-      AND ts.user_id = ?
-      AND ts.life_index = ?
-      AND ts.round_no < ?
-      AND ts.finalized_at IS NOT NULL
-      AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
+    JOIN (
+      SELECT round_no, MAX(id) AS max_id
+      FROM tournament_selections
+      WHERE tournament_id = ? AND user_id = ? AND life_index = ? AND round_no < ?
+      GROUP BY round_no
+    ) last ON last.max_id = ts.id
+    WHERE (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
   ");
   $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
   $used = array_map('intval',$stUsed->fetchAll(PDO::FETCH_COLUMN));
