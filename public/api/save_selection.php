@@ -8,7 +8,6 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/utils.php'; // per generate_unique_code8()
 
-// ---------- helper risposta ----------
 function respond(array $js, int $http = 200) {
     http_response_code($http);
     echo json_encode($js);
@@ -40,7 +39,7 @@ if ($tournament_id <= 0 || $event_id <= 0 || $life_index < 0 || !in_array($side,
 
 try {
     // 1) torneo deve essere OPEN e prima del lock (+ controllo choices_locked)
-    $st = $pdo->prepare("SELECT status, lock_at, max_lives_per_user, choices_locked, current_round_no FROM tournaments WHERE id = ? LIMIT 1");
+    $st = $pdo->prepare("SELECT status, lock_at, max_lives_per_user, choices_locked, current_round_no FROM tournaments WHERE id=? LIMIT 1");
     $st->execute([$tournament_id]);
     $t = $st->fetch(PDO::FETCH_ASSOC);
     if (!$t)                    respond(['ok'=>false,'error'=>'not_found'], 404);
@@ -54,7 +53,7 @@ try {
     $current_round_no = (int)($t['current_round_no'] ?? 1);
 
     // 2) iscrizione esistente e life_index valido
-    $se = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id = ? AND tournament_id = ? LIMIT 1");
+    $se = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE user_id=? AND tournament_id=? LIMIT 1");
     $se->execute([$user_id, $tournament_id]);
     $enr = $se->fetch(PDO::FETCH_ASSOC);
     if (!$enr) respond(['ok'=>false,'error'=>'not_enrolled'], 400);
@@ -64,7 +63,7 @@ try {
         respond(['ok'=>false,'error'=>'life_out_of_range'], 400);
     }
 
-    // 3) evento valido e attivo nel torneo (recupero anche dati utili per le regole)
+    // 3) evento valido (e del round corrente) e attivo nel torneo
     $sv = $pdo->prepare("SELECT id, round_no, is_active, pick_locked, home_team_id, away_team_id
                          FROM tournament_events
                          WHERE id=? AND tournament_id=? AND is_active=1
@@ -74,13 +73,16 @@ try {
     if (!$ev) {
         respond(['ok'=>false,'error'=>'event_invalid'], 400);
     }
-    // (opzionale) se vuoi impedire scelte su eventi bloccati:
-    // if ((int)$ev['pick_locked'] === 1) respond(['ok'=>false,'error'=>'locked'], 400);
+    $ev_round = (int)($ev['round_no'] ?? 0);
+    if ($ev_round !== $current_round_no) {
+        respond(['ok'=>false,'error'=>'event_wrong_round','msg'=>'Evento round='.$ev_round.' diverso da round corrente='.$current_round_no], 400);
+    }
 
     // ============ REGOLA "NO TEAM DUPLICATO PER VITA" CON ECCEZIONI ============
     $team_chosen_id = ($side === 'home') ? (int)$ev['home_team_id'] : (int)$ev['away_team_id'];
 
     if ($team_chosen_id) {
+        // 3a) set di TUTTE le squadre del torneo (home/away)
         $stTeams = $pdo->prepare("
           SELECT DISTINCT x.team_id FROM (
             SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=?
@@ -91,29 +93,30 @@ try {
         $stTeams->execute([$tournament_id, $tournament_id]);
         $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
 
-        $round_now = (int)($ev['round_no'] ?? $current_round_no);
+        // 3b) squadre già usate da QUESTA vita nei round precedenti (ultima scelta per ciascun round < corrente)
+        $round_now = $current_round_no;
         $stUsed = $pdo->prepare("
-          SELECT DISTINCT
-            CASE ts.side
-              WHEN 'home' THEN te.home_team_id
-              ELSE te.away_team_id
-            END AS team_id
+          SELECT
+            CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END AS team_id
           FROM tournament_selections ts
           JOIN tournament_events te ON te.id = ts.event_id
-          WHERE ts.tournament_id = ?
-            AND ts.user_id = ?
-            AND ts.life_index = ?
-            AND ts.round_no < ?
-            AND ts.finalized_at IS NOT NULL
-            AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
+          JOIN (
+            SELECT round_no, MAX(id) AS max_id
+            FROM tournament_selections
+            WHERE tournament_id = ? AND user_id = ? AND life_index = ? AND round_no < ?
+            GROUP BY round_no
+          ) last ON last.max_id = ts.id
+          WHERE (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
         ");
         $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
         $usedByLife = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
 
+        // 3c) eccezione A: hai già usato tutte le squadre?
         $allCount  = count($teamsAll);
         $usedCount = count(array_unique($usedByLife));
         $usedAll   = ($allCount > 0 && $usedCount >= $allCount);
 
+        // 3d) eccezione B: restano altre squadre selezionabili nel round corrente?
         $hasSelectableRemaining = false;
         if (!$usedAll && $allCount > 0) {
             $remainingTeams = array_values(array_diff($teamsAll, $usedByLife));
@@ -139,6 +142,7 @@ try {
             }
         }
 
+        // 3e) se già usata e NON rientri in eccezione A/B -> rifiuta
         $alreadyUsed = in_array($team_chosen_id, $usedByLife, true);
         if ($alreadyUsed && !$usedAll && $hasSelectableRemaining) {
             respond([
@@ -150,7 +154,7 @@ try {
     }
     // ======================= FINE REGOLA =======================
 
-    // 4) upsert selezione PER ROUND
+    // 4) upsert selezione (round-aware)
     $pdo->beginTransaction();
 
     $sx = $pdo->prepare("SELECT id, selection_code FROM tournament_selections
@@ -183,5 +187,5 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     error_log('[save_selection] '.$e->getMessage());
-    respond(['ok'=>false,'error'=>'exception'], 500);
+    respond(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()], 500);
 }
