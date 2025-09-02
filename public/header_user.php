@@ -101,3 +101,4 @@ if (!empty($_SESSION['user_id'])) {
     </ul>
   </div>
 </nav>
+<script src="/assets/movements_popup.js?v=1"></script>
