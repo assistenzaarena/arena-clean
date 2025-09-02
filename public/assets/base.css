@@ -102,5 +102,4 @@ footer {
   max-width: var(--container-w) !important;
 }
 
-/* Esempio: pagina profilo volutamente più stretta */
-.auth__card { max-width: 860px; }
+
