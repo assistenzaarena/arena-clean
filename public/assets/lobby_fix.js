@@ -3,29 +3,36 @@
   function layoutCols(parent){
     if (!parent) return;
     var w = window.innerWidth || document.documentElement.clientWidth;
-    var cols = 1;
-    if (w >= 1280) cols = 3;
-    else if (w > 900) cols = 2;
+
+    // 1 colonna su telefono, 3 colonne su schermi più grandi
+    var cols = (w < 900) ? 1 : 3;
+
     parent.style.display = 'grid';
-    parent.style.gridTemplateColumns = cols === 1 ? '1fr'
-      : (cols === 2 ? 'repeat(2, minmax(320px, 1fr))' : 'repeat(3, minmax(300px, 1fr))');
+    parent.style.gridTemplateColumns = (cols === 1)
+      ? '1fr'
+      : 'repeat(3, minmax(300px, 1fr))';
     parent.style.gap = '16px';
     parent.style.alignItems = 'stretch';
 
     // titoli/separatori dentro lo stesso parent a tutta larghezza
     var titles = parent.querySelectorAll('h2, .lobby-section-title, .section-title');
     titles.forEach(function(t){ t.style.gridColumn = '1 / -1'; });
-    // le card non forzano larghezze
+
+    // le card non devono forzare larghezze
     var cards = parent.querySelectorAll('.card--ps');
-    cards.forEach(function(c){ c.style.width = 'auto'; c.style.maxWidth = 'none'; c.style.margin = '0'; });
+    cards.forEach(function(c){
+      c.style.width = 'auto';
+      c.style.maxWidth = 'none';
+      c.style.margin = '0';
+    });
   }
 
   function fixLobby() {
-    // 1) wrapper esplicito se esiste
+    // wrapper esplicito se esiste
     var lists = document.querySelectorAll('.lobby-list');
     lists.forEach(function(l){ if (l.querySelector('.card--ps')) layoutCols(l); });
 
-    // 2) fallback: qualsiasi parent che contiene PIÙ di una .card--ps
+    // fallback: qualsiasi parent che contiene >=2 card
     var cards = document.querySelectorAll('.card--ps');
     var seen = new Set();
     cards.forEach(function(card){
@@ -38,9 +45,8 @@
     });
   }
 
-  // primo paint + resize
+  // primo paint + resize + piccolo ritardo (font/immagini)
   window.addEventListener('load', fixLobby);
   window.addEventListener('resize', fixLobby);
-  // piccolo ritardo per immagini/font che cambiano l'altezza
   setTimeout(fixLobby, 60);
 })();
