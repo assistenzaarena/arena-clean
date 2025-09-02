@@ -67,8 +67,19 @@ function esito_label(array $payout): string {
   <style>
     .wrap{max-width:1100px;margin:22px auto;padding:0 16px;color:#fff}
     .page-title{font-size:26px;font-weight:900;margin:0 0 14px}
-    .card-red{background:linear-gradient(180deg,#b81414 0%,#8a0f0f 100%);border:1px solid rgba(255,255,255,.18);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35);cursor:pointer}
-    .card-red:hover{transform:translateY(-1px);transition:.15s}
+    .card-red{
+  background:#8A0F0F; /* stesso rosso delle card lobby */
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  margin-bottom:16px;
+  overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,.35);
+  cursor:pointer;
+}
+.card-red:hover{
+  transform:translateY(-1px);
+  transition:.15s;
+}
     .card-top{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.15)}
     .t-meta{display:grid;grid-template-columns: repeat(6, minmax(120px,1fr));gap:12px}
     .t-k{font-size:11px;letter-spacing:.4px;color:#ffe3e3;text-transform:uppercase}
