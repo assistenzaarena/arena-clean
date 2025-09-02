@@ -334,5 +334,7 @@ btnOk.addEventListener('click', function() {
 })();
 </script>
 
+<script src="/assets/winner_popup.js?v=1"></script>
+  
 </body>
 </html>
