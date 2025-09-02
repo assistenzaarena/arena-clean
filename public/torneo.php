@@ -56,16 +56,18 @@ $g      = isset($torneo['guaranteed_prize']) ? (float)$torneo['guaranteed_prize'
 $potNow = max($g, $totLives * $buyin * ($pp/100));
 /* ============================================ */
 
-/* ====== (NUOVO) Eventi attivi del torneo (per le card) ====== */
+/* ====== Eventi SOLO del round corrente ====== */
 $events = [];
 try {
   $ev = $pdo->prepare("
     SELECT id, fixture_id, home_team_name, away_team_name, home_team_id, away_team_id, kickoff
     FROM tournament_events
-    WHERE tournament_id = :tid AND is_active = 1
+    WHERE tournament_id = :tid
+      AND round_no = :r
+      AND is_active = 1
     ORDER BY kickoff IS NULL, kickoff ASC, id ASC
   ");
-  $ev->execute([':tid'=>$id]);
+  $ev->execute([':tid'=>$id, ':r'=>$currentRoundNo]);
   $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
   $events = [];
