@@ -25,36 +25,31 @@ try {
   $tq->execute([$tournament_id]);
   $round_now = (int)$tq->fetchColumn();
 
-  // squadre già usate con questa vita nei round precedenti
+  // squadre già usate con questa vita nei round precedenti (ts.round_no < round_now)
   $stUsed = $pdo->prepare("
     SELECT DISTINCT
       CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END AS team_id
     FROM tournament_selections ts
     JOIN tournament_events te ON te.id = ts.event_id
-    WHERE ts.tournament_id = :tid
-      AND ts.user_id = :uid
-      AND ts.life_index = :life
-      AND te.round_no < :round_now
+    WHERE ts.tournament_id = ?
+      AND ts.user_id = ?
+      AND ts.life_index = ?
+      AND ts.round_no < ?
       AND ts.finalized_at IS NOT NULL
       AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
   ");
-  $stUsed->execute([
-    ':tid'=>$tournament_id,
-    ':uid'=>$user_id,
-    ':life'=>$life_index,
-    ':round_now'=>$round_now
-  ]);
+  $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
   $used = array_map('intval',$stUsed->fetchAll(PDO::FETCH_COLUMN));
 
   // squadre bloccate per il round corrente (pick_locked=1 o is_active=0)
   $stBlk = $pdo->prepare("
     SELECT DISTINCT home_team_id, away_team_id
     FROM tournament_events
-    WHERE tournament_id = :tid
-      AND round_no = :r
+    WHERE tournament_id = ?
+      AND round_no = ?
       AND (is_active=0 OR pick_locked=1)
   ");
-  $stBlk->execute([':tid'=>$tournament_id, ':r'=>$round_now]);
+  $stBlk->execute([$tournament_id, $round_now]);
   $blocked = [];
   foreach ($stBlk as $row) {
     if ($row['home_team_id']) $blocked[]=(int)$row['home_team_id'];
@@ -64,5 +59,5 @@ try {
   echo json_encode(['ok'=>true,'used'=>$used,'blocked'=>$blocked]);
 } catch(Throwable $e){
   error_log('[used_teams] '.$e->getMessage());
-  echo json_encode(['ok'=>false,'error'=>'exception']);
+  echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]);
 }
