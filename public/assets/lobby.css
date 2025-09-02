@@ -105,24 +105,43 @@
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
 
-//* === Layout griglia per le card della lobby === */
+/* === LOBBY: forza layout a colonne per QUALSIASI contenitore che ospita .card--ps === */
+
+/* 1) Regola universale (Chrome/Edge/Safari): prendi QUALSIASI wrapper che contiene card */
+.wrap :has(> .card--ps) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(320px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+/* 2) Fallback esplicito per il wrapper reale della lobby (se esiste) */
 .lobby-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(320px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+/* Le card non impongono larghezze: lascia fare alla grid */
+.wrap .card--ps,
+.lobby-list .card--ps {
+  width: auto !important;
+  margin: 0 !important; /* lo spazio lo dà 'gap' */
 }
 
 /* Mobile: 1 colonna */
 @media (max-width: 900px) {
+  .wrap :has(> .card--ps),
   .lobby-list {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }
 
-/* Desktop larghi: max 3 colonne */
+/* Desktop larghi: 3 colonne (opzionale) */
 @media (min-width: 1280px) {
+  .wrap :has(> .card--ps),
   .lobby-list {
-    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, minmax(300px, 1fr)) !important;
   }
 }
+
