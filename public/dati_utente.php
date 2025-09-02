@@ -26,6 +26,20 @@ $u->execute([$uid]);
 $user = $u->fetch(PDO::FETCH_ASSOC);
 if (!$user) { http_response_code(404); die('Utente non trovato'); }
 
+/* === AGGIUNTA MINIMA: verifica se esiste la colonna updated_at in utenti === */
+$hasUpdatedAt = false;
+try {
+  $chk = $pdo->prepare("SELECT 1
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME   = 'utenti'
+                          AND COLUMN_NAME  = 'updated_at'
+                        LIMIT 1");
+  $chk->execute();
+  $hasUpdatedAt = (bool)$chk->fetchColumn();
+} catch (Throwable $e) { $hasUpdatedAt = false; }
+/* === FINE AGGIUNTA === */
+
 // POST handler (aggiornamento)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -54,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors['phone'] = 'Numero di cellulare non valido.';
   }
 
-  // Password (opzionale): se l’utente compila almeno un campo, applico policy e confronto
+  // Password (opzionale)
   $changePassword = ($pass1 !== '' || $pass2 !== '');
   if ($changePassword) {
     $policyOk = true;
@@ -62,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!preg_match('/[A-Z]/', $pass1))           { $policyOk = false; }
     if (!preg_match('/[a-z]/', $pass1))           { $policyOk = false; }
     if (!preg_match('/\d/', $pass1))              { $policyOk = false; }
-    if (!preg_match('/[!\$%&\.\,\;\)]/', $pass1)) { $policyOk = false; } // stessi simboli della registrazione
+    if (!preg_match('/[!\$%&\.\,\;\)]/', $pass1)) { $policyOk = false; }
     if (!$policyOk) {
       $errors['password'] = 'Password non conforme (8+, 1 maiuscola, 1 minuscola, 1 numero, 1 tra !$%&.,; ).';
     }
@@ -71,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  // Unicità (solo se non ci sono altri errori formali)
+  // Unicità (solo se non ci sono errori formali)
   if (!$errors) {
     // Email unica (escludi me stesso)
     $q = $pdo->prepare('SELECT 1 FROM utenti WHERE email = :e AND id <> :id LIMIT 1');
@@ -93,17 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
       if ($changePassword) {
         $hash = password_hash($pass1, PASSWORD_DEFAULT);
-        $up = $pdo->prepare("UPDATE utenti SET email=?, phone=?, password_hash=?, updated_at=NOW() WHERE id=?");
-        $up->execute([$email, $phone, $hash, $uid]);
+        if ($hasUpdatedAt) {
+          $up = $pdo->prepare("UPDATE utenti SET email=?, phone=?, password_hash=?, updated_at=NOW() WHERE id=?");
+          $up->execute([$email, $phone, $hash, $uid]);
+        } else {
+          $up = $pdo->prepare("UPDATE utenti SET email=?, phone=?, password_hash=? WHERE id=?");
+          $up->execute([$email, $phone, $hash, $uid]);
+        }
       } else {
-        $up = $pdo->prepare("UPDATE utenti SET email=?, phone=?, updated_at=NOW() WHERE id=?");
-        $up->execute([$email, $phone, $uid]);
+        if ($hasUpdatedAt) {
+          $up = $pdo->prepare("UPDATE utenti SET email=?, phone=?, updated_at=NOW() WHERE id=?");
+          $up->execute([$email, $phone, $uid]);
+        } else {
+          $up = $pdo->prepare("UPDATE utenti SET email=?, phone=? WHERE id=?");
+          $up->execute([$email, $phone, $uid]);
+        }
       }
       // Aggiorno anche $user per riflettere a video i nuovi valori
       $user['email'] = $email;
       $user['phone'] = $phone;
       $success = 'Dati aggiornati con successo.';
     } catch (Throwable $e) {
+      // error_log('[dati_utente] '.$e->getMessage()); // lasciato commentato per non cambiare comportamento
       $errors['__'] = 'Errore interno. Riprova.';
     }
   }
