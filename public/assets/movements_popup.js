@@ -16,7 +16,7 @@
     return null;
   }
 
-  // Crea overlay/modal una volta
+  // Overlay + Modal (compatto, centrato)
   var overlay = document.createElement('div');
   overlay.style.position = 'fixed';
   overlay.style.inset = '0';
@@ -32,17 +32,19 @@
   modal.style.color = '#fff';
   modal.style.border = '1px solid rgba(255,255,255,.15)';
   modal.style.borderRadius = '14px';
-  modal.style.maxWidth = '880px';
-  modal.style.width = '100%';
+  modal.style.maxWidth = '720px';
+  modal.style.width = '96vw';
+  modal.style.maxHeight = '80vh';                // compatto
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
   modal.style.boxShadow = '0 24px 60px rgba(0,0,0,.35)';
-  modal.style.overflow = 'hidden';
   overlay.appendChild(modal);
 
   var header = document.createElement('div');
   header.style.display = 'flex';
   header.style.alignItems = 'center';
   header.style.justifyContent = 'space-between';
-  header.style.padding = '14px 16px';
+  header.style.padding = '12px 14px';
   header.style.borderBottom = '1px solid rgba(255,255,255,.12)';
   modal.appendChild(header);
 
@@ -64,10 +66,53 @@
   header.appendChild(close);
 
   var content = document.createElement('div');
-  content.style.padding = '12px 14px 16px';
+  content.style.padding = '10px 12px';
+  content.style.overflow = 'auto';              // scroll interno
+  content.style.flex = '1 1 auto';
   modal.appendChild(content);
 
+  var footer = document.createElement('div');
+  footer.style.display = 'flex';
+  footer.style.alignItems = 'center';
+  footer.style.justifyContent = 'space-between';
+  footer.style.padding = '10px 12px';
+  footer.style.borderTop = '1px solid rgba(255,255,255,.12)';
+  modal.appendChild(footer);
+
+  var btnPrev = document.createElement('button');
+  btnPrev.textContent = '← Precedente';
+  btnPrev.style.background = '#2b2b2b';
+  btnPrev.style.color = '#fff';
+  btnPrev.style.border = '0';
+  btnPrev.style.borderRadius = '8px';
+  btnPrev.style.padding = '6px 10px';
+  btnPrev.style.fontWeight = '900';
+  btnPrev.style.cursor = 'pointer';
+
+  var btnNext = document.createElement('button');
+  btnNext.textContent = 'Successivo →';
+  btnNext.style.background = '#2b2b2b';
+  btnNext.style.color = '#fff';
+  btnNext.style.border = '0';
+  btnNext.style.borderRadius = '8px';
+  btnNext.style.padding = '6px 10px';
+  btnNext.style.fontWeight = '900';
+  btnNext.style.cursor = 'pointer';
+
+  var pageInfo = document.createElement('div');
+  pageInfo.style.color = '#cfcfcf';
+  pageInfo.style.fontSize = '12px';
+  pageInfo.style.fontWeight = '800';
+
+  footer.appendChild(btnPrev);
+  footer.appendChild(pageInfo);
+  footer.appendChild(btnNext);
+
   document.body.appendChild(overlay);
+
+  function closeModal(){ overlay.style.display = 'none'; content.innerHTML=''; }
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+  close.addEventListener('click', closeModal);
 
   function formatAmount(n){
     var v = Number(n||0);
@@ -85,8 +130,6 @@
     span.style.borderRadius = '999px';
     span.style.marginRight = '10px';
     span.style.textTransform = 'uppercase';
-
-    // colori per tipo
     var map = {
       'recharge' : '#1f8e46',
       'withdraw' : '#6846ff',
@@ -102,13 +145,11 @@
   }
 
   function renderRows(items){
-    // wrapper
-    var wrap = document.createElement('div');
-    // tabella
     var table = document.createElement('table');
     table.style.width = '100%';
     table.style.borderCollapse = 'collapse';
     table.style.fontSize = '14px';
+
     var thead = document.createElement('thead');
     var trh = document.createElement('tr');
     ['Data', 'Tipo', 'Dettagli', 'Importo'].forEach(function(h){
@@ -130,7 +171,6 @@
     items.forEach(function(it){
       var tr = document.createElement('tr');
 
-      // data
       var td0 = document.createElement('td');
       td0.textContent = it.ts_h || '';
       td0.style.padding = '8px 6px';
@@ -138,7 +178,6 @@
       td0.style.color = '#ddd';
       tr.appendChild(td0);
 
-      // tipo (badge)
       var td1 = document.createElement('td');
       td1.style.padding = '8px 6px';
       td1.style.borderBottom = '1px solid rgba(255,255,255,.06)';
@@ -146,7 +185,6 @@
       td1.appendChild(badge);
       tr.appendChild(td1);
 
-      // dettagli (torneo)
       var td2 = document.createElement('td');
       td2.style.padding = '8px 6px';
       td2.style.borderBottom = '1px solid rgba(255,255,255,.06)';
@@ -161,17 +199,12 @@
       }
       tr.appendChild(td2);
 
-      // importo
       var td3 = document.createElement('td');
       td3.style.padding = '8px 6px';
       td3.style.borderBottom = '1px solid rgba(255,255,255,.06)';
       td3.style.fontWeight = '900';
       td3.style.textAlign = 'right';
-      if (it.sign === 'in') {
-        td3.style.color = '#00c074';
-      } else {
-        td3.style.color = '#ff6b6b';
-      }
+      td3.style.color = (it.sign === 'in') ? '#00c074' : '#ff6b6b';
       td3.textContent = formatAmount(it.amount);
       tr.appendChild(td3);
 
@@ -179,40 +212,67 @@
     });
 
     table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
+    return table;
   }
 
-  function openPopup(){
+  // stato di navigazione
+  var state = { page: 1, pages: 1, limit: 12, busy: false };
+
+  function updateButtons(){
+    btnPrev.disabled = (state.page <= 1);
+    btnNext.disabled = (state.page >= state.pages);
+    btnPrev.style.opacity = btnPrev.disabled ? '.45' : '1';
+    btnNext.style.opacity = btnNext.disabled ? '.45' : '1';
+    pageInfo.textContent = 'Pagina ' + state.page + ' di ' + state.pages;
+  }
+
+  function loadPage(p){
+    if (state.busy) return;
+    state.busy = true;
     content.innerHTML = '<div style="color:#bbb;padding:6px 4px;">Carico movimenti...</div>';
-    overlay.style.display = 'flex';
-    fetch('/api/movements_list.php', { credentials:'same-origin' })
+    fetch('/api/movements_list.php?page='+encodeURIComponent(p)+'&limit='+encodeURIComponent(state.limit), { credentials:'same-origin' })
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(js){
-        if (!js || !js.ok) {
-          content.innerHTML = '<div style="color:#ff6b6b;">Errore nel caricamento.</div>'; return;
-        }
+        state.busy = false;
+        if (!js || !js.ok) { content.innerHTML = '<div style="color:#ff6b6b;">Errore nel caricamento.</div>'; return; }
+        state.page  = js.page || 1;
+        state.pages = js.pages || 1;
+        state.limit = js.limit || state.limit;
+
         var items = js.items || [];
-        if (!items.length) {
-          content.innerHTML = '<div style="color:#ddd;">Non ci sono movimenti.</div>'; return;
+        if (!items.length){
+          content.innerHTML = '<div style="color:#ddd;">Nessun movimento trovato.</div>';
+        } else {
+          content.innerHTML = '';
+          content.appendChild(renderRows(items));
         }
-        content.innerHTML = '';
-        content.appendChild(renderRows(items));
+        updateButtons();
       })
       .catch(function(){
+        state.busy = false;
         content.innerHTML = '<div style="color:#ff6b6b;">Errore di rete.</div>';
       });
   }
 
-  // chiudi
-  close.addEventListener('click', function(){ overlay.style.display = 'none'; });
+  btnPrev.addEventListener('click', function(){ if (state.page > 1) loadPage(state.page - 1); });
+  btnNext.addEventListener('click', function(){ if (state.page < state.pages) loadPage(state.page + 1); });
 
-  // intercetta click sul link in header
+  // open/close
+  function openPopup(){ overlay.style.display = 'flex'; loadPage(1); }
+  function closePopup(){ overlay.style.display = 'none'; }
+
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closePopup(); });
+  close.addEventListener('click', closePopup);
+
   var link = findMovementsLink();
   if (link){
     link.addEventListener('click', function(e){
-      e.preventDefault();
-      openPopup();
+      // click normale → popup
+      if (!(e.metaKey || e.ctrlKey || e.shiftKey)) {
+        e.preventDefault();
+        openPopup();
+      }
+      // con Ctrl/Cmd/Shift lasciamo la navigazione originale (se vuoi)
     });
   }
 })();
