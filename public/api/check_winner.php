@@ -1,7 +1,11 @@
 <?php
 // public/api/check_winner.php
 // Ritorna se l'utente corrente ha un payout recente per mostrare il popup in lobby.
-// Output: { ok:true, show:bool, payout_id:int|null, username:string|null, amount:int|null, tournament_code:string|null, key:string|null }
+// Output: {
+//   ok:true, show:bool, payout_id:int|null, username:string|null,
+//   amount:int|null, tournament_code:string|null, key:string|null,
+//   reason:'winner'|'proportional'
+// }
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json; charset=utf-8');
@@ -20,7 +24,7 @@ $user_id = (int)$_SESSION['user_id'];
 $days = 14;
 
 try {
-  // username (se c'è tabella utenti)
+  // username
   $u = $pdo->prepare("SELECT username FROM utenti WHERE id=? LIMIT 1");
   $u->execute([$user_id]);
   $username = $u->fetchColumn();
@@ -28,7 +32,7 @@ try {
 
   // ultimo payout per l'utente entro $days
   $q = $pdo->prepare("
-    SELECT tp.id AS payout_id, tp.tournament_id, tp.amount, t.tournament_code, tp.created_at
+    SELECT tp.id AS payout_id, tp.tournament_id, tp.amount, t.tournament_code, tp.created_at, tp.reason
     FROM tournament_payouts tp
     JOIN tournaments t ON t.id = tp.tournament_id
     WHERE tp.user_id = ?
@@ -44,8 +48,8 @@ try {
   $payout_id = (int)$row['payout_id'];
   $amount    = (int)$row['amount'];
   $tcode     = (string)($row['tournament_code'] ?? '');
-  // chiave per il localStorage del client (evita doppio popup)
-  $key = "winner_ack_{$user_id}_{$payout_id}";
+  $reason    = (string)($row['reason'] ?? 'winner'); // 'winner' | 'proportional'
+  $key       = "winner_ack_{$user_id}_{$payout_id}"; // storage key
 
   out([
     'ok' => true,
@@ -54,6 +58,7 @@ try {
     'username' => $username,
     'amount' => $amount,
     'tournament_code' => $tcode,
+    'reason' => $reason,
     'key' => $key,
   ]);
 
