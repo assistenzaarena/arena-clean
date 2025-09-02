@@ -104,3 +104,21 @@
 }
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
+
+/* === Restore layout a 2 colonne per le card della lobby === */
+
+/* Desktop/tablet: due card per riga */
+.wrap .card--ps {
+  display: inline-block;      /* consente affiancamento e wrapping */
+  width: calc(50% - 14px);    /* due colonne con piccolo gap */
+  vertical-align: top;
+  margin: 7px;                /* distanziamento uniforme */
+}
+
+/* Mobile: una card per riga */
+@media (max-width: 900px){
+  .wrap .card--ps {
+    width: 100%;
+    margin: 7px 0;
+  }
+}
