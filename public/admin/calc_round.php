@@ -11,6 +11,7 @@ require_once $ROOT . '/src/guards.php';    // require_admin()
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/round_loader.php'; // nuovo helper
+require_once $ROOT . '/src/payouts.php';      // <<< AGGIUNTA: chiusura & payout automatici
 
 require_admin();
 
@@ -137,11 +138,22 @@ try {
   $next_round_loaded = null;
 
   if ($survivors <= 1) {
-    // Chiudi torneo
-    $closed = 1;
-    $pdo->prepare("UPDATE tournaments SET status='closed', closed_at=NOW() WHERE id=:id")
-        ->execute([':id'=>$tournament_id]);
-    $msg = "Round {$round_no} calcolato. Sopravvissuti: {$survivors}. Torneo chiuso.";
+    // >>> MODIFICA: chiusura & payout automatici
+    if ($pdo->inTransaction()) $pdo->commit();
+    try {
+      $payRes = tp_close_and_payout($pdo, $tournament_id, null);
+      jexit([
+        'ok'        => true,
+        'msg'       => "Round {$round_no} calcolato. Torneo chiuso e payout eseguito.",
+        'round'     => $round_no,
+        'survivors' => $survivors,
+        'closed'    => 1,
+        'payout'    => $payRes,
+        'next_round_loaded' => null
+      ]);
+    } catch (Throwable $e) {
+      jexit(['ok'=>false, 'msg'=>'Errore payout: '.$e->getMessage(), 'stage'=>'payout'], 500);
+    }
   } else {
     // Avanza round e sblocca scelte
     $new_round = $round_no + 1;
@@ -152,18 +164,18 @@ try {
     $next_round_loaded = attempt_preload_next_round($pdo, $tournament_id, $round_no, $new_round);
     $msg = "Round {$round_no} calcolato. Sopravvissuti: {$survivors}. "
          . ($next_round_loaded ? "Precaricato round {$new_round}." : "Intervento admin richiesto per round {$new_round}.");
+
+    $pdo->commit();
+
+    jexit([
+      'ok' => true,
+      'msg' => $msg,
+      'round' => $round_no,
+      'survivors' => $survivors,
+      'closed' => 0,
+      'next_round_loaded' => $next_round_loaded
+    ]);
   }
-
-  $pdo->commit();
-
-  jexit([
-    'ok' => true,
-    'msg' => $msg,
-    'round' => $round_no,
-    'survivors' => $survivors,
-    'closed' => $closed,
-    'next_round_loaded' => $next_round_loaded
-  ]);
 
 } catch (Throwable $e) {
   if ($pdo && $pdo->inTransaction()) $pdo->rollBack();
