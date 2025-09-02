@@ -637,5 +637,42 @@ try {
 })();
 </script>
   
+  <script>
+(function(){
+  var tid = <?php echo (int)$id; ?>;
+  var roundNow = <?php echo (int)$currentRoundNo; ?>;
+  var key = 'arena_last_round_t'+tid;
+  var last = parseInt(localStorage.getItem(key) || '0', 10);
+
+  if (last !== roundNow) {
+    // round cambiato → pulisco i loghi accanto ai cuori
+    document.querySelectorAll('.life-heart .pick-logo').forEach(function(img){ img.remove(); });
+    // tolgo evidenziazione
+    document.querySelectorAll('.life-heart').forEach(function(h){ h.classList.remove('life-heart--active'); });
+    localStorage.setItem(key, String(roundNow));
+  }
+})();
+    </script>
+<script>
+(function(){
+  var tid = <?php echo (int)$id; ?>;
+  var roundNow = <?php echo (int)$currentRoundNo; ?>;
+  var key = 'arena_last_round_'+tid;
+  var last = 0;
+  try { last = parseInt(localStorage.getItem(key) || '0', 10); } catch(_) {}
+
+  if (last !== roundNow) {
+    // round cambiato → pulisco i loghi accanto ai cuori
+    document.querySelectorAll('.life-heart .pick-logo').forEach(function(img){ img.remove(); });
+    // tolgo evidenziazione dai cuori
+    document.querySelectorAll('.life-heart').forEach(function(h){ h.classList.remove('life-heart--active'); });
+    // aggiorno storage
+    try { localStorage.setItem(key, String(roundNow)); } catch(_) {}
+    // reset variabile globale se esiste
+    if (window.selectedLife !== undefined) window.selectedLife = null;
+  }
+})();
+</script>
+  
 </body>
 </html>
