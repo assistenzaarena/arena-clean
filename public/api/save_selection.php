@@ -77,29 +77,23 @@ try {
     // (opzionale) se vuoi impedire scelte su eventi bloccati:
     // if ((int)$ev['pick_locked'] === 1) respond(['ok'=>false,'error'=>'locked'], 400);
 
-    // >>> aggiunta: evento deve essere del round corrente
-    if ((int)$ev['round_no'] !== $current_round_no) {
-        respond(['ok'=>false,'error'=>'event_wrong_round'], 400);
-    }
-
     // ============ REGOLA "NO TEAM DUPLICATO PER VITA" CON ECCEZIONI ============
     // Team che l'utente sta scegliendo in questo momento (in base al side)
     $team_chosen_id = ($side === 'home') ? (int)$ev['home_team_id'] : (int)$ev['away_team_id'];
 
     if ($team_chosen_id) {
-        // 3a) set di TUTTE le squadre del torneo (home/away) per capire quando "le hai usate tutte"
+        // 3a) set di TUTTE le squadre del torneo (home/away)
         $stTeams = $pdo->prepare("
           SELECT DISTINCT x.team_id FROM (
-            SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=:tid
+            SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=?
             UNION
-            SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=:tid
+            SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=?
           ) x WHERE x.team_id IS NOT NULL
         ");
-        $stTeams->execute([':tid'=>$tournament_id]);
+        $stTeams->execute([$tournament_id, $tournament_id]);
         $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
 
         // 3b) squadre già usate da QUESTA vita in round precedenti
-        //     (uso il round dell'evento scelto o, in fallback, current_round_no)
         $round_now = (int)($ev['round_no'] ?? $current_round_no);
         $stUsed = $pdo->prepare("
           SELECT DISTINCT
@@ -109,19 +103,14 @@ try {
             END AS team_id
           FROM tournament_selections ts
           JOIN tournament_events te ON te.id = ts.event_id
-          WHERE ts.tournament_id = :tid
-            AND ts.user_id = :uid
-            AND ts.life_index = :life
-            AND te.round_no < :round_now
+          WHERE ts.tournament_id = ?
+            AND ts.user_id = ?
+            AND ts.life_index = ?
+            AND te.round_no < ?
             AND ts.finalized_at IS NOT NULL
             AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
         ");
-        $stUsed->execute([
-          ':tid'=>$tournament_id,
-          ':uid'=>$user_id,
-          ':life'=>$life_index,
-          ':round_now'=>$round_now
-        ]);
+        $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
         $usedByLife = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
 
         // 3c) eccezione A: hai già usato tutte le squadre?
@@ -129,12 +118,11 @@ try {
         $usedCount = count(array_unique($usedByLife));
         $usedAll   = ($allCount > 0 && $usedCount >= $allCount);
 
-        // 3d) se non le hai usate tutte, calcolo le rimanenti e verifico se sono selezionabili nel round corrente
+        // 3d) eccezione B: restano altre squadre selezionabili nel round corrente?
         $hasSelectableRemaining = false;
         if (!$usedAll && $allCount > 0) {
             $remainingTeams = array_values(array_diff($teamsAll, $usedByLife));
             if (count($remainingTeams) > 0) {
-                // ci sono eventi attivi e non bloccati nel round corrente per almeno una di queste squadre?
                 $place = implode(',', array_fill(0, count($remainingTeams), '?'));
                 $sqlAvail = "
                   SELECT COUNT(*) FROM tournament_events
@@ -165,7 +153,6 @@ try {
                 'msg'=>'Con questa vita hai già usato questa squadra in un round precedente.'
             ], 400);
         }
-        // Altrimenti: consentito (o perché non è doppione, o perché ricadi in eccezioni A/B)
     }
     // ======================= FINE REGOLA =======================
 
@@ -202,5 +189,5 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     error_log('[save_selection] '.$e->getMessage());
-    respond(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()], 500);
+    respond(['ok'=>false,'error'=>'exception'], 500);
 }
