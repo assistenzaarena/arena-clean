@@ -297,8 +297,14 @@ try {
 
   <!-- Eventi -->
   <section style="margin-top:20px;">
-    <h2>Eventi del torneo</h2>
-
+    
+    <h2>
+  Eventi del torneo
+  <small class="muted" style="font-weight:700; margin-left:6px;">
+    — Round <?php echo (int)$currentRoundNo; ?>
+  </small>
+</h2>
+    
     <?php if ($waitingRound): ?>
       <div class="muted">Le partite verranno mostrate appena il round sarà pubblicato.</div>
     <?php else: ?>
