@@ -4,26 +4,27 @@
     if (!parent) return;
     var w = window.innerWidth || document.documentElement.clientWidth;
 
-    // 1 colonna su telefono, 3 colonne su schermi più grandi
+    // 1 colonna su telefono, 3 colonne su desktop
     var cols = (w < 900) ? 1 : 3;
 
     parent.style.display = 'grid';
     parent.style.gridTemplateColumns = (cols === 1)
       ? '1fr'
-      : 'repeat(3, minmax(300px, 1fr))';
-    parent.style.gap = '16px';
+      : 'repeat(3, minmax(220px, 1fr))';  // prima 300px, ora 220px → card più compatte
+    parent.style.gap = '12px';            // ridotto gap per avvicinare leggermente
     parent.style.alignItems = 'stretch';
 
     // titoli/separatori dentro lo stesso parent a tutta larghezza
     var titles = parent.querySelectorAll('h2, .lobby-section-title, .section-title');
     titles.forEach(function(t){ t.style.gridColumn = '1 / -1'; });
 
-    // le card non devono forzare larghezze
+    // le card non devono forzare larghezze, padding interno più piccolo
     var cards = parent.querySelectorAll('.card--ps');
     cards.forEach(function(c){
       c.style.width = 'auto';
       c.style.maxWidth = 'none';
       c.style.margin = '0';
+      c.style.padding = '12px';  // prima probabilmente 16px/20px, ora più compatte
     });
   }
 
