@@ -60,3 +60,7 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
+/* Spazio extra per il footer in tutte le pagine */
+body {
+  padding-bottom: 40px; /* alza il footer di 40px */
+}
