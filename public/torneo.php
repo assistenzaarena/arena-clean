@@ -679,6 +679,55 @@ try {
   }
 })();
 </script>
+
+  <script>
+(function(){
+  var selectedLife = null;
+
+  // evidenzia la vita selezionata e chiama refresh delle squadre
+  document.querySelectorAll('.life-heart').forEach(function(h){
+    h.addEventListener('click', function(){
+      document.querySelectorAll('.life-heart').forEach(function(x){ x.classList.remove('life-heart--active'); });
+      h.classList.add('life-heart--active');
+      selectedLife = parseInt(h.getAttribute('data-life')||'0',10);
+
+      refreshDisabledTeams(selectedLife);
+    });
+  });
+
+  // funzione che colora grigio le squadre già usate o bloccate
+  function refreshDisabledTeams(lifeIndex){
+    if (lifeIndex === null) return;
+    fetch('/api/used_teams.php?tournament_id=<?php echo (int)$id; ?>&life_index='+lifeIndex,
+          {credentials:'same-origin'})
+      .then(r => r.ok ? r.json() : null)
+      .then(js => {
+        if (!js || !js.ok) return;
+
+        // reset: tolgo tutti i disabled
+        document.querySelectorAll('.team-side').forEach(function(el){
+          el.classList.remove('disabled');
+        });
+
+        // disabilita squadre già usate
+        (js.used || []).forEach(function(teamId){
+          document.querySelectorAll('.team-side[data-team-id="'+teamId+'"]').forEach(function(el){
+            el.classList.add('disabled');
+          });
+        });
+
+        // disabilita squadre non disponibili (eventi bloccati)
+        (js.blocked || []).forEach(function(teamId){
+          document.querySelectorAll('.team-side[data-team-id="'+teamId+'"]').forEach(function(el){
+            el.classList.add('disabled');
+          });
+        });
+
+      }).catch(()=>{});
+  }
+})();
+</script>
+  
   
 </body>
 </html>
