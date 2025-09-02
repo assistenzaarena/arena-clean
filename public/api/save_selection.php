@@ -78,11 +78,9 @@ try {
     // if ((int)$ev['pick_locked'] === 1) respond(['ok'=>false,'error'=>'locked'], 400);
 
     // ============ REGOLA "NO TEAM DUPLICATO PER VITA" CON ECCEZIONI ============
-    // Team che l'utente sta scegliendo in questo momento (in base al side)
     $team_chosen_id = ($side === 'home') ? (int)$ev['home_team_id'] : (int)$ev['away_team_id'];
 
     if ($team_chosen_id) {
-        // 3a) set di TUTTE le squadre del torneo (home/away)
         $stTeams = $pdo->prepare("
           SELECT DISTINCT x.team_id FROM (
             SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=?
@@ -93,7 +91,6 @@ try {
         $stTeams->execute([$tournament_id, $tournament_id]);
         $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
 
-        // 3b) squadre già usate da QUESTA vita in round precedenti
         $round_now = (int)($ev['round_no'] ?? $current_round_no);
         $stUsed = $pdo->prepare("
           SELECT DISTINCT
@@ -106,19 +103,17 @@ try {
           WHERE ts.tournament_id = ?
             AND ts.user_id = ?
             AND ts.life_index = ?
-            AND te.round_no < ?
+            AND ts.round_no < ?
             AND ts.finalized_at IS NOT NULL
             AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
         ");
         $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
         $usedByLife = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
 
-        // 3c) eccezione A: hai già usato tutte le squadre?
         $allCount  = count($teamsAll);
         $usedCount = count(array_unique($usedByLife));
         $usedAll   = ($allCount > 0 && $usedCount >= $allCount);
 
-        // 3d) eccezione B: restano altre squadre selezionabili nel round corrente?
         $hasSelectableRemaining = false;
         if (!$usedAll && $allCount > 0) {
             $remainingTeams = array_values(array_diff($teamsAll, $usedByLife));
@@ -144,7 +139,6 @@ try {
             }
         }
 
-        // 3e) se la squadra è già stata usata da questa vita E NON ricadi in eccezione A o B -> rifiuta
         $alreadyUsed = in_array($team_chosen_id, $usedByLife, true);
         if ($alreadyUsed && !$usedAll && $hasSelectableRemaining) {
             respond([
@@ -156,12 +150,12 @@ try {
     }
     // ======================= FINE REGOLA =======================
 
-    // 4) upsert selezione
+    // 4) upsert selezione PER ROUND
     $pdo->beginTransaction();
 
     $sx = $pdo->prepare("SELECT id, selection_code FROM tournament_selections
-                         WHERE user_id=? AND tournament_id=? AND life_index=? LIMIT 1");
-    $sx->execute([$user_id, $tournament_id, $life_index]);
+                         WHERE user_id=? AND tournament_id=? AND life_index=? AND round_no=? LIMIT 1");
+    $sx->execute([$user_id, $tournament_id, $life_index, $current_round_no]);
     $row = $sx->fetch(PDO::FETCH_ASSOC);
 
     if ($row) {
@@ -177,9 +171,9 @@ try {
     } else {
         $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
         $ins = $pdo->prepare("INSERT INTO tournament_selections
-              (tournament_id, user_id, life_index, event_id, side, selection_code, created_at, locked_at, finalized_at)
-              VALUES (?,?,?,?,?,?, NOW(), NULL, NULL)");
-        $ins->execute([$tournament_id, $user_id, $life_index, $event_id, $side, $selCode]);
+              (tournament_id, user_id, life_index, round_no, event_id, side, selection_code, created_at, locked_at, finalized_at)
+              VALUES (?,?,?,?,?,?,?, NOW(), NULL, NULL)");
+        $ins->execute([$tournament_id, $user_id, $life_index, $current_round_no, $event_id, $side, $selCode]);
     }
 
     $pdo->commit();
