@@ -69,21 +69,18 @@
 @media (max-width:980px){
   .footer-menu{ gap: 10px 14px; }
 }
-
-/* Footer elastico: si allunga quando ci sono pochi contenuti */
+/* Footer “sempre in fondo” senza toccare il layout del body */
 footer {
-  min-height: 60px;        /* altezza minima base */
-  padding: 20px 0;         /* respiro verticale */
+  position: sticky;
+  top: 100vh;            /* il footer sta all’altezza del bottom della viewport */
+  background: #0a0a0b;   /* il tuo sfondo footer */
+  padding: 20px 0;       /* respiro */
+  z-index: 1;            /* sopra ad eventuali bordi */
 }
 
-html, body {
-  height: 100%;
-}
-
-body {
-  display: flex;
-}
-
-main {
-  flex: 1;   /* fa sì che il main occupi tutto lo spazio rimanente */
+/* opzionale: bordo e testo */
+footer .footer-inner {
+  border-top: 1px solid rgba(255,255,255,.12);
+  color: #aaa;
+  text-align: center;
 }
