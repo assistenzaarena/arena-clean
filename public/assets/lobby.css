@@ -105,20 +105,36 @@
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
 
-/* === Restore layout a 2 colonne per le card della lobby === */
+/* === Layout lobby: 2 colonne affiancate per le card === */
 
-/* Desktop/tablet: due card per riga */
-.wrap .card--ps {
-  display: inline-block;      /* consente affiancamento e wrapping */
-  width: calc(50% - 14px);    /* due colonne con piccolo gap */
-  vertical-align: top;
-  margin: 7px;                /* distanziamento uniforme */
+/* Il contenitore principale diventa flessibile e wrappa le card */
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  /* non tocchiamo padding/margini già esistenti */
 }
 
-/* Mobile: una card per riga */
-@media (max-width: 900px){
+/* I titoli/separatori della lobby prendono tutta la riga */
+.wrap h2,
+.wrap .lobby-section-title,
+.wrap .section-title {
+  flex: 1 1 100%;
+}
+
+/* Le card si affiancano (2 colonne) */
+.wrap .card--ps {
+  /* base: due colonne con gap */
+  flex: 1 1 calc(50% - 16px);
+  min-width: 320px;         /* evita che stringano troppo */
+  margin: 8px;              /* gap uniforme */
+}
+
+/* Responsive: 1 colonna sotto i 900px */
+@media (max-width: 900px) {
   .wrap .card--ps {
-    width: 100%;
-    margin: 7px 0;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 8px 0;
   }
 }
