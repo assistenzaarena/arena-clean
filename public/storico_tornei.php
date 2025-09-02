@@ -182,5 +182,8 @@ function esito_label(array $payout): string {
 </div>
 
 <script src="/assets/storico_tornei.js?v=1"></script>
+
+  <?php require __DIR__ . '/footer.php'; ?>
+
 </body>
 </html>
