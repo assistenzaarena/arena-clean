@@ -60,27 +60,3 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
-/* Fallback definitivo: il contenitore centrale prende lo spazio rimanente */
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-header.hdr, nav.subhdr, footer { flex: 0 0 auto; }
-
-/* Se troviamo un main → è lui il contenuto elastico */
-main { flex: 1 0 auto; }
-
-/* Se non c'è main, prendiamo il primo contenitore noto come elastico */
-.page, .page-root, .content, .wrap {
-  flex: 1 0 auto;
-}
-
-/* In ultima istanza, prendiamo il PRIMO figlio utile dopo nav (o dopo header) */
-header.hdr + nav.subhdr + *:not(footer),
-header.hdr + *:not(nav):not(footer) {
-  flex: 1 0 auto;
-}
-
-/* Spazio di respiro minimo sotto */
-main, .page, .page-root, .content, .wrap { padding-bottom: 12px; }
