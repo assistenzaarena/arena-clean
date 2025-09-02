@@ -67,6 +67,13 @@ try {
   $waitingRound = false;
 }
 
+/* ====== BLOCCO UI: consentito solo prima del lock del Round 1 ====== */
+$lockedNow = (
+  (!empty($torneo['lock_at']) && strtotime($torneo['lock_at']) <= time())
+  || ((int)($torneo['choices_locked'] ?? 0) === 1)
+);
+$beforeLockRound1 = ($currentRoundNo === 1 && !$lockedNow);
+
 /* ====== Eventi SOLO del round corrente ====== */
 $events = [];
 try {
@@ -236,8 +243,8 @@ try {
       <small style="font-size:14px; color:#aaa;">#<?php echo htmlspecialchars($torneo['tournament_code'] ?? sprintf('%05d',$id)); ?></small>
     </h1>
 
-    <?php if ($enrolled): ?>
-      <!-- Pulsante Disiscriviti -->
+    <?php if ($enrolled && $beforeLockRound1): ?>
+      <!-- Pulsante Disiscrivi -->
       <form id="unenrollForm" method="post" action="/api/unenroll.php">
         <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
         <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
@@ -295,9 +302,9 @@ try {
 
   <!-- ====== Azioni vite + cuori ====== -->
   <section style="margin-top:14px; display:flex; align-items:center; gap:16px;">
-    <?php if ($enrolled && !$waitingRound): ?>
+    <?php if ($enrolled && $beforeLockRound1 && !$waitingRound): ?>
       <button id="btnAddLife" class="btn" style="background:#00c074;border:1px solid #00c074;color:#fff;font-weight:800;">
-        + Aggiungi vita
+        Aggiungi vita
       </button>
     <?php endif; ?>
 
