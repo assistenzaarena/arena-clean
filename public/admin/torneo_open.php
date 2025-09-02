@@ -59,57 +59,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // aggiungi fixture da API
-  if ($action === 'add_fixture_api') {
-    $fxid = (int)($_POST['fixture_id'] ?? 0);
-    if ($fxid <= 0) { $_SESSION['flash']='Fixture ID non valido.'; header('Location: /admin/torneo_open.php?id='.$id); exit; }
+if ($action === 'add_fixture_api') {
+  $fxid = (int)($_POST['fixture_id'] ?? 0);
+  if ($fxid <= 0) { $_SESSION['flash']='Fixture ID non valido.'; header('Location: /admin/torneo_open.php?id='.$id); exit; }
 
-    $resp = fb_fixture_by_id($fxid);
-    if (!$resp['ok']) {
-      $_SESSION['flash'] = 'Errore API: '.$resp['error'].' (HTTP '.$resp['status'].')';
-      header('Location: /admin/torneo_open.php?id='.$id); exit;
-    }
-    $one = fb_extract_one_fixture_minimal($resp['data']);
-    if (!$one || !$one['fixture_id']) {
-      $_SESSION['flash'] = 'Fixture non trovato in API.';
-      header('Location: /admin/torneo_open.php?id='.$id); exit;
-    }
-
-    $pdo->prepare("
-      INSERT IGNORE INTO tournament_events
-        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
-      VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
-    ")->execute([
-      ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
-      ':fid'=>(int)$one['fixture_id'],
-      ':hid'=>$one['home_id'], ':hname'=>$one['home_name'],
-      ':aid'=>$one['away_id'], ':aname'=>$one['away_name']
-    ]);
-
-    $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
+  $resp = fb_fixture_by_id($fxid);
+  if (!$resp['ok']) {
+    $_SESSION['flash'] = 'Errore API: '.$resp['error'].' (HTTP '.$resp['status'].')';
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
+  $one = fb_extract_one_fixture_minimal($resp['data']);
+  if (!$one || !$one['fixture_id']) {
+    $_SESSION['flash'] = 'Fixture non trovato in API.';
+    header('Location: /admin/torneo_open.php?id='.$id); exit;
+  }
+
+  // NEW: genera un event_code univoco
+  $eventCode = 'EV'.bin2hex(random_bytes(4)); // es. EVa1b2c3d
+
+  $pdo->prepare("
+    INSERT IGNORE INTO tournament_events
+      (tournament_id, round_no, fixture_id,
+       home_team_id, home_team_name, away_team_id, away_team_name,
+       kickoff, is_active, pick_locked, result_status, result_at, event_code)
+    VALUES (:tid, :rnd, :fid,
+            :hid, :hname, :aid, :aname,
+            NULL, 1, 0, 'pending', NULL, :ecode)
+  ")->execute([
+    ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
+    ':fid'=>(int)$one['fixture_id'],
+    ':hid'=>$one['home_id'], ':hname'=>$one['home_name'],
+    ':aid'=>$one['away_id'], ':aname'=>$one['away_name'],
+    ':ecode'=>$eventCode,
+  ]);
+
+  $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
+  header('Location: /admin/torneo_open.php?id='.$id); exit;
+}
 
   // aggiungi evento manuale
-  if ($action === 'add_fixture_manual') {
-    $hname = trim($_POST['home_team_name'] ?? '');
-    $aname = trim($_POST['away_team_name'] ?? '');
-    if ($hname === '' || $aname === '') {
-      $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
-      header('Location: /admin/torneo_open.php?id='.$id); exit;
-    }
-
-    $pdo->prepare("
-      INSERT INTO tournament_events
-        (tournament_id, round_no, fixture_id, home_team_id, home_team_name, away_team_id, away_team_name, kickoff, is_active, pick_locked)
-      VALUES (:tid, :rnd, NULL, NULL, :hname, NULL, :aname, NULL, 1, 0)
-    ")->execute([
-      ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
-      ':hname'=>$hname, ':aname'=>$aname
-    ]);
-
-    $_SESSION['flash'] = 'Evento manuale aggiunto.';
+if ($action === 'add_fixture_manual') {
+  $hname = trim($_POST['home_team_name'] ?? '');
+  $aname = trim($_POST['away_team_name'] ?? '');
+  if ($hname === '' || $aname === '') {
+    $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
+
+  // NEW: genera un event_code univoco
+  $eventCode = 'EV'.bin2hex(random_bytes(4));
+
+  $pdo->prepare("
+    INSERT INTO tournament_events
+      (tournament_id, round_no, fixture_id,
+       home_team_id, home_team_name, away_team_id, away_team_name,
+       kickoff, is_active, pick_locked, result_status, result_at, event_code)
+    VALUES (:tid, :rnd, NULL,
+            NULL, :hname, NULL, :aname,
+            NULL, 1, 0, 'pending', NULL, :ecode)
+  ")->execute([
+    ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
+    ':hname'=>$hname, ':aname'=>$aname,
+    ':ecode'=>$eventCode,
+  ]);
+
+  $_SESSION['flash'] = 'Evento manuale aggiunto.';
+  header('Location: /admin/torneo_open.php?id='.$id); exit;
+}
 
   // toggle attivo/disattivo
   if ($action === 'toggle_event_active') {
