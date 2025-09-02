@@ -2,7 +2,11 @@
 // [SCOPO] Footer unico per tutte le pagine (guest, user, admin).
 // [USO]   Includi alla fine di ogni pagina, prima di </body>:
 //         <?php require __DIR__ . '/footer.php'; ?>
+?>
 <link rel="stylesheet" href="/assets/footer.css">
+
+<!-- Chiusura wrapper centrale elastico aperto dopo la subheader -->
+</div><!-- /.page-root -->
 
 <footer class="site-footer" role="contentinfo">
   <div class="site-footer__inner">
@@ -34,5 +38,14 @@
 
 <script>
 // [RIGA] Inserisce automaticamente l’anno corrente
-document.getElementById('footer-year').textContent = new Date().getFullYear();
+var fy = document.getElementById('footer-year');
+if (fy) fy.textContent = new Date().getFullYear();
+
+// [RIGA] Torna su
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.back-to-top');
+  if (!a) return;
+  e.preventDefault();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 </script>
