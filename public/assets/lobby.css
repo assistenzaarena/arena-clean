@@ -105,41 +105,24 @@
 .life-heart { cursor:pointer; user-select:none; }
 .life-heart:hover { transform: scale(1.06); }
 
-/* === LOBBY: griglia automatica per qualsiasi contenitore che contiene card --ps === */
-
-/* Desktop: 2 colonne */
-.wrap > *:has(> .card--ps) {
+//* === Layout griglia per le card della lobby === */
+.lobby-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
-  gap: 14px;
-}
-
-/* Le card dentro questi contenitori non devono avere larghezze imposte */
-.wrap > *:has(> .card--ps) > .card--ps {
-  width: auto !important;
-  margin: 0 !important; /* lo spazio lo gestisce il "gap" */
-}
-
-/* I titoli/separatori della lobby occupano tutta la riga e restano fuori dalla griglia */
-.wrap h2,
-.wrap .lobby-section-title,
-.wrap .section-title {
-  grid-column: 1 / -1; /* se il titolo è dentro lo stesso contenitore, occupa tutta la riga */
-  margin-top: 16px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 /* Mobile: 1 colonna */
 @media (max-width: 900px) {
-  .wrap > *:has(> .card--ps) {
+  .lobby-list {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 }
 
-/* (Opzionale) Schermi larghi: 3 colonne */
+/* Desktop larghi: max 3 colonne */
 @media (min-width: 1280px) {
-  .wrap > *:has(> .card--ps) {
+  .lobby-list {
     grid-template-columns: repeat(3, minmax(300px, 1fr));
   }
 }
