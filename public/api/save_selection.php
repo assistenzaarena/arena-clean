@@ -77,6 +77,11 @@ try {
     // (opzionale) se vuoi impedire scelte su eventi bloccati:
     // if ((int)$ev['pick_locked'] === 1) respond(['ok'=>false,'error'=>'locked'], 400);
 
+    // >>> aggiunta: evento deve essere del round corrente
+    if ((int)$ev['round_no'] !== $current_round_no) {
+        respond(['ok'=>false,'error'=>'event_wrong_round'], 400);
+    }
+
     // ============ REGOLA "NO TEAM DUPLICATO PER VITA" CON ECCEZIONI ============
     // Team che l'utente sta scegliendo in questo momento (in base al side)
     $team_chosen_id = ($side === 'home') ? (int)$ev['home_team_id'] : (int)$ev['away_team_id'];
@@ -197,5 +202,5 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     error_log('[save_selection] '.$e->getMessage());
-    respond(['ok'=>false,'error'=>'exception'], 500);
+    respond(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()], 500);
 }
