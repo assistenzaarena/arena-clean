@@ -39,6 +39,35 @@
   var fy = document.getElementById('footer-year');
   if (fy) fy.textContent = new Date().getFullYear();
 
+     <script>
+(function(){
+  function fixFooter() {
+    var footer = document.querySelector('.site-footer');
+    if (!footer) return;
+
+    // reset
+    footer.style.marginTop = '';
+
+    // altezza documento complessiva vs viewport
+    var docH = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    var gap = window.innerHeight - docH;
+
+    // se la pagina è più corta della viewport, spingi il footer giù
+    if (gap > 0) {
+      footer.style.marginTop = gap + 'px';
+    }
+  }
+
+  // al primo paint + su resize/font-loading
+  window.addEventListener('load', fixFooter);
+  window.addEventListener('resize', fixFooter);
+  // in caso di immagini/font che cambiano l'altezza dopo qualche ms
+  setTimeout(fixFooter, 50);
+})();
+     
   // Torna su
   document.addEventListener('click', function(e){
     var a = e.target.closest('.back-to-top');
