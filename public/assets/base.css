@@ -60,7 +60,7 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
-/* Sticky footer universale con CSS Grid */
+/* Sticky footer universale con CSS Grid (vale per tutte le pagine) */
 html, body { height: 100%; }
 
 body {
@@ -70,17 +70,16 @@ body {
   grid-template-rows: auto auto 1fr auto;
 }
 
-/* Mappo gli elementi comuni (se mancano, il grid adatta da solo) */
-header.hdr { grid-row: 1; }
-nav.subhdr  { grid-row: 2; }
+/* Mappo gli elementi noti */
+body > header.hdr { grid-row: 1; }
+body > nav.subhdr  { grid-row: 2; }
+body > footer      { grid-row: 4; }
 
-/* Qualunque wrapper di contenuto finisce nella riga elastica */
-main, .page, .page-root, .content, .wrap {
+/* QUALSIASI altro figlio diretto del body è il contenuto elastico */
+body > :not(header):not(nav):not(footer) {
   grid-row: 3;
-  min-height: 0;       /* important per scroll interno corretto */
+  min-height: 0;             /* importante per scroll interno corretto */
 }
 
-/* Footer sempre in fondo, senza position:fixed */
-footer { 
-  grid-row: 4; 
-}
+/* (facoltativo) un filo di respiro sotto i contenuti */
+body > :not(header):not(nav):not(footer) { padding-bottom: 12px; }
