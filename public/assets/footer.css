@@ -69,18 +69,25 @@
 @media (max-width:980px){
   .footer-menu{ gap: 10px 14px; }
 }
-/* Footer “sempre in fondo” senza toccare il layout del body */
-footer {
-  position: sticky;
-  top: 100vh;            /* il footer sta all’altezza del bottom della viewport */
-  background: #0a0a0b;   /* il tuo sfondo footer */
-  padding: 20px 0;       /* respiro */
-  z-index: 1;            /* sopra ad eventuali bordi */
+/* Wrapper centrale elastico: spinge il footer in basso */
+.page-root {
+  min-height: 100vh;          /* il wrapper occupa tutta la viewport */
+  display: flex;
+  flex-direction: column;
 }
 
-/* opzionale: bordo e testo */
-footer .footer-inner {
+/* Tutto ciò che c’è prima del footer fa da contenuto elastico */
+.page-root > :not(footer) {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+/* Footer normale (non fixed), ma appoggiato in basso quando il contenuto è corto */
+.site-footer {
+  padding: 20px 0;
+  background: #0a0a0b;
   border-top: 1px solid rgba(255,255,255,.12);
   color: #aaa;
   text-align: center;
+}
 }
