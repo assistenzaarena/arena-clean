@@ -60,20 +60,27 @@ button {
   --color-cta: #00c074;                /* verde CTA */
 }
 
-/* Layout a colonna: header + contenuto elastico + footer */
+/* Sticky footer universale con CSS Grid */
 html, body { height: 100%; }
+
 body {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* header (auto) | subheader (auto) | contenuto (1fr) | footer (auto) */
+  grid-template-rows: auto auto 1fr auto;
 }
 
-/* Il contenuto principale cresce e spinge il footer in basso */
-main.page {
-  flex: 1 0 auto;
+/* Mappo gli elementi comuni (se mancano, il grid adatta da solo) */
+header.hdr { grid-row: 1; }
+nav.subhdr  { grid-row: 2; }
+
+/* Qualunque wrapper di contenuto finisce nella riga elastica */
+main, .page, .page-root, .content, .wrap {
+  grid-row: 3;
+  min-height: 0;       /* important per scroll interno corretto */
 }
 
-/* Il footer resta in fondo ma non è fixed (scorre quando la pagina è lunga) */
-footer {
-  margin-top: auto;
+/* Footer sempre in fondo, senza position:fixed */
+footer { 
+  grid-row: 4; 
 }
