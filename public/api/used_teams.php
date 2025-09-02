@@ -25,23 +25,21 @@ try {
   $tq->execute([$tournament_id]);
   $round_now = (int)$tq->fetchColumn();
 
-  // === AGGIORNATO: squadre già usate con questa vita nei round precedenti
-  //     usiamo l'ULTIMA selezione per ciascun round < round_now
-  $stUsed = $pdo->prepare("
-    SELECT
-      CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END AS team_id
-    FROM tournament_selections ts
-    JOIN tournament_events te ON te.id = ts.event_id
-    JOIN (
-      SELECT round_no, MAX(id) AS max_id
-      FROM tournament_selections
-      WHERE tournament_id = ? AND user_id = ? AND life_index = ? AND round_no < ?
-      GROUP BY round_no
-    ) last ON last.max_id = ts.id
-    WHERE (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
+  // SCHEMA DETECTION per percorso "pieno"
+  $cols = [];
+  $ci = $pdo->prepare("
+    SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME   = 'tournament_selections'
+      AND COLUMN_NAME IN ('round_no','team_id','is_fallback','cycle_no')
   ");
-  $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
-  $used = array_map('intval',$stUsed->fetchAll(PDO::FETCH_COLUMN));
+  $ci->execute();
+  foreach ($ci->fetchAll(PDO::FETCH_COLUMN) as $c) { $cols[$c] = true; }
+  $HAS_ROUND_NO = !empty($cols['round_no']);
+  $HAS_TEAM_ID  = !empty($cols['team_id']);
+  $HAS_FALLBACK = !empty($cols['is_fallback']);
+  $HAS_CYCLE_NO = !empty($cols['cycle_no']);
 
   // squadre bloccate per il round corrente (pick_locked=1 o is_active=0)
   $stBlk = $pdo->prepare("
@@ -58,8 +56,47 @@ try {
     if ($row['away_team_id']) $blocked[]=(int)$row['away_team_id'];
   }
 
-  echo json_encode(['ok'=>true,'used'=>$used,'blocked'=>$blocked]);
+  if ($HAS_CYCLE_NO && $HAS_TEAM_ID && $HAS_FALLBACK) {
+    // PERCORSO PIENO: used = DISTINCT team_id nel ciclo corrente, SOLO scelte non fallback (giro reale)
+    $stC = $pdo->prepare("
+      SELECT COALESCE(MAX(cycle_no), 0)
+      FROM tournament_selections
+      WHERE tournament_id=? AND user_id=? AND life_index=?
+    ");
+    $stC->execute([$tournament_id, $user_id, $life_index]);
+    $curCycle = (int)$stC->fetchColumn();
+    if ($curCycle <= 0) $curCycle = 1;
+
+    $stUsed = $pdo->prepare("
+      SELECT DISTINCT team_id
+      FROM tournament_selections
+      WHERE tournament_id=? AND user_id=? AND life_index=? AND cycle_no=? AND COALESCE(is_fallback,0)=0 AND team_id IS NOT NULL
+    ");
+    $stUsed->execute([$tournament_id, $user_id, $life_index, $curCycle]);
+    $used = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
+
+    echo json_encode(['ok'=>true,'used'=>$used,'blocked'=>$blocked]); exit;
+  }
+
+  // COMPAT MODE: used = squadre usate in round precedenti finalizzati (approssimato)
+  $stUsed = $pdo->prepare("
+    SELECT DISTINCT
+      CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END AS team_id
+    FROM tournament_selections ts
+    JOIN tournament_events te ON te.id = ts.event_id
+    WHERE ts.tournament_id = ?
+      AND ts.user_id = ?
+      AND ts.life_index = ?
+      AND te.round_no < ?
+      AND ts.finalized_at IS NOT NULL
+      AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
+  ");
+  $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
+  $used = array_map('intval',$stUsed->fetchAll(PDO::FETCH_COLUMN));
+
+  echo json_encode(['ok'=>true,'used'=>$used,'blocked'=>$blocked]); exit;
+
 } catch(Throwable $e){
   error_log('[used_teams] '.$e->getMessage());
-  echo json_encode(['ok'=>false,'error'=>'exception','msg'=>$e->getMessage()]);
+  echo json_encode(['ok'=>false,'error'=>'exception']); exit;
 }
