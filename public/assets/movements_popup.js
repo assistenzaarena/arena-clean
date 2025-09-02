@@ -135,7 +135,7 @@
       'withdraw' : '#6846ff',
       'payout'   : '#0a7f5e',
       'enroll'   : '#8A0F0F',
-      'buy_life' : '#b85a00',
+      'buy_life' : '#001cb8',
       'unenroll' : '#6c6c6c'
     };
     var bg = map[type] || '#2b2b2b';
