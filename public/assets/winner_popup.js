@@ -1,6 +1,5 @@
 // public/assets/winner_popup.js
 (function(){
-  // Esegui solo in lobby
   if (!document.body) return;
 
   function shouldHide(key){
@@ -19,8 +18,20 @@
       var username = (js.username || 'UTENTE').toUpperCase();
       var amount = (typeof js.amount === 'number' ? js.amount : null);
       var tcode = (js.tournament_code ? String(js.tournament_code) : '');
+      var reason = (js.reason || 'winner'); // 'winner' | 'proportional'
 
-      // crea overlay
+      // testi dinamici
+      var topText = '🎉 COMPLIMENTI ' + username + ' 🎉';
+      var midText, smallText;
+      if (reason === 'proportional') {
+        midText   = '🏆 HAI FATTO STORIA! L’ARENA HA PIÙ EROI, E TU SEI NELLA LEGGENDA! 🏆';
+        smallText = 'IL PREMIO È STATO SPLITTATO!';
+      } else {
+        midText   = '🏆 SEI IL RE DELL’ARENA! 🏆';
+        smallText = 'PREMIO ACCREDITATO!';
+      }
+
+      // overlay
       var overlay = document.createElement('div');
       overlay.style.position = 'fixed';
       overlay.style.inset = '0';
@@ -48,23 +59,24 @@
       top.style.letterSpacing = '.5px';
       top.style.marginBottom = '8px';
       top.style.textTransform = 'uppercase';
-      top.innerHTML = '🎉 COMPLIMENTI ' + username + ' 🎉';
+      top.innerHTML = topText;
 
       var mid = document.createElement('div');
-      mid.style.fontSize = '26px';
+      mid.style.fontSize = '22px';
+      mid.style.lineHeight = '1.25';
       mid.style.fontWeight = '900';
       mid.style.margin = '6px 0 12px';
       mid.style.textTransform = 'uppercase';
-      mid.innerHTML = '🏆 SEI IL RE DELL’ARENA! 🏆';
+      mid.innerHTML = midText;
 
       var small = document.createElement('div');
-      small.style.fontSize = '13px';
+      small.style.fontSize = '12px';
       small.style.fontWeight = '800';
       small.style.letterSpacing = '.7px';
       small.style.color = '#d3ffd8';
       small.style.marginBottom = '18px';
       small.style.textTransform = 'uppercase';
-      small.textContent = 'Premio accreditato!';
+      small.textContent = smallText;
 
       var info = document.createElement('div');
       info.style.fontSize = '12px';
