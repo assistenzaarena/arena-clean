@@ -59,3 +59,21 @@ button {
   --color-brand: #e62329;              /* rosso Arena */
   --color-cta: #00c074;                /* verde CTA */
 }
+
+/* Layout a colonna: header + contenuto elastico + footer */
+html, body { height: 100%; }
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Il contenuto principale cresce e spinge il footer in basso */
+main.page {
+  flex: 1 0 auto;
+}
+
+/* Il footer resta in fondo ma non è fixed (scorre quando la pagina è lunga) */
+footer {
+  margin-top: auto;
+}
