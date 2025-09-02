@@ -155,7 +155,7 @@
           else if (msg === 'event_invalid')      msg = 'Evento non valido.';
           else if (msg === 'team_already_used')  msg = 'Con questa vita hai già usato questa squadra.';
           else if (msg === 'event_wrong_round')  msg = 'L’evento non appartiene al round corrente.';
-          else if (msg === 'exception')          msg = 'Errore interno.';
+          else if (msg === 'exception')  msg = (js.msg || 'Errore interno.');
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
         }
