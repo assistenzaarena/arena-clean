@@ -392,14 +392,16 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       - se resta 1 solo sopravvissuto → 100% del montepremi a lui;<br>
       - se non resta nessuno → distribuzione proporzionale.
     </p>
-    <form method="POST" action="/admin/close_tournament.php" 
-          onsubmit="return confirm('Confermi chiusura e payout del torneo?');">
-      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
-      <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
-      <button class="btn" type="submit" style="background:#0a7;border:1px solid #0a7;color:#fff;">
-        Chiudi torneo &amp; paga
-      </button>
-    </form>
+<form method="POST" action="/admin/close_tournament.php"
+      onsubmit="return confirm('Confermi chiusura e payout (split automatico se più sopravvissuti)?');"
+      style="margin-top:12px;">
+  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
+  <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+  <input type="hidden" name="force" value="1"> <!-- <<< AGGIUNTA: forza split automatico -->
+  <button class="btn" type="submit" style="background:#0a7;border:1px solid #0a7;color:#fff;">
+    Chiudi torneo &amp; paga (forza split)
+  </button>
+</form>
   </div>
 
   <div>
