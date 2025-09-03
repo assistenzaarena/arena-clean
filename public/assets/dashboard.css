@@ -57,10 +57,10 @@
 
 /* Colonne (via <colgroup>) */
 .admin-table col.col-code    { width:  90px; }
-.admin-table col.col-nome    { width: 140px; }
-.admin-table col.col-cognome { width: 160px; }
-.admin-table col.col-user    { width: 140px; }
-.admin-table col.col-email   { width: 260px; }  /* alza a 280/300 se vuoi più aria */
+.admin-table col.col-nome    { width: 130px; }
+.admin-table col.col-cognome { width: 130px; }
+.admin-table col.col-user    { width: 130px; }
+.admin-table col.col-email   { width: 240px; }  /* alza a 280/300 se vuoi più aria */
 .admin-table col.col-phone   { width: 150px; }
 .admin-table col.col-attivo  { width: 120px; }
 .admin-table col.col-saldo   { width:  90px; }
