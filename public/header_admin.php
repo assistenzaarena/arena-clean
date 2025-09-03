@@ -61,8 +61,19 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
       <li class="subhdr__item">
         <a class="subhdr__link" href="/admin/amministrazione.php">Amministrazione</a>
       </li>
+
+      <!-- ====== AGGIUNTA: link rapidi ====== -->
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/tornei_chiusi.php">Tornei chiusi</a>
+      </li>
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/premi_richiesti.php">Premi richiesti</a>
+      </li>
+      <li class="subhdr__item">
+        <a class="subhdr__link" href="/admin/premi_riscossi.php">Premi riscossi</a>
+      </li>
+      <!-- ====== FINE AGGIUNTA ====== -->
     </ul>
   </div>
 </nav>
 <?php endif; ?>
-
