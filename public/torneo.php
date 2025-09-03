@@ -176,8 +176,8 @@ try {
 <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>  <!-- ADDED -->
 <style>
 /* … resto invariato … */
-    .torneo-wrap{max-width:1280px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
-    .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+    .torneo-wrap{max-width:1280px; margin:40px auto; padding:0 24px; color:#fff; position:relative;}
+    .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;}
     .torneo-title{font-size:24px; font-weight:900;}
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
     .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
@@ -283,6 +283,11 @@ try {
 
     /* ====== AGGIUNTA: banner "in attesa" ====== */
     .notice-wait{background:#262a31;border:1px solid rgba(255,255,255,.15);padding:12px;border-radius:10px;margin:12px 0;color:#c9c9c9;}
+  /* Distanze generali tra le sezioni */
+section{
+  margin-top: 30px;      /* spazio tra i vari blocchi */
+  margin-bottom: 30px;
+}
 </style>
 </head>
 <body>
