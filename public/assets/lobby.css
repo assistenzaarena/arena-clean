@@ -146,3 +146,15 @@
     grid-template-columns: repeat(3, minmax(300px, 1fr)) !important;
   }
 }
+
+/* Badge "IN CORSO" */
+.badge--running{
+  background:#ffcc00;
+  color:#111;
+  border-radius:9999px;
+  padding:3px 10px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.3px;
+  display:inline-block;
+}
