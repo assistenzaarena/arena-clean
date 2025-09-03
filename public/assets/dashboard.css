@@ -3,7 +3,7 @@
    =========================== */
 
 /* Contenitore principale */
-.admin-wrap {
+.admin-wrap{
   max-width: 1280px;
   margin: 24px auto;
   padding: 0 20px;
@@ -11,177 +11,186 @@
 }
 
 /* KPI box (es: Utenti totali) */
-.kpi {
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, .08);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  display: inline-block;
+.kpi{
+  background:#111;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-bottom:16px;
+  display:inline-block;
 }
 
 /* Filtri e ricerca */
-.filters {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin: 12px 0;
+.filters{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:12px 0;
 }
-.filters input[type=text] {
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, .25);
-  background: #0a0a0b;
-  color: #fff;
-  padding: 0 10px;
+.filters input[type=text]{
+  height:36px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#0a0a0b;
+  color:#fff;
+  padding:0 10px;
 }
-.filters select {
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, .25);
-  background: #0a0a0b;
-  color: #fff;
+.filters select{
+  height:36px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#0a0a0b;
+  color:#fff;
 }
 
-/* Tabella utenti */
-table {
+/* ---------------------------
+   WRAPPER TABELLONE
+   --------------------------- */
+.table-wrap{
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow-x: auto;              /* se lo spazio non basta → scroll orizzontale */
+  padding-bottom: 8px;
+}
+
+/* ---------------------------
+   TABELLA (rigida e stabile)
+   --------------------------- */
+.admin-table{
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px;
+  border-spacing: 0 8px;         /* aria tra le “righe card” */
+  table-layout: fixed;           /* <<< fondamentale: le colonne rispettano il colgroup */
 }
-thead th {
-  text-align: left;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  color: #c9c9c9;
+.admin-table thead th{
+  text-align:left;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  color:#c9c9c9;
+  padding:10px 12px;
+  white-space:nowrap;
 }
-tbody tr {
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, .08);
+.admin-table tbody tr{
+  background:#111;
+  border:1px solid rgba(255,255,255,.08);
 }
-tbody td {
-  padding: 10px;
-  vertical-align: middle;
-}
-tbody td input[type=text],
-tbody td input[type=number],
-tbody td input[type=email],
-tbody td input[type=tel],
-tbody td input[type=password] {
-  width: 100%;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, .2);
-  background: #0a0a0b;
-  color: #fff;
-  padding: 0 10px;
+.admin-table td{
+  padding:8px 12px;
+  vertical-align:middle;
 }
 
-/* Pill status (non più usata con bottone, ma teniamola se serve) */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 800;
-}
-.pill-on {
-  background: #00c074;
-  color: #0b1;
-}
-.pill-off {
-  background: #333;
-  color: #bbb;
+/* Colonne (usa il colgroup in dashboard.php) */
+.admin-table col.col-code    { width:  90px; }
+.admin-table col.col-nome    { width: 140px; }
+.admin-table col.col-cognome { width: 160px; }
+.admin-table col.col-user    { width: 140px; }
+.admin-table col.col-email   { width: 260px; }  /* puoi alzare a 280/300 se vuoi più aria */
+.admin-table col.col-phone   { width: 150px; }
+.admin-table col.col-attivo  { width: 120px; }
+.admin-table col.col-saldo   { width:  90px; }
+.admin-table col.col-pass    { width: 150px; }
+.admin-table col.col-actions { width: 300px; min-width: 320px; } /* spazio per 3 bottoni in linea */
+
+@media (max-width:1180px){
+  .admin-table col.col-actions{ width: 340px; } /* su schermi stretti dai un filo in più */
 }
 
-/* Pulsanti generici */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, .25);
-  border-radius: 8px;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 800;
-}
-.btn:hover {
-  border-color: #fff;
-}
-.btn-apply {
-  background: #e62329;
-  border-color: #e62329;
-}
-.btn-apply:hover {
-  background: #c61e28;
-  border-color: #c61e28;
+/* ---------------------------
+   CAMPI: altezze uniformi
+   --------------------------- */
+.admin-table input[type=text],
+.admin-table input[type=number],
+.admin-table input[type=email],
+.admin-table input[type=tel],
+.admin-table input[type=password]{
+  width:100%;
+  height:34px;
+  line-height:34px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.20);
+  background:#0a0a0b;
+  color:#fff;
+  padding:0 10px;
+  white-space:nowrap;
 }
 
-/* Pulsante stato ON/OFF */
+/* ---------------------------
+   BOTTONI (stile base)
+   --------------------------- */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:34px;
+  line-height:34px;
+  padding:0 12px;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:8px;
+  color:#fff;
+  text-decoration:none;
+  font-weight:800;
+  white-space:nowrap;
+}
+.btn:hover{ border-color:#fff; }
+
+.btn--outline { background:#202326; border-color:rgba(255,255,255,.25); color:#fff; }
+.btn--danger  { background:#e62329;  border-color:#e62329;              color:#fff; }
+.btn--ok      { background:#00c074;  border-color:#00c074;              color:#fff; }
+
+/* Stato ON/OFF */
 .btn-state{
   display:inline-flex; align-items:center; justify-content:center;
-  height:28px; padding:0 12px; border-radius:9999px;
-  font-size:12px; font-weight:800; color:#fff; border:0; cursor:pointer;
+  height:34px; line-height:34px; padding:0 12px;
+  border-radius:9999px; font-size:12px; font-weight:800; color:#fff; border:0;
 }
-.btn-state.on  { background:#00c074; } /* verde = attivo */
-.btn-state.off { background:#e62329; } /* rosso = inattivo */
+.btn-state.on  { background:#00c074; }
+.btn-state.off { background:#e62329; }
 .btn-state:hover{ filter:brightness(1.05); }
 
-/* Azioni multiple in cella */
-.actions {
-  display: flex;
-  gap: 8px;
+/* ---------------------------
+   COLONNA “AZIONI”
+   --------------------------- */
+.admin-table td.actions{ white-space:nowrap; } /* evita wrap nella cella */
+
+.admin-table td.actions .row-actions{
+  display:inline-flex;         /* la riga di bottoni resta inline nella cella */
+  gap:8px;
+  align-items:center;
+  flex-wrap:nowrap;            /* mai andare a capo */
+  justify-content:flex-start;  /* o flex-end se li vuoi a destra */
+}
+.admin-table td.actions .row-actions > *{
+  flex:0 0 auto;
+  white-space:nowrap;
 }
 
-/* Paginazione */
-.pag {
-  margin-top: 12px;
-  display: flex;
-  gap: 6px;
+/* ---------------------------
+   Paginazione
+   --------------------------- */
+.pag{
+  margin-top:12px;
+  display:flex;
+  gap:6px;
 }
-.pag a {
-  color: #fff;
-  text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, .25);
-  padding: 4px 8px;
-  border-radius: 6px;
+.pag a{
+  color:#fff;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,.25);
+  padding:4px 8px;
+  border-radius:6px;
 }
-.pag .on {
-  background: #fff;
-  color: #000;
-}
+.pag .on{ background:#fff; color:#000; }
 
-/* Messaggi flash / errori */
-.err {
-  color: #ff6b6b;
-  margin-bottom: 8px;
-}
-.flash {
-  color: #00d07e;
-  margin-bottom: 8px;
-}
-.btn-delete{
-  background:#222; border-color:#444;
-}
-.btn-delete:hover{
-  border-color:#fff;
-}
-/* --- CARD che avvolge la lista utenti (coerente con card login) --- */
-.card-table{
-  background:#111;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;
-  padding:16px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.18);
-}
+/* ---------------------------
+   Messaggi flash / errori
+   --------------------------- */
+.err{ color:#ff6b6b; margin:8px 0; }
+.flash{ color:#00d07e; margin:8px 0; }
 
-/* --- versione compatta di tabella/controlli --- */
+/* ---------------------------
+   VARIANTI COMPATTE (se vuoi)
+   --------------------------- */
 table.compact thead th{ font-size:11px; }
 table.compact tbody td{ padding:6px 8px; }
 
@@ -196,174 +205,22 @@ table.compact tbody td input[type=password]{
   padding:0 8px;
 }
 
-.filters input[type=text]{
-  height:32px;
-  font-size:12px;
-  border-radius:8px;
-}
+/* Bottoni compatti (se usi .compact) */
+table.compact .btn{ height:28px; padding:0 10px; font-size:12px; border-radius:6px; }
+table.compact .btn-state{ height:24px; padding:0 10px; font-size:11px; border-radius:9999px; }
 
-/* Bottoni compatti */
-.btn{ height:28px; padding:0 10px; font-size:12px; border-radius:6px; }
-.btn-state{ height:24px; padding:0 10px; font-size:11px; border-radius:9999px; }
-
-/* Paginazione compatta */
-.pag.compact a{ padding:3px 6px; font-size:12px; border-radius:6px; }
-/* Strisce utenti (card-like) */
-.rows{ display:flex; flex-direction:column; gap:10px; }
-
-/* griglia a 10 colonne allineate:  code | nome | cognome | user | email | phone | attivo | saldo | pwd | azioni  */
-.grid-row{
-  display:grid;
-  grid-template-columns: 90px 120px 140px 140px 220px 150px 110px 110px 160px 220px;
-  gap:10px;
-  align-items:center;
-}
-
-/* header righe */
-.row-head{
-  color:#c9c9c9;
-  font-size:12px;
-  text-transform:uppercase;
-  letter-spacing:.03em;
-}
-
-/* riga utente */
-.user-row{
+/* ---------------------------
+   Card “table” (se la usi)
+   --------------------------- */
+.card-table{
   background:#111;
   border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;             /* bordi arrotondati */
-  padding:10px 12px;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.18);
 }
 
-.user-row .cell input[type=text],
-.user-row .cell input[type=email],
-.user-row .cell input[type=tel],
-.user-row .cell input[type=number],
-.user-row .cell input[type=password]{
-  width:100%;
-  height:30px; font-size:12px;
-  border-radius:6px; padding:0 8px;
-  border:1px solid rgba(255,255,255,.20);
-  background:#0a0a0b; color:#fff;
-}
-
-/* bottoni compatti */
-.btn{ height:28px; padding:0 10px; font-size:12px; border-radius:6px; }
-.btn-apply{ background:#e62329; border-color:#e62329; }
-.btn-delete{ background:#222; border-color:#444; }
-.btn-delete:hover{ border-color:#fff; }
-
-/* stato ON/OFF */
-.btn-state{ height:24px; padding:0 10px; font-size:11px; border-radius:9999px; color:#fff; border:0; cursor:pointer; }
-.btn-state.on{ background:#00c074; }
-.btn-state.off{ background:#e62329; }
-.note-warn{ font-size:11px; color:#ff9090; margin-top:4px; }
-
-/* link header ordinamento */
-.row-head a{ color:#c9c9c9; text-decoration:none; }
-.row-head a:hover{ color:#fff; text-decoration:underline; }
-
-/* paginazione compatta (se usi .pag esistente) */
-.pag.compact a{ padding:3px 6px; font-size:12px; border-radius:6px; }
-.card-table{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
-.rows{display:flex;flex-direction:column;gap:10px}
-.grid-row{display:grid;grid-template-columns:90px 120px 140px 140px 220px 150px 110px 110px 160px 220px;gap:10px;align-items:center}
-.row-head{color:#c9c9c9;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
-.user-row{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}
-.user-row .cell input[type=text],.user-row .cell input[type=email],.user-row .cell input[type=tel],.user-row .cell input[type=number],.user-row .cell input[type=password]{width:100%;height:30px;font-size:12px;border-radius:6px;padding:0 8px;border:1px solid rgba(255,255,255,.20);background:#0a0a0b;color:#fff}
-.btn{height:28px;padding:0 10px;font-size:12px;border-radius:6px}
-.btn-state{height:24px;padding:0 10px;font-size:11px;border-radius:9999px;color:#fff;border:0;cursor:pointer}
-.btn-state.on{background:#00c074}.btn-state.off{background:#e62329}
-.note-warn{font-size:11px;color:#ff9090;margin-top:4px}
-.row-head a{color:#c9c9c9;text-decoration:none}.row-head a:hover{color:#fff;text-decoration:underline}
-.pag.compact a{padding:3px 6px;font-size:12px;border-radius:6px}
-
-/* Centra il blocco tabella e gestisce eventuale overflow orizzontale */
-.table-wrap{
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  overflow-x: auto;
-}
-
-/* ======================
-   FIX TABELLONE ADMIN
-   Allineamento + Bottoni
-   ====================== */
-
-/* Wrapper centrato */
-.admin-wrap{
-  max-width: 1200px;
-  margin: 24px auto;
-  padding: 0 16px;
-}
-
-/* Tabella */
-.table-wrap{
-  overflow-x: auto; /* se non basta spazio → scroll orizzontale */
-}
-.admin-table{
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px;       /* aria tra le righe */
-  table-layout: fixed;         /* colonne rispettano colgroup */
-}
-.admin-table thead th{
-  padding: 10px 12px;
-  text-align: left;
-  font-weight: 800;
-  white-space: nowrap;
-}
-.admin-table td{
-  padding: 8px 12px;
-  vertical-align: middle;
-}
-
-/* Altezze uniformi */
-.admin-table input[type="text"],
-.admin-table input[type="email"],
-.admin-table input[type="tel"],
-.admin-table input[type="number"],
-.admin-table input[type="password"],
-.admin-table .btn-state{
-  height: 34px;
-  line-height: 34px;
-}
-
-/* Colonne (colgroup) */
-.admin-table .col-code    { width:  90px; }
-.admin-table .col-nome    { width: 140px; }
-.admin-table .col-cognome { width: 160px; }
-.admin-table .col-user    { width: 140px; }
-.admin-table .col-email   { width: 260px; }
-.admin-table .col-phone   { width: 150px; }
-.admin-table .col-attivo  { width: 120px; }
-.admin-table .col-saldo   { width:  90px; }
-.admin-table .col-pass    { width: 150px; }
-.admin-table .col-actions { width: 300px; } /* aumenta se stringe */
-
-/* Contenitore bottoni nella colonna Azioni */
-.admin-table td.actions .row-actions{
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-}
-.admin-table td.actions .row-actions .btn{
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-.admin-table td.actions .row-actions a.btn{
-  display: inline-block;
-  text-decoration: none;
-}
-
-/* Stili base bottoni (override in tabella) */
-.admin-table .btn--outline { background:#202326; border:1px solid rgba(255,255,255,.25); color:#fff; }
-.admin-table .btn--danger  { background:#e62329;  border:1px solid #e62329;              color:#fff; }
-.admin-table .btn--ok      { background:#00c074;  border:1px solid #00c074;              color:#fff; }
-
-/* Responsive: colonna Azioni più larga se schermi stretti */
-@media (max-width: 1180px){
-  .admin-table .col-actions{ width: 340px; }
-}
+/* Nota: evita conflitti.
+   - Non usiamo più .grid-row/.rows (layout a grid) nella versione a TABLE.
+   - Se nel CSS avevi regole duplicate, tenerle qui ordinate evita override
+     casuali. Questo blocco in fondo prevale sugli stili precedenti. */
