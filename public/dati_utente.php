@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <style>
     /* micro-differenze */
     .auth__title { font-size:22px; font-weight:900; margin:0 0 16px; }
-    .auth__card  { max-width: 720px; }
+    .auth__card  { max-width: 620px; }
     .auth__submit { background:#00c074; }
     .auth__submit:hover { background:#00a862; }
     .meta-box{background:#0f1114;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 12px;margin-bottom:12px;color:#fff}
