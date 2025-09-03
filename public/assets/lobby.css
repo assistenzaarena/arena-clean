@@ -148,12 +148,13 @@
 }
 
 .badge--running {
-  background:#ff9800;   /* arancione */
-  color:#fff;
-  border-radius:999px;
-  padding:3px 10px;
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.3px;
-  display:inline-block;
+  background: #1a1d22;          /* stesso sfondo scuro di ISCRITTO/OPEN */
+  color: #ff9800;               /* arancione per il testo */
+  border: 1px solid #ff9800;    /* bordo arancione */
+  border-radius: 999px;         /* pill shape */
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .3px;
+  display: inline-block;
 }
