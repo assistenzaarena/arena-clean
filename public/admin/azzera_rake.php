@@ -20,14 +20,11 @@ if (!hash_equals($_SESSION['csrf'] ?? '', $posted_csrf)) {
 }
 
 try {
-  // Azzeriamo proprio la tabella (se preferisci storicizzare, poi cambiamo strategia)
   $pdo->exec("TRUNCATE TABLE admin_rake_ledger");
-
   $_SESSION['flash'] = 'Rake azzerata con successo.';
 } catch (Throwable $e) {
   $_SESSION['flash'] = 'Errore durante l’azzeramento della rake.';
 }
 
-// Torna alla pagina di amministrazione
 header('Location: /admin/amministrazione.php');
 exit;
