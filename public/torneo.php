@@ -182,6 +182,19 @@ try {
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
     .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
     .btn--warn:hover{background:#c01c21;}
+  
+  /* Pulsante discreto (senza colore pieno) per Disiscriviti */
+.btn--ghost{
+  background: transparent;                          /* niente riempimento */
+  border: 1px solid rgba(255,255,255,.22);          /* bordo tenue */
+  color: #cfcfcf;                                   /* testo grigio chiaro */
+  font-weight: 700;                                 /* resta leggibile */
+}
+.btn--ghost:hover{
+  border-color: rgba(255,255,255,.45);              /* un filo più visibile al hover */
+  color: #fff;                                      /* testo bianco al hover */
+  background: rgba(255,255,255,.04);                /* leggerissima velatura */
+}
 
     /* Overlay popup */
     .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
@@ -249,7 +262,7 @@ try {
         <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
         <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
         <input type="hidden" name="redirect" value="1">
-        <button class="btn btn--warn" type="button" id="unenrollBtn">Disiscriviti</button>
+        <button class="btn btn--ghost" type="button" id="unenrollBtn">Disiscriviti</button>
       </form>
     <?php endif; ?>
   </div>
