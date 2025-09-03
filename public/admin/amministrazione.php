@@ -120,7 +120,7 @@ try {
       <div class="rake-total">
         Totale complessivo: <?php echo number_format($rake_totale, 2, ',', '.'); ?> €
       </div>
-      <a href="/admin/reset_rake.php" class="btn-reset">Azzera rake</a>
+      <a href="/admin/azzera_rake.php" class="btn-reset">Azzera rake</a>
     <?php endif; ?>
   </div>
 </main>
