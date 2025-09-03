@@ -60,33 +60,38 @@
                 color:#c9c9c9; text-decoration:none; }
 .subhdr__link:hover { color:#fff; }
 
-/* === Admin dashboard: tabella allineata e consistente === */
+/* === Tabella admin: allineamento ed ergonomia === */
 .admin-table {
   width: 100%;
-  border-collapse: collapse;   /* evita spacing tra celle */
-  table-layout: fixed;         /* larghezze stabili nelle colonne */
+  border-collapse: collapse;
+  table-layout: fixed;              /* larghezze stabili */
 }
-.admin-table * {
-  box-sizing: border-box;
-}
+
+/* Colonne: larghezze consigliate (adatta se serve) */
+.admin-table col.col-code    { width: 80px; }
+.admin-table col.col-nome    { width: 140px; }
+.admin-table col.col-cognome { width: 160px; }
+.admin-table col.col-user    { width: 160px; }
+.admin-table col.col-email   { width: 260px; }
+.admin-table col.col-phone   { width: 160px; }
+.admin-table col.col-attivo  { width: 120px; }
+.admin-table col.col-saldo   { width: 120px; }
+.admin-table col.col-pass    { width: 220px; }
+.admin-table col.col-actions { width: 340px; } /* spazio per i 3 bottoni */
+
+/* Celle */
 .admin-table th,
 .admin-table td {
   padding: 10px 12px;
-  vertical-align: middle;      /* centra TUTTO verticalmente nelle celle */
+  vertical-align: middle;           /* centra tutto verticalmente */
   font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
-/* Colonna Azioni */
-.admin-table td.actions {
-  white-space: nowrap;         /* impedisce a capo casuali */
-}
-.admin-table td.actions .row-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;                    /* distanza uniforme tra bottoni */
-}
+/* Form di riga: non deve creare un box che sporca il layout */
+.admin-table tr form { display: contents; }
 
-/* Input/select: stessa altezza */
+/* Campi modulo: stessa altezza e full width */
 .admin-table input[type="text"],
 .admin-table input[type="number"],
 .admin-table input[type="password"],
@@ -94,28 +99,45 @@
 .admin-table input[type="tel"],
 .admin-table select {
   height: 34px;
-  line-height: 34px;           /* testo centrato */
+  line-height: 34px;
   padding: 0 10px;
+  width: 100%;
   border-radius: 8px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
-/* Bottoni: stessa altezza e centrati */
+/* Bottone stato (Attivo/Inattivo) e altri bottoni: stessa altezza */
 .admin-table .btn,
 .admin-table button,
 .admin-table a.btn,
-.admin-table .btn-state {      /* i bottoni “Attivo/Inattivo” */
+.admin-table .btn-state {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 34px;                /* uguale agli input */
+  height: 34px;                     /* uguale agli input */
   padding: 0 12px;
   line-height: 1;
   border-radius: 8px;
   font-weight: 700;
 }
 
+/* Colonna Azioni: in linea e con gap */
+.admin-table td.actions { white-space: nowrap; }
+.admin-table td.actions .row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* (Opzionale) stili semantici se li usi */
 .admin-table .btn--ok      { background:#00c074; border:1px solid #00c074; color:#fff; }
 .admin-table .btn--outline { background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; }
 .admin-table .btn--danger  { background:#e62329; border:1px solid #e62329; color:#fff; }
+
+/* Badge piccoli sotto al bottone stato */
+.admin-table .note {
+  font-size: 11px;
+  color: #ff9090;
+  margin-top: 4px;
+}
