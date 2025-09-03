@@ -148,13 +148,11 @@
 }
 
 .badge--running {
-  background: linear-gradient(180deg, #ffb74d 0%, #f57c00 100%); /* arancione sfumato */
-  color: #fff;                    /* testo bianco */
-  border: none;                   /* come ISCRITTO/OPEN */
-  border-radius: 999px;            /* pill shape */
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .3px;
-  display: inline-block;
+  background:#33230c;          /* scuro come base (tono caldo/arancio) */
+  border-color:#ff9800;        /* arancione vivo */
+  color:#ff9800;               /* testo arancione */
+  font-size:11px;              /* identico agli altri */
+  padding:2px 6px;             /* identico agli altri */
+  border-radius:9999px;        /* pill shape */
+  border:1px solid #ff9800;    /* bordo arancione */
 }
