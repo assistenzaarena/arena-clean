@@ -166,3 +166,8 @@ table.compact .btn-state{ height:24px; padding:0 10px; font-size:11px; border-ra
 /* 4) Le altre colonne restano fisse (come già hai impostato). 
       Se serve, assicurati che la somma delle colonne "fisse" < 1600,
       in modo che la 5ª colonna possa prendersi lo spazio residuo. */
+/* Anti-override finale */
+body .admin-wrap,
+body .admin-wrap .table-wrap {
+  max-width: 1600px !important;
+}
