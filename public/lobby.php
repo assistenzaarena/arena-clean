@@ -14,14 +14,18 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 
-// === PATCH (badge IN CORSO – “dal lock fino a fine torneo”) ===
-// Un torneo è "IN CORSO" quando è ancora open e non è più possibile iscriversi
-// (choices_locked=1 OPPURE lock_at già passato). Quando status diventa 'closed'
-// non è più mostrato in lobby, quindi il badge non serve più.
-function lby_torneo_in_corso(array $t): bool {
+// === PATCH: regola basata su disponibilità iscrizioni ===
+// Iscrizioni APERTE: torneo open, round 1, scelte sbloccate, lock futuro/assente.
+function lby_enroll_open(array $t): bool {
   return (($t['status'] ?? '') === 'open')
-      && ( ((int)($t['choices_locked'] ?? 0) === 1)
-        || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) );
+      && (int)($t['current_round_no'] ?? 0) === 1
+      && (int)($t['choices_locked'] ?? 0) === 0
+      && (empty($t['lock_at']) || strtotime($t['lock_at']) > time());
+}
+
+// Torneo "IN CORSO": è open MA iscrizioni NON aperte (cioè !lby_enroll_open).
+function lby_torneo_in_corso(array $t): bool {
+  return (($t['status'] ?? '') === 'open') && !lby_enroll_open($t);
 }
 
 // CSRF per chiamate POST dall’interfaccia
