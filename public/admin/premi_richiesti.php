@@ -19,13 +19,19 @@ $sql = "
   WHERE r.status = :s
     AND (
       :q = '' OR
-      u.username LIKE :like OR u.email LIKE :like OR r.requested_item LIKE :like
+      u.username LIKE :like1 OR u.email LIKE :like2 OR r.requested_item LIKE :like3
     )
   ORDER BY r.requested_at DESC
 ";
 $st = $pdo->prepare($sql);
 $like = '%'.$q.'%';
-$st->execute([':s'=>$status, ':q'=>$q, ':like'=>$like]);
+$st->execute([
+  ':s'     => $status,
+  ':q'     => $q,
+  ':like1' => $like,
+  ':like2' => $like,
+  ':like3' => $like,
+]);
 $rows = $st->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
