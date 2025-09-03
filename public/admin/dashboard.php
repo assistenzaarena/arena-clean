@@ -456,6 +456,19 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
   <!-- Tabella utenti -->
  <table class="admin-table">
+  <colgroup>
+    <col class="col-code">         <!-- Codice -->
+    <col class="col-nome">         <!-- Nome -->
+    <col class="col-cognome">      <!-- Cognome -->
+    <col class="col-user">         <!-- Username -->
+    <col class="col-email">        <!-- Email -->
+    <col class="col-phone">        <!-- Telefono -->
+    <col class="col-attivo">       <!-- Attivo -->
+    <col class="col-saldo">        <!-- Saldo -->
+    <col class="col-pass">         <!-- Nuova password -->
+    <col class="col-actions">      <!-- Azioni -->
+  </colgroup>
+     
 <thead>
   <?php
     // Funzione helper inline: costruisce URL con sort/dir aggiornati e mantiene page/q
@@ -573,11 +586,9 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
 <td class="actions">
   <div class="row-actions">
-    <!-- Link Movimenti -->
     <a class="btn btn--outline" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
 
     <?php if ($u['username'] !== 'valenzo2313'): ?>
-      <!-- Cestino: apre il popup di conferma (solo se NON è utente speciale) -->
       <button type="button"
               class="btn btn--danger btn-delete"
               data-user-id="<?php echo (int)$u['id']; ?>"
@@ -585,11 +596,9 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         🗑 Elimina
       </button>
     <?php else: ?>
-      <!-- Utente speciale: niente cestino, bottone disabilitato visivamente -->
       <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
     <?php endif; ?>
 
-    <!-- Salvataggio campi della riga -->
     <button class="btn btn--ok" type="submit" name="action" value="update_user">Applica modifiche</button>
   </div>
 </td>
