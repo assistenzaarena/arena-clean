@@ -10,6 +10,33 @@ require_admin();
 require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/db.php';
 
+// (se non esiste già il token CSRF in sessione, crealo)
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+}
+$csrf = $_SESSION['csrf'];
+
+// --- Handler POST interno per "Azzera rake" ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'azzera_rake')) {
+    // CSRF
+    $posted_csrf = $_POST['csrf'] ?? '';
+    if (!hash_equals($_SESSION['csrf'] ?? '', $posted_csrf)) {
+        http_response_code(400);
+        die('CSRF non valido');
+    }
+
+    try {
+        $pdo->exec("TRUNCATE TABLE admin_rake_ledger");
+        $_SESSION['flash'] = 'Rake azzerata con successo.';
+    } catch (Throwable $e) {
+        $_SESSION['flash'] = 'Errore durante l’azzeramento della rake.';
+    }
+
+    // PRG verso la stessa pagina, senza querystring
+    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+    exit;
+}
+
 // =====================
 // 1. Rake incassata per mese
 // =====================
