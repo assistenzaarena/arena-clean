@@ -59,7 +59,7 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
 
       <!-- Amministrazione (home admin o altra pagina riassuntiva) -->
       <li class="subhdr__item">
-        <a class="subhdr__link" href="/admin/dashboard.php">Amministrazione</a>
+        <a class="subhdr__link" href="/admin/amministrazione.php">Amministrazione</a>
       </li>
     </ul>
   </div>
