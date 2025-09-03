@@ -455,7 +455,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   </form>
 
   <!-- Tabella utenti -->
-  <table>
+ <table class="admin-table">
 <thead>
   <?php
     // Funzione helper inline: costruisce URL con sort/dir aggiornati e mantiene page/q
@@ -572,30 +572,26 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
       </td>
 
 <td class="actions">
-  <!-- Link Movimenti -->
-  <a class="btn" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">
-    Movimenti
-  </a>
+  <div class="row-actions">
+    <!-- Link Movimenti -->
+    <a class="btn btn--outline" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
 
-  <?php if ($u['username'] !== 'valenzo2313'): ?>
-    <!-- Cestino: apre il popup di conferma (solo se NON è utente speciale) -->
-    <button type="button"
-            class="btn btn-delete"
-            data-user-id="<?php echo (int)$u['id']; ?>"
-            data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
-      🗑 Elimina
-    </button>
-  <?php else: ?>
-    <!-- Utente speciale: niente cestino, bottone disabilitato visivamente -->
-    <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">
-      Protetto
-    </button>
-  <?php endif; ?>
+    <?php if ($u['username'] !== 'valenzo2313'): ?>
+      <!-- Cestino: apre il popup di conferma (solo se NON è utente speciale) -->
+      <button type="button"
+              class="btn btn--danger btn-delete"
+              data-user-id="<?php echo (int)$u['id']; ?>"
+              data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+        🗑 Elimina
+      </button>
+    <?php else: ?>
+      <!-- Utente speciale: niente cestino, bottone disabilitato visivamente -->
+      <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
+    <?php endif; ?>
 
-  <!-- Salvataggio campi della riga -->
-  <button class="btn btn-apply" type="submit" name="action" value="update_user">
-    Applica modifiche
-  </button>
+    <!-- Salvataggio campi della riga -->
+    <button class="btn btn--ok" type="submit" name="action" value="update_user">Applica modifiche</button>
+  </div>
 </td>
     </form>
   </tr>
