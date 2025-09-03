@@ -68,41 +68,49 @@
   overflow-x: auto;        /* scroll orizzontale se serve */
 }
 
-/* === Tabella admin: layout coerente e allineato === */
+/* ============ Wrapper per centratura + eventuale scroll orizzontale ============ */
+.table-wrap{
+  width: 100%;
+  max-width: 1200px;      /* larghezza desiderata della tabella */
+  margin: 0 auto;         /* centra */
+  overflow-x: auto;       /* se non entra, scroll orizzontale */
+}
+
+/* ================= Tabella admin: layout coerente e allineato ================= */
 .admin-table{
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;     /* colonne stabili */
+  table-layout: fixed;    /* larghezze delle colonne stabili */
   margin: 0 auto;
 }
 .admin-table *{ box-sizing: border-box; }
 
-/* Colonne (percentuali che sommano ~100%) */
+/* colonne (percentuali che sommano ~100%) */
 .admin-table col.col-code    { width: 6%;  }
 .admin-table col.col-nome    { width: 9%;  }
 .admin-table col.col-cognome { width: 10%; }
 .admin-table col.col-user    { width: 10%; }
 .admin-table col.col-email   { width: 18%; }
 .admin-table col.col-phone   { width: 12%; }
-.admin-table col.col-attivo  { width: 7%;  }
-.admin-table col.col-saldo   { width: 8%;  }
+.admin-table col.col-attivo  { width: 8%;  }
+.admin-table col.col-saldo   { width: 7%;  }
 .admin-table col.col-pass    { width: 10%; }
-.admin-table col.col-actions { width: 10%; }
+.admin-table col.col-actions { width: 10%; }   /* se i 3 bottoni non ci stanno, porta a 12–14% */
 
-/* Celle */
+/* celle */
 .admin-table th,
 .admin-table td{
   padding: 10px 12px;
-  vertical-align: middle;      /* centra tutto verticalmente */
+  vertical-align: middle;       /* centro tutto verticalmente */
   font-size: 14px;
   border-bottom: 1px solid rgba(255,255,255,.08);
   text-align: left;
 }
 
-/* Il <form> di riga NON deve creare box che “sposta” la tabella */
+/* il form di riga non deve “spingere” il layout della tabella */
 .admin-table tr form{ display: contents; }
 
-/* Input/select: stessa altezza e 100% della cella */
+/* input/select: altezza uniforme e full width */
 .admin-table input[type="text"],
 .admin-table input[type="number"],
 .admin-table input[type="password"],
@@ -111,13 +119,13 @@
 .admin-table select{
   height: 34px;
   line-height: 34px;
-  padding: 0 10px;
   width: 100%;
+  padding: 0 10px;
   border-radius: 8px;
   font-size: 14px;
 }
 
-/* Bottoni: stessa altezza degli input (34px) e centrati */
+/* Bottoni (compresi i toggle stato): stessa altezza degli input */
 .admin-table .btn,
 .admin-table button,
 .admin-table a.btn,
@@ -130,17 +138,24 @@
   line-height: 1;
   border-radius: 8px;
   font-weight: 700;
+  margin: 0;                     /* elimina margini che sfalsano l’allineamento */
 }
 
-/* Colonna azioni: tutti in riga, gap stabile */
-.admin-table td.actions{ white-space: nowrap; text-align: right; }
+/* colonna Azioni: su una riga, gap costante, niente wrap */
+.admin-table td.actions{ white-space: nowrap; }
 .admin-table td.actions .row-actions{
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;             /* non andare a capo */
 }
+.admin-table td.actions .row-actions .btn{ flex: 0 0 auto; } /* i bottoni non si comprimono */
 
-/* (Opzionale) stili semantici se li vuoi usare */
+/* (opzionale) stili semantici se li usi */
 .admin-table .btn--ok      { background:#00c074; border:1px solid #00c074; color:#fff; }
 .admin-table .btn--outline { background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; }
 .admin-table .btn--danger  { background:#e62329; border:1px solid #e62329; color:#fff; }
+
+/* (opzionale) look righe */
+.admin-table { border-collapse: separate; border-spacing: 0 6px; }
+.admin-table tr { background: rgba(255,255,255,.02); border-radius: 10px; }
