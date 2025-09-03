@@ -209,17 +209,24 @@ try {
       gap:14px;
       margin-top:10px;
     }
-    .event-card{
-      background:#0f1114;
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:14px;
-      padding:16px;
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      column-gap:12px;
-      box-shadow:0 8px 28px rgba(0,0,0,.18);
-    }
+/* Card evento – sfondo più chiaro */
+.event-card{
+  /* sfondo più chiaro con un gradiente molto soft */
+  background: linear-gradient(180deg, #1a1f26 0%, #11161c 100%);
+  border: 1px solid rgba(255,255,255,.20);            /* bordo un filo più presente */
+  border-radius: 14px;
+  padding: 16px;
+
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 12px;
+
+  /* un minimo di “corpo” in più */
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.22),
+    inset 0 0 0 1px rgba(255,255,255,.04);
+}
     .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
     .event-card .ec-team:first-child{ justify-content:flex-start; }
     .event-card .ec-team:last-child{  justify-content:flex-end;  }
