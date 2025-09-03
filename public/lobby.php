@@ -52,13 +52,13 @@ $all = $pdo->query("
 $my = [];
 try {
   $q = $pdo->prepare("
-    SELECT t.id, t.tournament_code, t.name, t.league_name, t.season,
-           t.cost_per_life, t.max_slots, t.max_lives_per_user, t.guaranteed_prize, t.lock_at,
-           t.status, t.current_round_no, t.choices_locked
-    FROM tournaments t
-    JOIN tournament_enrollments e ON e.tournament_id = t.id
-    WHERE e.user_id = :uid AND t.status = 'open'
-    ORDER BY t.lock_at IS NULL, t.lock_at ASC, t.created_at DESC
+SELECT t.id, t.tournament_code, t.name, t.league_name, t.season,
+       t.cost_per_life, t.max_slots, t.max_lives_per_user, t.guaranteed_prize, t.lock_at,
+       t.status, t.current_round_no, t.choices_locked   -- <— AGGIUNTI
+FROM tournaments t
+JOIN tournament_enrollments e ON e.tournament_id = t.id
+WHERE e.user_id = :uid AND t.status = 'open'
+ORDER BY t.lock_at IS NULL, t.lock_at ASC, t.created_at DESC
   ");
   $q->execute([':uid'=>$uid]);
   $my = $q->fetchAll(PDO::FETCH_ASSOC);
@@ -119,7 +119,7 @@ if (file_exists($headerPath)) { require $headerPath; }
               <?php if (lby_torneo_in_corso($t)): ?>
                 <span class="badge badge--running">IN CORSO</span>
               <?php else: ?>
-                <span class="badge badge--subscribed">ISCRITTO</span>
+                <span class="badge badge--open">ISCRITTO</span> <!-- usa lo stesso stile di OPEN -->
               <?php endif; ?>
             </header>
 
