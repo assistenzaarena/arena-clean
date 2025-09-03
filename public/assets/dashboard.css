@@ -1,16 +1,16 @@
 /* ===========================
-   Dashboard Admin CSS
+   Dashboard Admin CSS (scopato)
    =========================== */
 
 /* Contenitore principale */
 .admin-wrap{
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 24px auto;
-  padding: 0 20px;
-  color: #fff;
+  padding: 0 16px;
+  color:#fff;
 }
 
-/* KPI box (es: Utenti totali) */
+/* KPI */
 .kpi{
   background:#111;
   border:1px solid rgba(255,255,255,.08);
@@ -20,207 +20,128 @@
   display:inline-block;
 }
 
-/* Filtri e ricerca */
+/* Filtri */
 .filters{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  margin:12px 0;
+  display:flex; gap:12px; align-items:center; margin:12px 0;
 }
 .filters input[type=text]{
-  height:36px;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,.25);
-  background:#0a0a0b;
-  color:#fff;
-  padding:0 10px;
-}
-.filters select{
-  height:36px;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,.25);
-  background:#0a0a0b;
-  color:#fff;
+  height:36px; border-radius:8px; border:1px solid rgba(255,255,255,.25);
+  background:#0a0a0b; color:#fff; padding:0 10px;
 }
 
-/* ---------------------------
-   WRAPPER TABELLONE
-   --------------------------- */
+/* ============ WRAP TABELLA ============ */
 .table-wrap{
   max-width: 1200px;
   margin: 0 auto;
-  overflow-x: auto;              /* se lo spazio non basta → scroll orizzontale */
+  overflow-x: auto;         /* se lo spazio non basta → scroll orizzontale */
   padding-bottom: 8px;
 }
 
-/* ---------------------------
-   TABELLA (rigida e stabile)
-   --------------------------- */
+/* ============ TABELLA (rigida) ============ */
 .admin-table{
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px;         /* aria tra le “righe card” */
-  table-layout: fixed;           /* <<< fondamentale: le colonne rispettano il colgroup */
+  border-spacing: 0 8px;     /* aria tra le righe-card */
+  table-layout: fixed;       /* <<< fondamentale: rispetta il colgroup */
 }
 .admin-table thead th{
-  text-align:left;
-  font-size:12px;
-  text-transform:uppercase;
-  letter-spacing:.03em;
-  color:#c9c9c9;
-  padding:10px 12px;
-  white-space:nowrap;
+  text-align:left; font-size:12px; text-transform:uppercase;
+  letter-spacing:.03em; color:#c9c9c9; padding:10px 12px; white-space:nowrap;
 }
 .admin-table tbody tr{
-  background:#111;
-  border:1px solid rgba(255,255,255,.08);
+  background:#111; border:1px solid rgba(255,255,255,.08);
 }
 .admin-table td{
-  padding:8px 12px;
-  vertical-align:middle;
+  padding:8px 12px; vertical-align:middle;
 }
 
-/* Colonne (usa il colgroup in dashboard.php) */
+/* Colonne (via <colgroup>) */
 .admin-table col.col-code    { width:  90px; }
 .admin-table col.col-nome    { width: 140px; }
 .admin-table col.col-cognome { width: 160px; }
 .admin-table col.col-user    { width: 140px; }
-.admin-table col.col-email   { width: 260px; }  /* puoi alzare a 280/300 se vuoi più aria */
+.admin-table col.col-email   { width: 260px; }  /* alza a 280/300 se vuoi più aria */
 .admin-table col.col-phone   { width: 150px; }
 .admin-table col.col-attivo  { width: 120px; }
 .admin-table col.col-saldo   { width:  90px; }
 .admin-table col.col-pass    { width: 150px; }
-.admin-table col.col-actions { width: 300px; min-width: 320px; } /* spazio per 3 bottoni in linea */
+.admin-table col.col-actions { width: 300px; min-width: 320px; }
 
 @media (max-width:1180px){
-  .admin-table col.col-actions{ width: 340px; } /* su schermi stretti dai un filo in più */
+  .admin-table col.col-actions{ width: 340px; }
 }
 
-/* ---------------------------
-   CAMPI: altezze uniformi
-   --------------------------- */
+/* Campi: altezze uniformi */
 .admin-table input[type=text],
 .admin-table input[type=number],
 .admin-table input[type=email],
 .admin-table input[type=tel],
 .admin-table input[type=password]{
   width:100%;
-  height:34px;
-  line-height:34px;
+  height:34px; line-height:34px;
   border-radius:8px;
   border:1px solid rgba(255,255,255,.20);
-  background:#0a0a0b;
-  color:#fff;
+  background:#0a0a0b; color:#fff;
   padding:0 10px;
   white-space:nowrap;
 }
 
-/* ---------------------------
-   BOTTONI (stile base)
-   --------------------------- */
-.btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  height:34px;
-  line-height:34px;
-  padding:0 12px;
-  border:1px solid rgba(255,255,255,.25);
-  border-radius:8px;
-  color:#fff;
-  text-decoration:none;
-  font-weight:800;
-  white-space:nowrap;
-}
-.btn:hover{ border-color:#fff; }
-
-.btn--outline { background:#202326; border-color:rgba(255,255,255,.25); color:#fff; }
-.btn--danger  { background:#e62329;  border-color:#e62329;              color:#fff; }
-.btn--ok      { background:#00c074;  border-color:#00c074;              color:#fff; }
-
-/* Stato ON/OFF */
+/* Bottone stato ON/OFF */
 .btn-state{
   display:inline-flex; align-items:center; justify-content:center;
   height:34px; line-height:34px; padding:0 12px;
-  border-radius:9999px; font-size:12px; font-weight:800; color:#fff; border:0;
+  border-radius:9999px; font-size:12px; font-weight:800;
+  color:#fff; border:0; cursor:pointer; white-space:nowrap;
 }
 .btn-state.on  { background:#00c074; }
 .btn-state.off { background:#e62329; }
 .btn-state:hover{ filter:brightness(1.05); }
 
-/* ---------------------------
-   COLONNA “AZIONI”
-   --------------------------- */
-.admin-table td.actions{ white-space:nowrap; } /* evita wrap nella cella */
+/* Bottoni generici (scopati dentro tabella) */
+.admin-table .btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:34px; line-height:34px; padding:0 12px;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:8px; color:#fff; text-decoration:none;
+  font-weight:800; white-space:nowrap;
+}
+.admin-table .btn:hover{ border-color:#fff; }
+.admin-table .btn--outline { background:#202326; border-color:rgba(255,255,255,.25); color:#fff; }
+.admin-table .btn--danger  { background:#e62329;  border-color:#e62329;              color:#fff; }
+.admin-table .btn--ok      { background:#00c074;  border-color:#00c074;              color:#fff; }
 
+/* Colonna Azioni: tutti i bottoni in una riga, senza wrap */
+.admin-table td.actions{ white-space:nowrap; }
 .admin-table td.actions .row-actions{
-  display:inline-flex;         /* la riga di bottoni resta inline nella cella */
-  gap:8px;
-  align-items:center;
-  flex-wrap:nowrap;            /* mai andare a capo */
-  justify-content:flex-start;  /* o flex-end se li vuoi a destra */
+  display:inline-flex; gap:8px; align-items:center;
+  flex-wrap:nowrap; justify-content:flex-start;     /* o flex-end se li vuoi a destra */
 }
 .admin-table td.actions .row-actions > *{
-  flex:0 0 auto;
-  white-space:nowrap;
+  flex:0 0 auto; white-space:nowrap;
 }
 
-/* ---------------------------
-   Paginazione
-   --------------------------- */
-.pag{
-  margin-top:12px;
-  display:flex;
-  gap:6px;
-}
+/* Paginazione */
+.pag{ margin-top:12px; display:flex; gap:6px; }
 .pag a{
-  color:#fff;
-  text-decoration:none;
+  color:#fff; text-decoration:none;
   border:1px solid rgba(255,255,255,.25);
-  padding:4px 8px;
-  border-radius:6px;
+  padding:4px 8px; border-radius:6px;
 }
 .pag .on{ background:#fff; color:#000; }
 
-/* ---------------------------
-   Messaggi flash / errori
-   --------------------------- */
+/* Messaggi */
 .err{ color:#ff6b6b; margin:8px 0; }
 .flash{ color:#00d07e; margin:8px 0; }
 
-/* ---------------------------
-   VARIANTI COMPATTE (se vuoi)
-   --------------------------- */
+/* Variante compatta (se vuoi) */
 table.compact thead th{ font-size:11px; }
 table.compact tbody td{ padding:6px 8px; }
-
-table.compact tbody td input[type=text],
-table.compact tbody td input[type=email],
-table.compact tbody td input[type=tel],
-table.compact tbody td input[type=number],
-table.compact tbody td input[type=password]{
-  height:30px;
-  font-size:12px;
-  border-radius:6px;
-  padding:0 8px;
+table.compact input[type=text],
+table.compact input[type=email],
+table.compact input[type=tel],
+table.compact input[type=number],
+table.compact input[type=password]{
+  height:30px; font-size:12px; border-radius:6px; padding:0 8px;
 }
-
-/* Bottoni compatti (se usi .compact) */
 table.compact .btn{ height:28px; padding:0 10px; font-size:12px; border-radius:6px; }
 table.compact .btn-state{ height:24px; padding:0 10px; font-size:11px; border-radius:9999px; }
-
-/* ---------------------------
-   Card “table” (se la usi)
-   --------------------------- */
-.card-table{
-  background:#111;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;
-  padding:16px;
-  box-shadow:0 8px 28px rgba(0,0,0,.18);
-}
-
-/* Nota: evita conflitti.
-   - Non usiamo più .grid-row/.rows (layout a grid) nella versione a TABLE.
-   - Se nel CSS avevi regole duplicate, tenerle qui ordinate evita override
-     casuali. Questo blocco in fondo prevale sugli stili precedenti. */
