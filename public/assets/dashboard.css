@@ -277,3 +277,102 @@ table.compact tbody td input[type=password]{
 .note-warn{font-size:11px;color:#ff9090;margin-top:4px}
 .row-head a{color:#c9c9c9;text-decoration:none}.row-head a:hover{color:#fff;text-decoration:underline}
 .pag.compact a{padding:3px 6px;font-size:12px;border-radius:6px}
+
+/* Centra il blocco tabella e gestisce eventuale overflow orizzontale */
+.table-wrap{
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow-x: auto;
+}
+
+/* Tabella coerente e allineata */
+.admin-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0 auto;
+}
+.admin-table *{ box-sizing: border-box; }
+
+/* Larghezze consigliate (aggiusta se serve) */
+.admin-table col.col-code    { width: 6%;  }
+.admin-table col.col-nome    { width: 9%;  }
+.admin-table col.col-cognome { width: 10%; }
+.admin-table col.col-user    { width: 10%; }
+.admin-table col.col-email   { width: 18%; }
+.admin-table col.col-phone   { width: 12%; }
+.admin-table col.col-attivo  { width: 8%;  }
+.admin-table col.col-saldo   { width: 7%;  }
+.admin-table col.col-pass    { width: 10%; }
+.admin-table col.col-actions { width: 10%; } /* se stringe, porta a 12–14% */
+
+.admin-table th,
+.admin-table td{
+  padding: 10px 12px;
+  vertical-align: middle;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  text-align: left;
+}
+
+/* display: contents toglie il box del form di riga */
+.admin-table tr form{ display: contents; }
+
+/* Input/select uniformi */
+.admin-table input[type="text"],
+.admin-table input[type="number"],
+.admin-table input[type="password"],
+.admin-table input[type="email"],
+.admin-table input[type="tel"],
+.admin-table select{
+  height: 34px;
+  line-height: 34px;
+  width: 100%;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Bottoni uniformi e centrati */
+.admin-table .btn,
+.admin-table button,
+.admin-table a.btn,
+.admin-table .btn-state{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  line-height: 1;
+  border-radius: 8px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Azioni su una riga, senza wrap */
+.admin-table td.actions{ white-space: nowrap; }
+.admin-table td.actions .row-actions{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.admin-table td.actions .row-actions .btn{ flex: 0 0 auto; }
+
+/* (opzionale) stili semantici */
+.admin-table .btn--ok      { background:#00c074; border:1px solid #00c074; color:#fff; }
+.admin-table .btn--outline { background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; }
+.admin-table .btn--danger  { background:#e62329; border:1px solid #e62329; color:#fff; }
+
+/* badge/nota sotto al bottone stato */
+.admin-table .note{ font-size: 11px; color:#ff9090; margin-top:4px; }
+
+/* (opzionale) righe distanziate */
+.admin-table { border-collapse: separate; border-spacing: 0 6px; }
+.admin-table tr { background: rgba(255,255,255,.02); border-radius: 10px; }
+.admin-wrap{
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
