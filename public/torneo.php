@@ -224,8 +224,38 @@ try {
     .event-card .ec-team:first-child{ justify-content:flex-start; }
     .event-card .ec-team:last-child{  justify-content:flex-end;  }
     .ec-vs{ font-weight:900; color:#c9c9c9; letter-spacing:.04em; text-align:center; min-width:28px; }
-    .logo-wrap{ width:28px; height:28px; position:relative; flex:0 0 28px; border-radius:9999px; overflow:hidden; background:#1a1d22; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.12); }
-    .team-logo{ width:100%; height:100%; object-fit:contain; display:block; background:transparent; }
+    /* Logo/badge squadra – più chiaro e più “massiccio” */
+.logo-wrap{
+  width: 44px;                          /* ↑ da 28 → 44 */
+  height: 44px;
+  position: relative;
+  flex: 0 0 44px;
+  border-radius: 9999px;
+  overflow: hidden;
+
+  /* fondo leggermente più chiaro con gradiente soft */
+  background: radial-gradient(90% 90% at 50% 10%, #1f2630 0%, #14181f 100%);
+
+  /* bordo più marcato */
+  border: 2px solid rgba(255,255,255,.18);
+
+  /* un filo di sostanza */
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.35),                /* ombra esterna */
+    inset 0 0 0 1px rgba(255,255,255,.06);    /* leggerissimo ring interno */
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+    .team-logo{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  background:transparent;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,.35));   /* micro glow per staccare dallo sfondo */
+}
     .team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
     .team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
     .team-side{ cursor:pointer; }
