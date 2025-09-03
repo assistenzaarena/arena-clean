@@ -13,6 +13,18 @@ $ROOT = __DIR__; // /var/www/html
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
+
+// === PATCH (badge IN CORSO) ===
+// Torneo considerato "in corso" se: status='open' AND current_round_no>=1
+// e scelte già bloccate (choices_locked=1 oppure lock_at passato)
+function lby_torneo_in_corso(array $t): bool {
+  $statusOpen = (($t['status'] ?? '') === 'open');
+  $roundOk    = (int)($t['current_round_no'] ?? 0) >= 1;
+  $locked     = ((int)($t['choices_locked'] ?? 0) === 1)
+             || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time());
+  return $statusOpen && $roundOk && $locked;
+}
+
 // CSRF per chiamate POST dall’interfaccia
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
@@ -26,9 +38,13 @@ $uid = (int)($_SESSION['user_id'] ?? 0);
 // Tornei OPEN (tutti)
 $all = $pdo->query("
   SELECT id, tournament_code, name, league_name, season,
-         cost_per_life, max_slots, max_lives_per_user, guaranteed_prize, lock_at
+         cost_per_life, max_slots, max_lives_per_user, guaranteed_prize, lock_at,
+         status, current_round_no, choices_locked
   FROM tournaments
   WHERE status = 'open'
+    AND COALESCE(current_round_no, 1) <= 1              -- PATCH: non già in corso
+    AND COALESCE(choices_locked, 0) = 0                 -- PATCH: scelte non bloccate
+    AND (lock_at IS NULL OR lock_at > NOW())            -- PATCH: lock non passato
   ORDER BY lock_at IS NULL, lock_at ASC, created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,7 +53,8 @@ $my = [];
 try {
   $q = $pdo->prepare("
     SELECT t.id, t.tournament_code, t.name, t.league_name, t.season,
-           t.cost_per_life, t.max_slots, t.max_lives_per_user, t.guaranteed_prize, t.lock_at
+           t.cost_per_life, t.max_slots, t.max_lives_per_user, t.guaranteed_prize, t.lock_at,
+           t.status, t.current_round_no, t.choices_locked
     FROM tournaments t
     JOIN tournament_enrollments e ON e.tournament_id = t.id
     WHERE e.user_id = :uid AND t.status = 'open'
@@ -99,7 +116,11 @@ if (file_exists($headerPath)) { require $headerPath; }
           <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>" data-enrolled="1">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
-              <span class="badge badge--open">ISCRITTO</span>
+              <?php if (lby_torneo_in_corso($t)): ?>
+                <span class="badge badge--running">IN CORSO</span>
+              <?php else: ?>
+                <span class="badge badge--subscribed">ISCRITTO</span>
+              <?php endif; ?>
             </header>
 
             <h3 class="card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
@@ -157,7 +178,11 @@ if (file_exists($headerPath)) { require $headerPath; }
           <article class="card card--ps" data-id="<?php echo (int)$t['id']; ?>" data-enrolled="<?php echo $enrolled; ?>">
             <header class="card__head">
               <span class="code">#<?php echo htmlspecialchars($code); ?></span>
-              <span class="badge badge--open">OPEN</span>
+              <?php if (lby_torneo_in_corso($t)): ?>
+                <span class="badge badge--running">IN CORSO</span>
+              <?php else: ?>
+                <span class="badge badge--open">OPEN</span>
+              <?php endif; ?>
             </header>
 
             <h3 class="card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
