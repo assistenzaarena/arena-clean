@@ -4,7 +4,7 @@
 
 /* Contenitore principale */
 .admin-wrap{
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 24px auto;
   padding: 0 16px;
   color:#fff;
@@ -31,7 +31,7 @@
 
 /* ============ WRAP TABELLA ============ */
 .table-wrap{
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   overflow-x: auto;         /* se lo spazio non basta → scroll orizzontale */
   padding-bottom: 8px;
