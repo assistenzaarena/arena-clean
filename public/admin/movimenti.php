@@ -1,5 +1,5 @@
 <?php
-// ==========================================================
+// =========================================================
 // admin/movimenti.php — Lista movimenti di UN utente (solo admin)
 // Filtri: tipo, torneo, data; paginazione; somma importi.
 // ==========================================================
