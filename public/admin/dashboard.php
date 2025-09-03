@@ -173,10 +173,9 @@ if ($action === 'update_user' && $user_id > 0) {
             'q'    => $_GET['q']    ?? '',
         ]);
         header("Location: /admin/dashboard.php?$query");
-        exit;
+           exit;
     }
 }
-    }
 
     // ==========================================================
     // 3. ADMIN VERIFY EMAIL (nuovo)
@@ -246,38 +245,6 @@ if ($action === 'admin_delete_user' && $user_id > 0) {
     header("Location: /admin/dashboard.php?$query");
     exit;
 }
-    // [RIGA] Prendiamo l’azione (per estensioni future) — qui gestiamo "update_user"
-    $action  = $_POST['action']  ?? '';
-    $user_id = (int)($_POST['user_id'] ?? 0);         // id utente da modificare (hidden nel form)
-
-    // ------------------------------------------
-    // NUOVO RAMO: toggle stato attivo/inattivo
-    // ------------------------------------------
-    // [SCOPO] Cambiare il flag is_active a 1 (attivo) o 0 (disattivo)
-    // [SICUREZZA] Richiede csrf valido (già verificato nel tuo POST) e id > 0
-    if ($action === 'toggle_active' && $user_id > 0) {
-        $new_state = (int)($_POST['new_state'] ?? 0);        // 1 = attivo, 0 = disattivo
-
-        // [SQL] Aggiorna il flag
-        $up = $pdo->prepare("UPDATE utenti SET is_active = :a WHERE id = :id");
-        $up->execute([':a' => $new_state, ':id' => $user_id]);
-
-        // [UX] Messaggio flash
-        $flash = $new_state ? 'Utente attivato.' : 'Utente disattivato.';
-
-        // [PRG] Redirect per ricaricare la lista aggiornata e riflettere SUBITO il cambio di colore
-        $_SESSION['flash'] = $flash; // conserva il messaggio dopo il redirect
-        $query = http_build_query([
-            'page' => (int)($_GET['page'] ?? 1),
-            'sort' => $_GET['sort'] ?? 'cognome',
-            'dir'  => $_GET['dir']  ?? 'asc',
-            'q'    => $_GET['q']    ?? '',
-        ]);
-        header("Location: /admin/dashboard.php?$query");
-        exit;
-    }
-
-    if ($action === 'update_user' && $user_id > 0) {  // se è un update e abbiamo un id valido…
         // [RIGA] Prendiamo i campi modificabili
         $nome      = trim($_POST['nome'] ?? '');      // nome (può essere vuoto)
         $cognome   = trim($_POST['cognome'] ?? '');   // cognome (può essere vuoto)
@@ -472,7 +439,6 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
     <thead>
       <?php
-        // helper ordine colonne
         function sort_url($field, $currentSort, $currentDir, $page, $q) {
           $dir = ($currentSort === $field)
                ? (strtolower($currentDir) === 'asc' ? 'desc' : 'asc')
@@ -502,7 +468,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
     <tbody>
       <?php foreach ($users as $u):
-        $formId     = 'f_' . (int)$u['id'];             // id del form per questa riga
+        $formId     = 'f_' . (int)$u['id'];
         $effActive  = ((int)$u['is_active'] === 1);
         $stateText  = $effActive ? 'Attivo'   : 'Inattivo';
         $stateClass = $effActive ? 'btn-state on' : 'btn-state off';
@@ -533,21 +499,16 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
         <td>
           <?php if ($u['username'] === 'valenzo2313'): ?>
             <button type="button" class="btn-state on" title="Utente sempre attivo" disabled>Sempre attivo</button>
-            <?php if (is_null($u['verified_at'])): ?>
-              <div class="note">Email non verificata</div>
-            <?php endif; ?>
+            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
           <?php else: ?>
             <input type="hidden" name="new_state" value="<?php echo $nextState; ?>" form="<?php echo $formId; ?>">
-            <button type="submit"
-                    name="action" value="toggle_active"
+            <button type="submit" name="action" value="toggle_active"
                     class="<?php echo $stateClass; ?>"
                     title="<?php echo htmlspecialchars($reason); ?>"
                     form="<?php echo $formId; ?>">
               <?php echo $stateText; ?>
             </button>
-            <?php if (is_null($u['verified_at'])): ?>
-              <div class="note">Email non verificata</div>
-            <?php endif; ?>
+            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
           <?php endif; ?>
         </td>
 
@@ -578,7 +539,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
             </button>
           </div>
 
-          <!-- form “vero” della riga (nella stessa cella) -->
+          <!-- form della riga -->
           <form id="<?php echo $formId; ?>" method="post"
                 action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
             <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
