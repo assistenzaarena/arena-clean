@@ -14,15 +14,11 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 
-// === PATCH (badge IN CORSO) ===
-// Torneo considerato "in corso" se: status='open' AND current_round_no>=1
-// e scelte già bloccate (choices_locked=1 oppure lock_at passato)
+// === PATCH (badge IN CORSO semplificata) ===
+// Un torneo è "in corso" appena entra nel Round 1
 function lby_torneo_in_corso(array $t): bool {
-  $statusOpen = (($t['status'] ?? '') === 'open');
-  $roundOk    = (int)($t['current_round_no'] ?? 0) >= 1;
-  $locked     = ((int)($t['choices_locked'] ?? 0) === 1)
-             || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time());
-  return $statusOpen && $roundOk && $locked;
+  return (($t['status'] ?? '') === 'open')
+      && (int)($t['current_round_no'] ?? 0) >= 1;
 }
 
 // CSRF per chiamate POST dall’interfaccia
