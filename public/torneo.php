@@ -175,133 +175,61 @@ try {
   <link rel="stylesheet" href="/assets/lobby.css">
 <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>  <!-- ADDED -->
 <style>
-/* ===========================
-   MODIFICHE VISIVE (solo UI)
-   ===========================
-   Obiettivo: rendere la pagina più leggibile/”grande” e ordinata senza toccare la logica.
-   - allarghiamo la pagina al container globale (1280px),
-   - aumentiamo respiro e dimensioni della card rossa in alto,
-   - rendiamo più comode le card-partita (padding maggiore, loghi e testi più grandi),
-   - lasciamo il layout a 2 colonne (mobile 1).
-*/
+/* … resto invariato … */
+    .torneo-wrap{max-width:1280px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
+    .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+    .torneo-title{font-size:24px; font-weight:900;}
+    .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
+    .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
+    .btn--warn:hover{background:#c01c21;}
 
-/* 1) Larghezza della pagina torneo
-   - prima: max-width:1000px → pagina molto raccolta
-   - ora:   max-width:1280px (coerente col container dell’header)
-*/
-.torneo-wrap{
-  max-width:1280px;               /* ↑ più larga */
-  margin:20px auto;
-  padding:0 16px;
-  color:#fff;
-  position:relative;
-}
+    /* Overlay popup */
+    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
+    .modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
+    .modal-card h3{margin:0 0 10px;}
+    .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
-/* 2) Card rossa principale (“card--ps”)
-   - più respiro interno e testo leggermente più grande (senza stravolgere)
-*/
-.card.card--ps{
-  padding:24px;                   /* ↑ da 16 → 24: respiro */
-  border-radius:16px;             /* angolo un filo più morbido */
-  box-shadow:0 12px 36px rgba(0,0,0,.25); /* ombra un po’ più presente */
-  font-size:18px;                 /* testi interni leggermente più grandi */
-}
-.card__title{
-  font-size:20px;                 /* titolo card più leggibile */
-  font-weight:900;
-}
+    /* ====== STILI CARD EVENTI (aggiornati: VS centrato) ====== */
+    .events-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap:14px;
+      margin-top:10px;
+    }
+    .event-card{
+      background:#0f1114;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:16px;
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      column-gap:12px;
+      box-shadow:0 8px 28px rgba(0,0,0,.18);
+    }
+    .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
+    .event-card .ec-team:first-child{ justify-content:flex-start; }
+    .event-card .ec-team:last-child{  justify-content:flex-end;  }
+    .ec-vs{ font-weight:900; color:#c9c9c9; letter-spacing:.04em; text-align:center; min-width:28px; }
+    .logo-wrap{ width:28px; height:28px; position:relative; flex:0 0 28px; border-radius:9999px; overflow:hidden; background:#1a1d22; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.12); }
+    .team-logo{ width:100%; height:100%; object-fit:contain; display:block; background:transparent; }
+    .team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
+    .team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
+    .team-side{ cursor:pointer; }
+    .life-heart{ cursor:pointer; }
+    .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
+    .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
 
-/* 3) Griglia eventi
-   - manteniamo 2 colonne su desktop,
-   - aumentiamo lo spazio tra card e il margine top
-*/
-.events-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr)); /* 2 colonne (mobile sotto) */
-  gap:20px;                       /* ↑ da 14 → 20 */
-  margin-top:20px;                /* ↑ da 10 → 20 */
+  .team-side.disabled {
+  pointer-events: none;
+  opacity: 0.3;
+  filter: grayscale(100%);
+  cursor: not-allowed;
 }
+    @media (max-width: 720px){ .events-grid{ grid-template-columns: 1fr; } }
 
-/* 4) Card singola partita
-   - aumentiamo padding e dimensione font globale,
-   - ombra/angoli coerenti con la card rossa
-*/
-.event-card{
-  background:#0f1114;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;
-  padding:20px;                   /* ↑ da 16 → 20 */
-  display:grid;
-  grid-template-columns: 1fr auto 1fr; /* nome casa | VS | nome trasferta */
-  align-items:center;
-  column-gap:14px;                /* ↑ da 12 → 14 */
-  box-shadow:0 8px 28px rgba(0,0,0,.18);
-  font-size:16px;                 /* ↑ leggero */
-}
-
-/* 5) Loghi e testi squadre
-   - loghi più visibili (40px),
-   - team-name più largo e leggibile
-*/
-.logo-wrap{
-  width:40px;                     /* ↑ da 28 → 40 */
-  height:40px;                    /* ↑ da 28 → 40 */
-  position:relative;
-  flex:0 0 40px;
-  border-radius:9999px;
-  overflow:hidden;
-  background:#1a1d22;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:1px solid rgba(255,255,255,.12);
-}
-.team-logo{ width:100%; height:100%; object-fit:contain; display:block; background:transparent; }
-.team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:13px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
-
-/* nome squadra più leggibile e meno troncato */
-.team-name{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  max-width:220px;                /* ↑ da 160 → 220 */
-  color:#e6e6e6;
-  font-weight:800;
-  font-size:16px;                 /* ↑ */
-}
-
-/* 6) VS centrale più presente */
-.ec-vs{
-  font-weight:900;
-  color:#c9c9c9;
-  letter-spacing:.04em;
-  text-align:center;
-  min-width:32px;                 /* ↑ da 28 → 32 */
-  font-size:18px;                 /* ↑ */
-}
-
-/* 7) Stato disabilitato (selezione non consentita) — invariato, lo lascio per completezza */
-.team-side{ cursor:pointer; }
-.life-heart{ cursor:pointer; }
-.life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
-.life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
-.team-side.disabled{ pointer-events:none; opacity:.3; filter:grayscale(100%); cursor:not-allowed; }
-
-/* 8) Mobile: 1 colonna */
-@media (max-width: 720px){
-  .events-grid{ grid-template-columns: 1fr; }
-  .team-name{ max-width: 60vw; }  /* evita taglio aggressivo su schermi piccoli */
-}
-
-/* 9) Banner “in attesa” — invariato */
-.notice-wait{
-  background:#262a31;
-  border:1px solid rgba(255,255,255,.15);
-  padding:12px;
-  border-radius:10px;
-  margin:12px 0;
-  color:#c9c9c9;
-}
+    /* ====== AGGIUNTA: banner "in attesa" ====== */
+    .notice-wait{background:#262a31;border:1px solid rgba(255,255,255,.15);padding:12px;border-radius:10px;margin:12px 0;color:#c9c9c9;}
 </style>
 </head>
 <body>
