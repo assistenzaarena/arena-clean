@@ -60,32 +60,33 @@
                 color:#c9c9c9; text-decoration:none; }
 .subhdr__link:hover { color:#fff; }
 
-/* === TABELLA ADMIN: allineamento e dimensioni consistenti === */
+/* === Admin dashboard: tabella allineata e consistente === */
 .admin-table {
   width: 100%;
-  border-collapse: collapse;     /* evita spacing inconsistente */
-  table-layout: fixed;           /* celle con larghezze stabili */
+  border-collapse: collapse;   /* evita spacing tra celle */
+  table-layout: fixed;         /* larghezze stabili nelle colonne */
 }
-
+.admin-table * {
+  box-sizing: border-box;
+}
 .admin-table th,
 .admin-table td {
   padding: 10px 12px;
-  vertical-align: middle;        /* centra TUTTO verticalmente */
+  vertical-align: middle;      /* centra TUTTO verticalmente nelle celle */
   font-size: 14px;
 }
 
-/* colonne “Azioni”: pulsanti in linea con gap stabile */
+/* Colonna Azioni */
 .admin-table td.actions {
-  white-space: nowrap;           /* evita a capo indesiderati */
+  white-space: nowrap;         /* impedisce a capo casuali */
 }
-
 .admin-table td.actions .row-actions {
-  display: inline-flex;          /* pulsanti su una riga */
-  align-items: center;           /* centrati verticalmente */
-  gap: 8px;                      /* distanza costante tra bottoni */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;                    /* distanza uniforme tra bottoni */
 }
 
-/* Normalizza altezza di campi input/select */
+/* Input/select: stessa altezza */
 .admin-table input[type="text"],
 .admin-table input[type="number"],
 .admin-table input[type="password"],
@@ -93,42 +94,28 @@
 .admin-table input[type="tel"],
 .admin-table select {
   height: 34px;
-  line-height: 34px;             /* testo centrato verticalmente */
+  line-height: 34px;           /* testo centrato */
   padding: 0 10px;
   border-radius: 8px;
   font-size: 14px;
 }
 
-/* Bottoni: stessa altezza e allineamento */
+/* Bottoni: stessa altezza e centrati */
 .admin-table .btn,
 .admin-table button,
-.admin-table a.btn {
-  display: inline-flex;          /* non usare inline-block */
+.admin-table a.btn,
+.admin-table .btn-state {      /* i bottoni “Attivo/Inattivo” */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 34px;                  /* uguale agli input */
+  height: 34px;                /* uguale agli input */
   padding: 0 12px;
-  line-height: 1;                /* niente effetti strani */
+  line-height: 1;
   border-radius: 8px;
   font-weight: 700;
 }
 
-/* Badge "Attivo/Inactive" ecc.: altezza coerente */
-.admin-table .badge {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  line-height: 1;
-  border-radius: 9999px;
-  font-size: 12px;
-}
-
-/* Se in "Nuova password" i controlli andavano a capo: forza contenitore in riga */
-.admin-table td.password-cell {
-  white-space: nowrap;
-}
-
-.admin-table td.password-cell > * {
-  vertical-align: middle;
-}
+/* (Opzionale) stili semantici se li usi */
+.admin-table .btn--ok      { background:#00c074; border:1px solid #00c074; color:#fff; }
+.admin-table .btn--outline { background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; }
+.admin-table .btn--danger  { background:#e62329; border:1px solid #e62329; color:#fff; }
