@@ -455,19 +455,20 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
   </form>
 
   <!-- Tabella utenti -->
- <table class="admin-table">
-  <colgroup>
-    <col class="col-code">         <!-- Codice -->
-    <col class="col-nome">         <!-- Nome -->
-    <col class="col-cognome">      <!-- Cognome -->
-    <col class="col-user">         <!-- Username -->
-    <col class="col-email">        <!-- Email -->
-    <col class="col-phone">        <!-- Telefono -->
-    <col class="col-attivo">       <!-- Attivo -->
-    <col class="col-saldo">        <!-- Saldo -->
-    <col class="col-pass">         <!-- Nuova password -->
-    <col class="col-actions">      <!-- Azioni -->
-  </colgroup>
+<div class="table-wrap">
+  <table class="admin-table">
+    <colgroup>
+      <col class="col-code">
+      <col class="col-nome">
+      <col class="col-cognome">
+      <col class="col-user">
+      <col class="col-email">
+      <col class="col-phone">
+      <col class="col-attivo">
+      <col class="col-saldo">
+      <col class="col-pass">
+      <col class="col-actions">
+    </colgroup>
      
 <thead>
   <?php
