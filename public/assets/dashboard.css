@@ -145,3 +145,24 @@ table.compact input[type=password]{
 }
 table.compact .btn{ height:28px; padding:0 10px; font-size:12px; border-radius:6px; }
 table.compact .btn-state{ height:24px; padding:0 10px; font-size:11px; border-radius:9999px; }
+
+/* ====== FIX: almeno una colonna elastica per riempire 1600px ====== */
+/* 1) Rendi “elastica” la colonna Email (5ª colonna) */
+.admin-table col.col-email { width: auto !important; }
+
+/* 2) Se il browser ignora l'auto sul <col>, forziamo anche su th/td */
+.admin-table thead th:nth-child(5),
+.admin-table tbody td:nth-child(5) {
+  width: auto !important;
+}
+
+/* 3) Garantisci che la tabella possa estendersi fino a tutto il wrapper */
+.admin-table {
+  width: 100%;
+  min-width: 1600px;     /* così non si ferma prima del wrapper */
+  table-layout: fixed;   /* continui a rispettare il colgroup per le altre colonne */
+}
+
+/* 4) Le altre colonne restano fisse (come già hai impostato). 
+      Se serve, assicurati che la somma delle colonne "fisse" < 1600,
+      in modo che la 5ª colonna possa prendersi lo spazio residuo. */
