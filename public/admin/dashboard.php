@@ -645,6 +645,8 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     <input type="hidden" name="action" value="admin_delete_user">
     <input type="hidden" name="user_id" id="deleteUserId" value="">
   </form>
+      </table>
+</div> <!-- .table-wrap -->
 </main>
 
 <?php require __DIR__ . '/../footer.php'; ?> <!-- footer -->
