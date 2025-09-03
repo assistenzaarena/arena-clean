@@ -14,14 +14,14 @@ require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 
-// === PATCH (badge IN CORSO – versione “solo lock”) ===
-// Un torneo è "in corso" quando è open E il lock è passato (oppure choices bloccate).
+// === PATCH (badge IN CORSO – “dal lock fino a fine torneo”) ===
+// Un torneo è "IN CORSO" quando è ancora open e non è più possibile iscriversi
+// (choices_locked=1 OPPURE lock_at già passato). Quando status diventa 'closed'
+// non è più mostrato in lobby, quindi il badge non serve più.
 function lby_torneo_in_corso(array $t): bool {
-  $statusOpen = (($t['status'] ?? '') === 'open');
-  $roundOk    = (int)($t['current_round_no'] ?? 0) >= 1;
-  $locked     = ((int)($t['choices_locked'] ?? 0) === 1)
-             || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time());
-  return $statusOpen && $roundOk && $locked;
+  return (($t['status'] ?? '') === 'open')
+      && ( ((int)($t['choices_locked'] ?? 0) === 1)
+        || (!empty($t['lock_at']) && strtotime($t['lock_at']) <= time()) );
 }
 
 // CSRF per chiamate POST dall’interfaccia
