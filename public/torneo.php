@@ -176,7 +176,7 @@ try {
 <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>  <!-- ADDED -->
 <style>
 /* … resto invariato … */
-    .torneo-wrap{max-width:1000px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
+    .torneo-wrap{max-width:1280px; margin:20px auto; padding:0 16px; color:#fff; position:relative;}
     .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
     .torneo-title{font-size:24px; font-weight:900;}
     .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
