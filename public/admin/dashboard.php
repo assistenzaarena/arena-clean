@@ -454,7 +454,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     <input type="hidden" name="dir"  value="<?php echo htmlspecialchars($dir); ?>">
   </form>
 
-  <!-- Tabella utenti -->
+<!-- Tabella utenti -->
 <div class="table-wrap">
   <table class="admin-table">
     <colgroup>
@@ -469,181 +469,139 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
       <col class="col-pass">
       <col class="col-actions">
     </colgroup>
-     
-<thead>
-  <?php
-    // Funzione helper inline: costruisce URL con sort/dir aggiornati e mantiene page/q
-    function sort_url($field, $currentSort, $currentDir, $page, $q) {
-        // Se clicco la colonna già attiva, inverto la direzione; altrimenti metto ASC
-        $dir = ($currentSort === $field)
-             ? (strtolower($currentDir) === 'asc' ? 'desc' : 'asc')
-             : 'asc';
-        return '/admin/dashboard.php?' . http_build_query([
+
+    <thead>
+      <?php
+        // Funzioni helper per sort
+        function sort_url($field, $currentSort, $currentDir, $page, $q) {
+          $dir = ($currentSort === $field)
+               ? (strtolower($currentDir) === 'asc' ? 'desc' : 'asc')
+               : 'asc';
+          return '/admin/dashboard.php?' . http_build_query([
             'page' => (int)$page,
             'sort' => $field,
             'dir'  => $dir,
             'q'    => $q,
-        ]);
-    }
-    // Helper per mostrare una piccola freccia ↑↓ sulla colonna attiva
-    function sort_caret($field, $currentSort, $currentDir) {
-        if ($currentSort !== $field) return '';
-        return strtolower($currentDir) === 'asc' ? ' ↑' : ' ↓';
-    }
-  ?>
-  <tr>
-      <th><a href="<?php echo sort_url('user_code', $sort, $dir, $page, $q); ?>">
-  Codice<?php echo sort_caret('user_code', $sort, $dir); ?>
-</a></th>
-    <th><a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">Nome<?php echo sort_caret('nome', $sort, $dir); ?></a></th>
-    <th><a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">Cognome<?php echo sort_caret('cognome', $sort, $dir); ?></a></th>
-    <th><a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">User<?php echo sort_caret('username', $sort, $dir); ?></a></th>
-    <th><a href="<?php echo sort_url('email', $sort, $dir, $page, $q); ?>">Email<?php echo sort_caret('email', $sort, $dir); ?></a></th>
-    <th><a href="<?php echo sort_url('phone', $sort, $dir, $page, $q); ?>">Telefono<?php echo sort_caret('phone', $sort, $dir); ?></a></th>
-    <th>Attivo</th>
-    <th><a href="<?php echo sort_url('crediti', $sort, $dir, $page, $q); ?>">Saldo €<?php echo sort_caret('crediti', $sort, $dir); ?></a></th>
-    <th>Nuova password</th>
-    <th>Azioni</th>
-  </tr>
-</thead>
+          ]);
+        }
+        function sort_caret($field, $currentSort, $currentDir) {
+          if ($currentSort !== $field) return '';
+          return strtolower($currentDir) === 'asc' ? ' ↑' : ' ↓';
+        }
+      ?>
+      <tr>
+        <th><a href="<?php echo sort_url('user_code', $sort, $dir, $page, $q); ?>">Codice<?php echo sort_caret('user_code', $sort, $dir); ?></a></th>
+        <th><a href="<?php echo sort_url('nome', $sort, $dir, $page, $q); ?>">Nome<?php echo sort_caret('nome', $sort, $dir); ?></a></th>
+        <th><a href="<?php echo sort_url('cognome', $sort, $dir, $page, $q); ?>">Cognome<?php echo sort_caret('cognome', $sort, $dir); ?></a></th>
+        <th><a href="<?php echo sort_url('username', $sort, $dir, $page, $q); ?>">User<?php echo sort_caret('username', $sort, $dir); ?></a></th>
+        <th><a href="<?php echo sort_url('email', $sort, $dir, $page, $q); ?>">Email<?php echo sort_caret('email', $sort, $dir); ?></a></th>
+        <th><a href="<?php echo sort_url('phone', $sort, $dir, $page, $q); ?>">Telefono<?php echo sort_caret('phone', $sort, $dir); ?></a></th>
+        <th>Attivo</th>
+        <th><a href="<?php echo sort_url('crediti', $sort, $dir, $page, $q); ?>">Saldo €<?php echo sort_caret('crediti', $sort, $dir); ?></a></th>
+        <th>Nuova password</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+
     <tbody>
- <?php foreach ($users as $u): ?>
-  <tr>
-    <!-- Ogni riga è un form indipendente:
-         - submit con name="action" value="toggle_active" per cambiare stato
-         - submit con name="action" value="update_user" per salvare i campi -->
-    <form method="post" action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>"><!-- CSRF token -->
-      <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>"><!-- id riga -->
-        
-      <td><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></td><!-- codice utente (solo lettura) -->
-      <td>
-        <input type="text" name="nome"
-               value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"><!-- nome editabile -->
-      </td>
+    <?php foreach ($users as $u): ?>
+      <?php
+        $formId     = 'f_' . (int)$u['id'];    // id form di riga
+        $eff_active = ((int)$u['is_active'] === 1);
+        $state_text = $eff_active ? 'Attivo' : 'Inattivo';
+        $state_cls  = $eff_active ? 'btn-state on' : 'btn-state off';
+        $next_state = $eff_active ? 0 : 1;
+        $reason     = is_null($u['verified_at']) ? 'Email non verificata (login bloccato finché non verifichi o admin convalida)' : '';
+      ?>
+      <tr>
+        <td><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></td>
 
-      <td>
-        <input type="text" name="cognome"
-               value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"><!-- cognome editabile -->
-      </td>
+        <td>
+          <input type="text" name="nome"
+                 value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"
+                 form="<?php echo $formId; ?>">
+        </td>
 
-      <td>
-        <?php echo htmlspecialchars($u['username']); ?><!-- username non editabile -->
-      </td>
+        <td>
+          <input type="text" name="cognome"
+                 value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"
+                 form="<?php echo $formId; ?>">
+        </td>
 
-      <td>
-        <input type="email" name="email"
-               value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"><!-- email editabile -->
-      </td>
+        <td><?php echo htmlspecialchars($u['username']); ?></td>
 
-      <td>
-        <input type="tel" name="phone"
-               value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"><!-- telefono editabile -->
-      </td>
+        <td>
+          <input type="email" name="email"
+                 value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"
+                 form="<?php echo $formId; ?>">
+        </td>
 
- <?php foreach ($users as $u): ?>
-  <?php
-    $formId     = 'f_' . (int)$u['id'];                      // id del form della riga
-    $eff_active = ((int)$u['is_active'] === 1);
-    $state_text = $eff_active ? 'Attivo' : 'Inattivo';
-    $state_cls  = $eff_active ? 'btn-state on' : 'btn-state off';
-    $next_state = $eff_active ? 0 : 1;
-    $reason     = is_null($u['verified_at']) ? 'Email non verificata (login bloccato finché non verifichi o admin convalida)' : '';
-  ?>
-  <tr>
-    <td><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></td>
+        <td>
+          <input type="tel" name="phone"
+                 value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"
+                 form="<?php echo $formId; ?>">
+        </td>
 
-    <td>
-      <input type="text" name="nome"
-             value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"
-             form="<?php echo $formId; ?>">
-    </td>
+        <td>
+          <?php if ($u['username'] === 'valenzo2313'): ?>
+            <button type="button" class="btn-state on" disabled title="Utente sempre attivo">Sempre attivo</button>
+            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
+          <?php else: ?>
+            <input type="hidden" name="new_state" value="<?php echo $next_state; ?>" form="<?php echo $formId; ?>">
+            <button type="submit" name="action" value="toggle_active"
+                    class="<?php echo $state_cls; ?>"
+                    title="<?php echo htmlspecialchars($reason); ?>"
+                    form="<?php echo $formId; ?>">
+              <?php echo $state_text; ?>
+            </button>
+            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
+          <?php endif; ?>
+        </td>
 
-    <td>
-      <input type="text" name="cognome"
-             value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"
-             form="<?php echo $formId; ?>">
-    </td>
+        <td>
+          <input type="number" step="0.01" name="crediti"
+                 value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"
+                 form="<?php echo $formId; ?>">
+        </td>
 
-    <td><?php echo htmlspecialchars($u['username']); ?></td>
+        <td>
+          <input type="password" name="new_password" placeholder="Reset (opzionale)"
+                 form="<?php echo $formId; ?>">
+        </td>
 
-    <td>
-      <input type="email" name="email"
-             value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"
-             form="<?php echo $formId; ?>">
-    </td>
+        <td class="actions">
+          <div class="row-actions">
+            <a class="btn btn--outline" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
 
-    <td>
-      <input type="tel" name="phone"
-             value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"
-             form="<?php echo $formId; ?>">
-    </td>
+            <?php if ($u['username'] !== 'valenzo2313'): ?>
+              <button type="button"
+                      class="btn btn--danger btn-delete"
+                      data-user-id="<?php echo (int)$u['id']; ?>"
+                      data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
+                🗑 Elimina
+              </button>
+            <?php else: ?>
+              <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
+            <?php endif; ?>
 
-    <td>
-      <?php if ($u['username'] === 'valenzo2313'): ?>
-        <button type="button" class="btn-state on" disabled title="Utente sempre attivo">Sempre attivo</button>
-        <?php if (is_null($u['verified_at'])): ?>
-          <div class="note">Email non verificata</div>
-        <?php endif; ?>
-      <?php else: ?>
-        <!-- toggle attivo/inattivo -->
-        <input type="hidden" name="new_state" value="<?php echo $next_state; ?>" form="<?php echo $formId; ?>">
-        <button type="submit"
-                name="action" value="toggle_active"
-                class="<?php echo $state_cls; ?>"
-                title="<?php echo htmlspecialchars($reason); ?>"
-                form="<?php echo $formId; ?>">
-          <?php echo $state_text; ?>
-        </button>
-        <?php if (is_null($u['verified_at'])): ?>
-          <div class="note">Email non verificata</div>
-        <?php endif; ?>
-      <?php endif; ?>
-    </td>
+            <button class="btn btn--ok" type="submit" name="action" value="update_user" form="<?php echo $formId; ?>">
+              Applica modifiche
+            </button>
+          </div>
 
-    <td>
-      <input type="number" step="0.01" name="crediti"
-             value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"
-             form="<?php echo $formId; ?>">
-    </td>
-
-    <td>
-      <input type="password" name="new_password" placeholder="Reset (opzionale)"
-             form="<?php echo $formId; ?>">
-    </td>
-
-    <td class="actions">
-      <div class="row-actions">
-        <a class="btn btn--outline" href="/admin/movimenti.php?user_id=<?php echo (int)$u['id']; ?>">Movimenti</a>
-
-        <?php if ($u['username'] !== 'valenzo2313'): ?>
-          <button type="button"
-                  class="btn btn--danger btn-delete"
-                  data-user-id="<?php echo (int)$u['id']; ?>"
-                  data-user-name="<?php echo htmlspecialchars($u['username']); ?>">
-            🗑 Elimina
-          </button>
-        <?php else: ?>
-          <button type="button" class="btn" disabled style="opacity:.6;cursor:not-allowed;">Protetto</button>
-        <?php endif; ?>
-
-        <button class="btn btn--ok" type="submit" name="action" value="update_user" form="<?php echo $formId; ?>">
-          Applica modifiche
-        </button>
-      </div>
-
-      <!-- Il form “vero” della riga: resta dentro la cella Azioni -->
-      <form id="<?php echo $formId; ?>" method="post"
-            action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-        <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
-      </form>
-    </td>
-  </tr>
-<?php endforeach; ?>
+          <!-- Form reale della riga (sta dentro la cella Azioni) -->
+          <form id="<?php echo $formId; ?>" method="post"
+                action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
+            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+            <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">
+          </form>
+        </td>
+      </tr>
+    <?php endforeach; ?>
     </tbody>
   </table>
-
+</div><!-- /.table-wrap -->
+    
   <!-- Paginazione semplice -->
   <div class="pag">
     <?php
@@ -680,8 +638,6 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     <input type="hidden" name="action" value="admin_delete_user">
     <input type="hidden" name="user_id" id="deleteUserId" value="">
   </form>
-      </table>
-</div><!-- /.table-wrap -->
 </main>
 
 <?php require __DIR__ . '/../footer.php'; ?> <!-- footer -->
