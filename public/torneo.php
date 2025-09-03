@@ -227,6 +227,9 @@ try {
     0 10px 26px rgba(0,0,0,.22),
     inset 0 0 0 1px rgba(255,255,255,.04);
 }
+  .event-card:hover{
+  background: linear-gradient(180deg, #202734 0%, #151b22 100%);
+}
     .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
     .event-card .ec-team:first-child{ justify-content:flex-start; }
     .event-card .ec-team:last-child{  justify-content:flex-end;  }
