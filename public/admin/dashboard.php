@@ -472,16 +472,13 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
 
     <thead>
       <?php
-        // Funzioni helper per sort
+        // helper ordine colonne
         function sort_url($field, $currentSort, $currentDir, $page, $q) {
           $dir = ($currentSort === $field)
                ? (strtolower($currentDir) === 'asc' ? 'desc' : 'asc')
                : 'asc';
           return '/admin/dashboard.php?' . http_build_query([
-            'page' => (int)$page,
-            'sort' => $field,
-            'dir'  => $dir,
-            'q'    => $q,
+            'page' => (int)$page, 'sort' => $field, 'dir' => $dir, 'q' => $q,
           ]);
         }
         function sort_caret($field, $currentSort, $currentDir) {
@@ -504,70 +501,62 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
     </thead>
 
     <tbody>
-    <?php foreach ($users as $u): ?>
-      <?php
-        $formId     = 'f_' . (int)$u['id'];    // id form di riga
-        $eff_active = ((int)$u['is_active'] === 1);
-        $state_text = $eff_active ? 'Attivo' : 'Inattivo';
-        $state_cls  = $eff_active ? 'btn-state on' : 'btn-state off';
-        $next_state = $eff_active ? 0 : 1;
+      <?php foreach ($users as $u):
+        $formId     = 'f_' . (int)$u['id'];             // id del form per questa riga
+        $effActive  = ((int)$u['is_active'] === 1);
+        $stateText  = $effActive ? 'Attivo'   : 'Inattivo';
+        $stateClass = $effActive ? 'btn-state on' : 'btn-state off';
+        $nextState  = $effActive ? 0 : 1;
         $reason     = is_null($u['verified_at']) ? 'Email non verificata (login bloccato finché non verifichi o admin convalida)' : '';
       ?>
       <tr>
         <td><?php echo htmlspecialchars($u['user_code'] ?? ''); ?></td>
 
-        <td>
-          <input type="text" name="nome"
-                 value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="text" name="nome"
+              value="<?php echo htmlspecialchars($u['nome'] ?? ''); ?>"
+              form="<?php echo $formId; ?>"></td>
 
-        <td>
-          <input type="text" name="cognome"
-                 value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="text" name="cognome"
+              value="<?php echo htmlspecialchars($u['cognome'] ?? ''); ?>"
+              form="<?php echo $formId; ?>"></td>
 
         <td><?php echo htmlspecialchars($u['username']); ?></td>
 
-        <td>
-          <input type="email" name="email"
-                 value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="email" name="email"
+              value="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"
+              form="<?php echo $formId; ?>"></td>
 
-        <td>
-          <input type="tel" name="phone"
-                 value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="tel" name="phone"
+              value="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>"
+              form="<?php echo $formId; ?>"></td>
 
         <td>
           <?php if ($u['username'] === 'valenzo2313'): ?>
-            <button type="button" class="btn-state on" disabled title="Utente sempre attivo">Sempre attivo</button>
-            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
+            <button type="button" class="btn-state on" title="Utente sempre attivo" disabled>Sempre attivo</button>
+            <?php if (is_null($u['verified_at'])): ?>
+              <div class="note">Email non verificata</div>
+            <?php endif; ?>
           <?php else: ?>
-            <input type="hidden" name="new_state" value="<?php echo $next_state; ?>" form="<?php echo $formId; ?>">
-            <button type="submit" name="action" value="toggle_active"
-                    class="<?php echo $state_cls; ?>"
+            <input type="hidden" name="new_state" value="<?php echo $nextState; ?>" form="<?php echo $formId; ?>">
+            <button type="submit"
+                    name="action" value="toggle_active"
+                    class="<?php echo $stateClass; ?>"
                     title="<?php echo htmlspecialchars($reason); ?>"
                     form="<?php echo $formId; ?>">
-              <?php echo $state_text; ?>
+              <?php echo $stateText; ?>
             </button>
-            <?php if (is_null($u['verified_at'])): ?><div class="note">Email non verificata</div><?php endif; ?>
+            <?php if (is_null($u['verified_at'])): ?>
+              <div class="note">Email non verificata</div>
+            <?php endif; ?>
           <?php endif; ?>
         </td>
 
-        <td>
-          <input type="number" step="0.01" name="crediti"
-                 value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="number" step="0.01" name="crediti"
+              value="<?php echo htmlspecialchars((string)$u['crediti']); ?>"
+              form="<?php echo $formId; ?>"></td>
 
-        <td>
-          <input type="password" name="new_password" placeholder="Reset (opzionale)"
-                 form="<?php echo $formId; ?>">
-        </td>
+        <td><input type="password" name="new_password" placeholder="Reset (opzionale)"
+              form="<?php echo $formId; ?>"></td>
 
         <td class="actions">
           <div class="row-actions">
@@ -589,7 +578,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
             </button>
           </div>
 
-          <!-- Form reale della riga (sta dentro la cella Azioni) -->
+          <!-- form “vero” della riga (nella stessa cella) -->
           <form id="<?php echo $formId; ?>" method="post"
                 action="/admin/dashboard.php?page=<?php echo (int)$page; ?>&sort=<?php echo urlencode($sort); ?>&dir=<?php echo urlencode($dir); ?>&q=<?php echo urlencode($q); ?>">
             <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
@@ -597,7 +586,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();  /
           </form>
         </td>
       </tr>
-    <?php endforeach; ?>
+      <?php endforeach; ?>
     </tbody>
   </table>
 </div><!-- /.table-wrap -->
