@@ -1,0 +1,55 @@
+/* ==========================================================================
+   Admin Extra (card, tabelle, bottoni) - non interferisce con gli stili esistenti
+   ========================================================================== */
+
+.admin-wide       { max-width: 1600px; margin: 24px auto; padding: 0 16px; color:#fff; }
+.admin-narrow     { max-width: 1280px; margin: 24px auto; padding: 0 16px; color:#fff; }
+
+.card {
+  background:#111; border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:16px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+}
+.card + .card { margin-top: 14px; }
+
+.hstack { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.hstack.right { justify-content:flex-end; }
+.spacer { flex:1 1 auto; }
+
+.kpi { background:#111; border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 12px; display:inline-block; }
+
+.tbl-wrap { width:100%; overflow:auto; }
+.tbl { width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed; }
+.tbl thead th {
+  text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.03em;
+  color:#c9c9c9; padding:10px 12px; white-space:nowrap;
+}
+.tbl tbody tr { background:#111; border:1px solid rgba(255,255,255,.08); }
+.tbl td { padding:10px 12px; vertical-align:middle; }
+.tbl .num { text-align:right; }
+.tbl .muted { color:#bdbdbd; }
+
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  height:34px; padding:0 12px; border:1px solid rgba(255,255,255,.25);
+  border-radius:8px; color:#fff; text-decoration:none; font-weight:800; cursor:pointer;
+  background:#202326;
+}
+.btn:hover { border-color:#fff; }
+.btn-ok      { background:#00c074; border-color:#00c074; color:#fff; }
+.btn-danger  { background:#e62329; border-color:#e62329; color:#fff; }
+.btn-warn    { background:#ff9f1c; border-color:#ff9f1c; color:#000; }
+.btn-ghost   { background:transparent; border-color:rgba(255,255,255,.25); color:#cfcfcf; }
+.btn-ghost:hover { background:rgba(255,255,255,.06); color:#fff; }
+
+.badge { display:inline-block; padding:2px 8px; border-radius:9999px; font-size:12px; font-weight:800; }
+.badge.gray { background:#2a2e34; color:#d0d0d0; }
+.badge.green{ background:#00c074; color:#002311; }
+.badge.red  { background:#e62329; color:#fff; }
+.badge.sand { background:#f2e9d8; color:#273; }
+
+.grid { display:grid; gap:12px; }
+.grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid.four{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 900px){ .grid.two, .grid.four { grid-template-columns: 1fr; } }
+
+code.inline { background:#0a0a0b; padding:2px 6px; border-radius:6px; border:1px solid rgba(255,255,255,.08); }
