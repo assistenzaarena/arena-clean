@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       throw new RuntimeException('Salvataggio immagine fallito.');
     }
 
-    // opzionale: se vuoi rimuovere la vecchia immagine
+    // opzionale: rimuovi la vecchia immagine
     if ($oldUrl) {
       $oldFs = realpath($_SERVER['DOCUMENT_ROOT'] . $oldUrl);
       if ($oldFs && strpos($oldFs, realpath($_SERVER['DOCUMENT_ROOT'])) === 0) {
@@ -220,37 +220,17 @@ $flash = $POP();
     }
     label{font-size:12px;color:#c9c9c9}
 
-    /* ====== TABELLA ELENCO (FIX) ====== */
+    /* ====== TABELLA ELENCO (con overflow protetto) ====== */
     .tbl-wrap{ overflow-x:auto; }
-    .tbl{ width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed; } /* colonne rigide */
+    .tbl{ width:100%; border-collapse:separate; border-spacing:0 8px; }
     .tbl th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#c9c9c9;text-align:left;padding:8px 10px;white-space:nowrap}
-    .tbl td{background:#111;border:1px solid rgba(255,255,255,.12);padding:10px 12px;vertical-align:middle;overflow:hidden;word-wrap:break-word}
+    .tbl td{background:#111;border:1px solid rgba(255,255,255,.12);padding:10px 12px;vertical-align:middle}
 
-    /* Colonne con larghezze stabili */
-    .tbl col.col-foto   { width: 80px; }
-    .tbl col.col-nome   { width: 220px; }
-    .tbl col.col-crediti{ width: 100px; }
-    .tbl col.col-stato  { width: 100px; }
-    .tbl col.col-agg    { width: 160px; }
-    .tbl col.col-azioni { width: 360px; } /* più aria per input+bottoni */
-
-    /* Campi dentro le celle: 100% della cella */
-    .tbl td input[type=text],
-    .tbl td input[type=number],
-    .tbl td input[type=file],
-    .tbl td textarea{
-      width:100%;
-      max-width:100%;
-      box-sizing:border-box;
-      border-radius:6px;
-      border:1px solid rgba(255,255,255,.25);
-      background:#0a0a0b; color:#fff;
-      padding:6px 8px; font-size:13px;
-    }
-
-    /* Riga azioni: bottoni allineati, niente overflow */
-    .tbl td .row-actions{ display:flex; gap:8px; flex-wrap:nowrap; }
-    .tbl td .row-actions .btn{ flex:0 0 auto; white-space:nowrap; }
+    /* Gli input dentro la cella Azioni non devono “uscire” */
+    .tbl td .hstack{ gap:6px; flex-wrap:wrap; }
+    .tbl td textarea{ width:600px; max-width:100%; }
+    .thumb{width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.15);background:#0f1114}
+    .flash{padding:10px 12px;border-radius:8px;margin-bottom:12px;background:rgba(0,192,116,.1);border:1px solid rgba(0,192,116,.4);color:#00c074}
   </style>
 </head>
 <body>
@@ -306,16 +286,6 @@ $flash = $POP();
     <h2 style="margin:0 0 10px">Elenco premi</h2>
     <div class="tbl-wrap">
       <table class="tbl">
-        <!-- NUOVO: colgroup per larghezze stabili -->
-        <colgroup>
-          <col class="col-foto">
-          <col class="col-nome">
-          <col class="col-crediti">
-          <col class="col-stato">
-          <col class="col-agg">
-          <col class="col-azioni">
-        </colgroup>
-
         <thead>
           <tr>
             <th>Foto</th>
@@ -352,16 +322,15 @@ $flash = $POP();
                   <input type="hidden" name="action" value="update">
                   <input type="hidden" name="id" value="<?php echo (int)$it['id']; ?>">
 
-                  <div class="row-actions">
-                    <input type="text"   name="name"         value="<?php echo htmlspecialchars($it['name']); ?>"        placeholder="Nome"           style="width:180px">
-                    <input type="number" name="credits_cost" value="<?php echo (int)$it['credits_cost']; ?>"             min="0" step="1"            style="width:100px">
-                    <input type="file"   name="image"        accept=".jpg,.jpeg,.png,.webp"                            style="width:220px">
+                  <div class="hstack" style="gap:6px; align-items:flex-start; flex-wrap:wrap;">
+                    <input type="text" name="name" value="<?php echo htmlspecialchars($it['name']); ?>" placeholder="Nome" style="width:180px">
+                    <input type="number" name="credits_cost" value="<?php echo (int)$it['credits_cost']; ?>" min="0" step="1" style="width:140px">
+                    <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" style="width:220px">
                     <label style="display:flex;align-items:center;gap:6px;">
                       <input type="checkbox" name="is_active" <?php echo ((int)$it['is_active']===1)?'checked':''; ?>> Attivo
                     </label>
                     <button class="btn btn-ok" type="submit">Salva</button>
                   </div>
-
                   <div style="margin-top:6px;">
                     <textarea name="description" rows="2" placeholder="Descrizione (opzionale)" style="width:600px;max-width:100%;"><?php echo htmlspecialchars($it['description'] ?? ''); ?></textarea>
                   </div>
