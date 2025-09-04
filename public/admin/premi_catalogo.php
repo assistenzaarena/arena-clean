@@ -16,17 +16,20 @@ $POP   = function(){ $f = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
-// ================== CONFIG UPLOAD (uso /tmp, nessun permesso richiesto) ==================
+// ================== CONFIG UPLOAD (scrivo in /public/uploads/prizes) ==================
+// Individua la root pubblica in modo portabile
 $PUBLIC_ROOT = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
 if ($PUBLIC_ROOT === '' || !is_dir($PUBLIC_ROOT)) {
-    $PUBLIC_ROOT = realpath(__DIR__ . '/..'); // fallback /var/www/html/public o /var/www/html
+    // fallback: padre di /admin → /public (o /var/www/html se non c’è /public)
+    $PUBLIC_ROOT = realpath(__DIR__ . '/..');
 }
-if ($PUBLIC_ROOT === false) { $PUBLIC_ROOT = '/var/www/html'; }
+if ($PUBLIC_ROOT === false) {
+    $PUBLIC_ROOT = '/var/www/html';
+}
 
-// Scrivo i file in /tmp (sempre scrivibile)
-$UPLOAD_DIR_FS  = rtrim(sys_get_temp_dir(), '/') . '/uploads/prizes';
-// L’URL pubblico passerà dal gateway PHP
-$UPLOAD_DIR_URL = '/serve_prize.php?f='; // es: /serve_prize.php?f=nomefile.webp
+// Path FS e URL per /uploads/prizes (sotto /public)
+$UPLOAD_DIR_FS  = $PUBLIC_ROOT . '/uploads/prizes';
+$UPLOAD_DIR_URL = '/uploads/prizes';
 
 $MAX_SIZE     = 3 * 1024 * 1024;                // 3 MB
 $ALLOWED_EXT  = ['jpg','jpeg','png','webp'];
@@ -37,11 +40,11 @@ if (!is_dir($UPLOAD_DIR_FS)) {
     @mkdir($UPLOAD_DIR_FS, 0755, true);
 }
 
-// Attenzione: NIENTE redirect qui → se non è scrivibile mostriamo solo un flash (evita loop)
+// Se non è scrivibile mostro un flash (NO redirect per evitare loop)
 if (!is_writable($UPLOAD_DIR_FS)) {
     $_SESSION['flash'] =
         'Attenzione: la cartella “' . htmlspecialchars($UPLOAD_DIR_FS) .
-        '” non è scrivibile dal server. Crea/rendi scrivibile <code>/uploads/prizes</code> e riprova.';
+        '” non è scrivibile dal server. Verifica i permessi di /uploads/prizes.';
 }
 
 // Helpers
@@ -114,8 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-   // URL pubblico servito dal gateway (passo solo il filename)
-return $UPLOAD_DIR_URL . rawurlencode(basename($targetFs));
+    // URL pubblico relativo a /public
+    $abs = realpath($targetFs);
+    $rel = $abs ? str_replace($PUBLIC_ROOT, '', $abs) : '';
+    if ($rel === '' || $rel === false) {
+      $rel = $UPLOAD_DIR_URL . '/' . basename($targetFs);
+    }
+    return $rel;
   };
 
   try {
