@@ -1,7 +1,9 @@
 <?php
 // public/admin/fix_upload_perms.php
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once __DIR__ . '/../../src/guards.php'; require_admin();
+require_once __DIR__ . '/../src/guards.php';
+require_once __DIR__ . '/../src/config.php';
+require_once __DIR__ . '/../src/db.php';
 
 $PUBLIC_ROOT = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
 if ($PUBLIC_ROOT === '' || !is_dir($PUBLIC_ROOT)) {
