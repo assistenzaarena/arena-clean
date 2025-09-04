@@ -17,8 +17,9 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
 // Config upload
-$UPLOAD_DIR_FS = realpath(__DIR__ . '/..') . '/uploads/prizes'; // /var/www/html/uploads/prizes
-$UPLOAD_DIR_URL = '/uploads/prizes';                             // URL public
+// Path lato filesystem e URL (puntano a /public/uploads/prizes)
+$UPLOAD_DIR_FS  = rtrim($_SERVER['DOCUMENT_ROOT'], '/').'/public/uploads/prizes';
+$UPLOAD_DIR_URL = '/public/uploads/prizes';                            // URL public
 $MAX_SIZE = 3 * 1024 * 1024;  // 3 MB
 $ALLOWED_EXT = ['jpg','jpeg','png','webp'];
 $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
@@ -26,6 +27,10 @@ $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
 // ensure upload dir
 if (!is_dir($UPLOAD_DIR_FS)) {
   @mkdir($UPLOAD_DIR_FS, 0755, true);
+}
+if (!is_writable($UPLOAD_DIR_FS)) {
+  $_SESSION['flash'] = 'Attenzione: la cartella '.htmlspecialchars($UPLOAD_DIR_FS).' non è scrivibile dal server.';
+  header('Location: /admin/premi_catalogo.php'); exit;
 }
 
 // Helpers
