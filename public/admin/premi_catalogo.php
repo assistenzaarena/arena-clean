@@ -18,8 +18,9 @@ $csrf = $_SESSION['csrf'];
 
 // Config upload
 // Path lato filesystem e URL (puntano a /public/uploads/prizes)
-$UPLOAD_DIR_FS  = rtrim($_SERVER['DOCUMENT_ROOT'], '/').'/public/uploads/prizes';
-$UPLOAD_DIR_URL = '/public/uploads/prizes';                            // URL public
+// Percorsi corretti: filesystem nella cartella pubblica e URL pubblico
+$UPLOAD_DIR_FS  = realpath(__DIR__ . '/../public') . '/uploads/prizes';
+$UPLOAD_DIR_URL = '/uploads/prizes';                          // URL public
 $MAX_SIZE = 3 * 1024 * 1024;  // 3 MB
 $ALLOWED_EXT = ['jpg','jpeg','png','webp'];
 $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
@@ -103,9 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-    // return URL
-    $rel = str_replace(realpath($_SERVER['DOCUMENT_ROOT']), '', realpath($targetFs));
-    return $rel ?: ($UPLOAD_DIR_URL . '/' . basename($targetFs));
+  // return URL (relativa alla /public)
+$publicRoot = realpath(__DIR__ . '/../public');
+$rel = str_replace($publicRoot, '', realpath($targetFs));
+if ($rel === '' || $rel === false) {
+  $rel = $UPLOAD_DIR_URL . '/' . basename($targetFs);
+}
+return $rel;
   };
 
   try {
@@ -169,12 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $del = $pdo->prepare("DELETE FROM admin_prize_catalog WHERE id=? LIMIT 1");
       $del->execute([$id]);
 
-      if ($oldUrl) {
-        $oldFs = realpath($_SERVER['DOCUMENT_ROOT'] . $oldUrl);
-        if ($oldFs && strpos($oldFs, realpath($_SERVER['DOCUMENT_ROOT'])) === 0) {
-          @unlink($oldFs);
-        }
-      }
+  // opzionale: rimuovi la vecchia immagine (sempre rispetto a /public)
+if ($oldUrl) {
+  $publicRoot = realpath(__DIR__ . '/../public');
+  $oldFs = realpath($publicRoot . $oldUrl);
+  if ($oldFs && strpos($oldFs, $publicRoot) === 0) {
+    @unlink($oldFs);
+  }
+}
       $FLASH('Premio eliminato.');
       header('Location: /admin/premi_catalogo.php'); exit;
     }
