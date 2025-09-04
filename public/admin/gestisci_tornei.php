@@ -158,6 +158,11 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <input type="hidden" name="redirect" value="1">
     <button class="btn" type="submit">Riapri scelte</button>
   </form>
+     <!-- RICALCOLO: link all'anteprima/applicazione ricalcolo dell’ultimo round -->
+  <a class="btn" style="margin-left:6px"
+     href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$t['id']; ?>">
+    Ricalcolo ultimo round
+  </a>
 </td>
   </tr>
         <?php endforeach; ?>
