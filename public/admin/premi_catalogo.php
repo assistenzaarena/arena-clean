@@ -19,8 +19,12 @@ $csrf = $_SESSION['csrf'];
 // Config upload
 // Path lato filesystem e URL (puntano a /public/uploads/prizes)
 // Percorsi corretti: filesystem nella cartella pubblica e URL pubblico
-$UPLOAD_DIR_FS  = realpath(__DIR__ . '/../public') . '/uploads/prizes';
-$UPLOAD_DIR_URL = '/uploads/prizes';                          // URL public
+$PUBLIC_ROOT   = realpath(__DIR__ . '/..');            // ← /var/www/html/public
+if ($PUBLIC_ROOT === false) {                          // fallback di sicurezza
+  $PUBLIC_ROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+}
+$UPLOAD_DIR_FS = $PUBLIC_ROOT . '/uploads/prizes';     // fs assoluto
+$UPLOAD_DIR_URL= '/uploads/prizes';                    // URL pubblico
 $MAX_SIZE = 3 * 1024 * 1024;  // 3 MB
 $ALLOWED_EXT = ['jpg','jpeg','png','webp'];
 $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
@@ -65,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
 
   // Upload image (common)
-  $handleImageUpload = function($fileField, $oldUrl = null) use ($UPLOAD_DIR_FS, $UPLOAD_DIR_URL, $ALLOWED_EXT, $ALLOWED_MIME, $MAX_SIZE) {
+  $handleImageUpload = function($fileField, $oldUrl = null) use ($UPLOAD_DIR_FS, $UPLOAD_DIR_URL, $ALLOWED_EXT, $ALLOWED_MIME, $MAX_SIZE, $PUBLIC_ROOT) {
     if (empty($_FILES[$fileField]['name'])) return $oldUrl; // no change
 
     if (!is_uploaded_file($_FILES[$fileField]['tmp_name'])) {
@@ -96,21 +100,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       throw new RuntimeException('Salvataggio immagine fallito.');
     }
 
-    // opzionale: rimuovi la vecchia immagine
-    if ($oldUrl) {
-      $oldFs = realpath($_SERVER['DOCUMENT_ROOT'] . $oldUrl);
-      if ($oldFs && strpos($oldFs, realpath($_SERVER['DOCUMENT_ROOT'])) === 0) {
+    // opzionale: rimuovi la vecchia immagine (sempre rispetto a /public)
+    if (!empty($oldUrl)) {
+      $oldFs = realpath($PUBLIC_ROOT . $oldUrl);
+      if ($oldFs && strpos($oldFs, $PUBLIC_ROOT) === 0) {
         @unlink($oldFs);
       }
     }
 
-  // return URL (relativa alla /public)
-$publicRoot = realpath(__DIR__ . '/../public');
-$rel = str_replace($publicRoot, '', realpath($targetFs));
-if ($rel === '' || $rel === false) {
-  $rel = $UPLOAD_DIR_URL . '/' . basename($targetFs);
-}
-return $rel;
+    // return URL (relativo a /public)
+    $abs  = realpath($targetFs);
+    $rel  = $abs ? str_replace($PUBLIC_ROOT, '', $abs) : '';
+    if ($rel === '' || $rel === false) {
+      $rel = $UPLOAD_DIR_URL . '/' . basename($targetFs);
+    }
+    return $rel;
   };
 
   try {
@@ -174,14 +178,13 @@ return $rel;
       $del = $pdo->prepare("DELETE FROM admin_prize_catalog WHERE id=? LIMIT 1");
       $del->execute([$id]);
 
-  // opzionale: rimuovi la vecchia immagine (sempre rispetto a /public)
-if ($oldUrl) {
-  $publicRoot = realpath(__DIR__ . '/../public');
-  $oldFs = realpath($publicRoot . $oldUrl);
-  if ($oldFs && strpos($oldFs, $publicRoot) === 0) {
-    @unlink($oldFs);
-  }
-}
+      // opzionale: rimuovi la vecchia immagine (sempre rispetto a /public)
+      if ($oldUrl) {
+        $oldFs = realpath($PUBLIC_ROOT . $oldUrl);
+        if ($oldFs && strpos($oldFs, $PUBLIC_ROOT) === 0) {
+          @unlink($oldFs);
+        }
+      }
       $FLASH('Premio eliminato.');
       header('Location: /admin/premi_catalogo.php'); exit;
     }
