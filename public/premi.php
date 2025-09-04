@@ -81,19 +81,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $up = $pdo->prepare("UPDATE utenti SET crediti = crediti - :c WHERE id=:u");
       $up->execute([':c'=>$cost, ':u'=>$uid]);
 
-      // 2c) inserisci richiesta
-      $ins = $pdo->prepare("
-        INSERT INTO admin_prize_requests
-          (user_id, prize_id, requested_item, credits_cost, status, created_at)
-        VALUES
-          (:u, :pid, :item, :cost, 'pending', NOW())
-      ");
-      $ins->execute([
-        ':u'=>$uid,
-        ':pid'=>$prize['id'],
-        ':item'=>$prize['name'],
-        ':cost'=>$cost
-      ]);
+// 2c) inserisci richiesta (allineato allo schema reale)
+// NB: la tabella ha default: status='pending', requested_at=CURRENT_TIMESTAMP
+$ins = $pdo->prepare("
+  INSERT INTO admin_prize_requests (user_id, requested_item, credits_cost)
+  VALUES (:u, :item, :cost)
+");
+$ins->execute([
+  ':u'    => $uid,
+  ':item' => $prize['name'],
+  ':cost' => $cost
+]);
 
       // 2d) log movimento contabile (redeem)
       $code = generate_unique_code8($pdo, 'credit_movements', 'movement_code', 8);
