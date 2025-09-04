@@ -16,26 +16,32 @@ $POP   = function(){ $f = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
-// Config upload
-// Path lato filesystem e URL (puntano a /public/uploads/prizes)
-// Percorsi corretti: filesystem nella cartella pubblica e URL pubblico
-$PUBLIC_ROOT   = realpath(__DIR__ . '/..');            // ← /var/www/html/public
-if ($PUBLIC_ROOT === false) {                          // fallback di sicurezza
-  $PUBLIC_ROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+// ================== CONFIG UPLOAD (robusta, no loop redirect) ==================
+// Individua la root pubblica: 1) DOCUMENT_ROOT (tipico /var/www/html), 2) fallback: padre di /admin
+$PUBLIC_ROOT = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+if ($PUBLIC_ROOT === '' || !is_dir($PUBLIC_ROOT)) {
+    $PUBLIC_ROOT = realpath(__DIR__ . '/..'); // es: /var/www/html oppure /var/www/html/public
 }
-$UPLOAD_DIR_FS = $PUBLIC_ROOT . '/uploads/prizes';     // fs assoluto
-$UPLOAD_DIR_URL= '/uploads/prizes';                    // URL pubblico
-$MAX_SIZE = 3 * 1024 * 1024;  // 3 MB
-$ALLOWED_EXT = ['jpg','jpeg','png','webp'];
+if ($PUBLIC_ROOT === false) { $PUBLIC_ROOT = '/var/www/html'; } // ultimo fallback prudente
+
+// Path FS e URL per /uploads/prizes
+$UPLOAD_DIR_FS  = $PUBLIC_ROOT . '/uploads/prizes';
+$UPLOAD_DIR_URL = '/uploads/prizes';
+
+$MAX_SIZE     = 3 * 1024 * 1024;                // 3 MB
+$ALLOWED_EXT  = ['jpg','jpeg','png','webp'];
 $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
 
-// ensure upload dir
+// Crea la cartella se non esiste (no errore se fallisce: mostriamo solo flash più sotto)
 if (!is_dir($UPLOAD_DIR_FS)) {
-  @mkdir($UPLOAD_DIR_FS, 0755, true);
+    @mkdir($UPLOAD_DIR_FS, 0755, true);
 }
+
+// Attenzione: NIENTE redirect qui → se non è scrivibile mostriamo solo un flash (evita loop)
 if (!is_writable($UPLOAD_DIR_FS)) {
-  $_SESSION['flash'] = 'Attenzione: la cartella '.htmlspecialchars($UPLOAD_DIR_FS).' non è scrivibile dal server.';
-  header('Location: /admin/premi_catalogo.php'); exit;
+    $_SESSION['flash'] =
+        'Attenzione: la cartella “' . htmlspecialchars($UPLOAD_DIR_FS) .
+        '” non è scrivibile dal server. Crea/rendi scrivibile <code>/uploads/prizes</code> e riprova.';
 }
 
 // Helpers
