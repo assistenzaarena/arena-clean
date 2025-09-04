@@ -84,6 +84,16 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
 <?php endif; ?>
   <div class="kpi"><strong>Tornei in corso:</strong> <?php echo $tot_open; ?></div>
 
+  <!-- Scorciatoie amministrative -->
+<div class="admin-shortcuts" style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px;">
+  <a class="btn" href="/admin/round_ricalcolo.php">
+    Ricalcolo round
+  </a>
+  <a class="btn" href="/admin/utente_vite.php">
+    Gestione vite
+  </a>
+</div>
+
   <form class="filters" method="get" action="/admin/gestisci_tornei.php">
     <input type="text" name="q" placeholder="Cerca (nome, lega, codice torneo)" value="<?php echo htmlspecialchars($q); ?>">
     <button class="btn" type="submit">Cerca</button>
