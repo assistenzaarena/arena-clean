@@ -114,13 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-    // return URL (relativo a /public)
-    $abs  = realpath($targetFs);
-    $rel  = $abs ? str_replace($PUBLIC_ROOT, '', $abs) : '';
-    if ($rel === '' || $rel === false) {
-      $rel = $UPLOAD_DIR_URL . '/' . basename($targetFs);
-    }
-    return $rel;
+   // URL pubblico servito dal gateway (passo solo il filename)
+return $UPLOAD_DIR_URL . rawurlencode(basename($targetFs));
   };
 
   try {
