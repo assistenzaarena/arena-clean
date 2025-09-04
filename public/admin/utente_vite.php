@@ -108,32 +108,41 @@ if ($tournamentId>0) {
           </thead>
           <tbody>
             <?php foreach ($rows as $r): ?>
+              <?php $formId = 'lf_' . (int)$tournamentId . '_' . (int)$r['user_id']; ?>
               <tr>
                 <td><?php echo (int)$r['user_id']; ?></td>
                 <td><?php echo htmlspecialchars($r['username'] ?? ''); ?></td>
                 <td><?php echo (int)$r['lives']; ?></td>
+
+                <!-- Colonna "Imposta vite": creo il form e lo chiudo nella stessa cella -->
                 <td>
-                  <form class="hstack" method="post" action="/admin/utente_vite_apply.php">
+                  <form id="<?php echo $formId; ?>" class="hstack" method="post" action="/admin/utente_vite_apply.php">
                     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                     <input type="hidden" name="tournament_id" value="<?php echo (int)$tournamentId; ?>">
                     <input type="hidden" name="user_id" value="<?php echo (int)$r['user_id']; ?>">
                     <input type="number" name="set_lives" min="0" step="1" placeholder="es. 2" style="width:90px">
-                </td>
-                <td>
-                    <input type="number" name="delta" step="1" placeholder="+1 o -1" style="width:90px">
-                </td>
-                <td>
-                    <input type="text" name="reason" placeholder="Motivo" style="width:240px">
-                </td>
-                <td>
-                    <button class="btn btn-ok" type="submit">Salva</button>
                   </form>
+                </td>
+
+                <!-- Queste celle usano l'attributo form="ID" per appartenere al form sopra -->
+                <td>
+                  <input type="number" name="delta" step="1" placeholder="+1 o -1" style="width:90px"
+                         form="<?php echo $formId; ?>">
+                </td>
+                <td>
+                  <input type="text" name="reason" placeholder="Motivo" style="width:240px"
+                         form="<?php echo $formId; ?>">
+                </td>
+                <td>
+                  <button class="btn btn-ok" type="submit" form="<?php echo $formId; ?>">Salva</button>
                 </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
-        <p class="muted" style="margin-top:8px">Se imposti un valore in “Imposta vite” viene ignorato “Δ”. Se lasci “Imposta vite” vuoto, viene applicato il delta (+/-).</p>
+        <p class="muted" style="margin-top:8px">
+          Se imposti un valore in “Imposta vite” viene ignorato “Δ”. Se lasci “Imposta vite” vuoto, viene applicato il delta (+/-).
+        </p>
       <?php endif; ?>
     </section>
   <?php endif; ?>
