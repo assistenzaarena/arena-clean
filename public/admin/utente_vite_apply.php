@@ -18,14 +18,22 @@ $setLives     = trim($_POST['set_lives'] ?? '');
 $delta        = trim($_POST['delta'] ?? '');
 $reason       = trim($_POST['reason'] ?? '');
 
-if ($tournamentId<=0 || $userId<=0) { $_SESSION['flash']='Errore: parametri mancanti.'; header('Location: /admin/utente_vite.php?tournament_id='.$tournamentId); exit; }
+if ($tournamentId<=0 || $userId<=0) {
+    $_SESSION['flash']='Errore: parametri mancanti.';
+    header('Location: /admin/utente_vite.php?tournament_id='.$tournamentId);
+    exit;
+}
 
 try {
     // stato attuale
     $st = $pdo->prepare("SELECT lives FROM tournament_enrollments WHERE tournament_id=? AND user_id=? LIMIT 1");
     $st->execute([$tournamentId, $userId]);
     $old = $st->fetchColumn();
-    if ($old === false) { $_SESSION['flash']='Errore: utente non iscritto al torneo.'; header('Location: /admin/utente_vite.php?tournament_id='.$tournamentId); exit; }
+    if ($old === false) {
+        $_SESSION['flash']='Errore: utente non iscritto al torneo.';
+        header('Location: /admin/utente_vite.php?tournament_id='.$tournamentId);
+        exit;
+    }
     $old = (int)$old;
 
     // calcolo nuovo valore
@@ -36,14 +44,22 @@ try {
         $new = max(0, $old + $d);
     }
 
+    // normalizza reason (evita Data too long con sql_mode strict)
+    if ($reason !== '') {
+        $reason = mb_substr($reason, 0, 255);
+    }
+
     // update + audit
     $pdo->beginTransaction();
+
     $up = $pdo->prepare("UPDATE tournament_enrollments SET lives=:l WHERE tournament_id=:t AND user_id=:u");
     $up->execute([':l'=>$new, ':t'=>$tournamentId, ':u'=>$userId]);
 
     $ins = $pdo->prepare("
-        INSERT INTO admin_life_adjustments (tournament_id, user_id, prev_lives, new_lives, delta, reason, admin_user_id)
-        VALUES (:t,:u,:p,:n,:d,:r,:a)
+        INSERT INTO admin_life_adjustments
+            (tournament_id, user_id, prev_lives, new_lives, delta, reason, admin_user_id, created_at)
+        VALUES
+            (:t,:u,:p,:n,:d,:r,:a, NOW())
     ");
     $ins->execute([
         ':t'=>$tournamentId,
@@ -54,6 +70,7 @@ try {
         ':r'=>$reason,
         ':a'=>(int)($_SESSION['user_id'] ?? 0),
     ]);
+
     $pdo->commit();
 
     $_SESSION['flash'] = 'Vite aggiornate con successo (user #'.$userId.': '.$old.' → '.$new.').';
@@ -61,7 +78,8 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('[utente_vite_apply] '.$e->getMessage());
-    $_SESSION['flash'] = 'Errore durante l’aggiornamento vite.';
+    // In admin è utile avere il dettaglio dell’errore:
+    $_SESSION['flash'] = 'Errore durante l’aggiornamento vite: '.$e->getMessage();
 }
 
 header('Location: /admin/utente_vite.php?tournament_id='.$tournamentId);
