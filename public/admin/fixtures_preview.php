@@ -27,6 +27,57 @@ $round_lbl  = trim($_GET['round_label'] ?? '');
 
 $err = null; $rows = []; $header = []; $expected = null;
 
+/* ------------------------------------------------------------------
+   Adattatore retro-compatibilità:
+   Se 'comp' manca ma arriva un 'tournament_id' (e opzionalmente 'round_no'
+   o 'round'), ricaviamo comp/season e il round corretto dal DB tornei.
+   ------------------------------------------------------------------ */
+if (($comp_key === '' || !isset($competitions[$comp_key])) && isset($_GET['tournament_id'])) {
+    $tid     = (int)($_GET['tournament_id'] ?? 0);
+    // supporta sia ?round_no= che ?round=
+    $roundNo = (int)($_GET['round_no'] ?? ($_GET['round'] ?? 0));
+
+    // leggo info torneo
+    $st = $pdo->prepare("SELECT league_id, season, current_round_no FROM tournaments WHERE id=? LIMIT 1");
+    $st->execute([$tid]);
+    if ($T = $st->fetch(PDO::FETCH_ASSOC)) {
+
+        // mappa league_id -> chiave competizione ($comp_key)
+        foreach ($competitions as $k => $c) {
+            if ((int)$c['league_id'] === (int)$T['league_id']) { $comp_key = $k; break; }
+        }
+
+        // stagione: preferisci quella salvata sul torneo
+        if ($season === '' && !empty($T['season'])) {
+            $season = trim((string)$T['season']);
+        }
+        if ($season === '' && $comp_key && isset($competitions[$comp_key]['default_season'])) {
+            $season = $competitions[$comp_key]['default_season'];
+        }
+
+        // round: se non passato, usa il current_round_no del torneo
+        if ($roundNo <= 0) { $roundNo = (int)($T['current_round_no'] ?? 1); }
+
+        // imposta il parametro giusto in base al tipo di round della competizione
+        $roundType = $competitions[$comp_key]['round_type'] ?? 'matchday';
+        if ($roundType === 'matchday') {
+            if ($matchday === '' || !ctype_digit((string)$matchday)) {
+                $matchday = (string)$roundNo;
+            }
+            // assicurati che round_label non interferisca
+            $round_lbl = '';
+        } else {
+            if ($round_lbl === '') {
+                $tpl = $competitions[$comp_key]['round_label_template'] ?? 'Round %d';
+                $round_lbl = str_replace('%d', (string)$roundNo, $tpl);
+            }
+            // nessuna giornata numerica in questo ramo
+            $matchday = '';
+        }
+    }
+}
+/* ---------------------------- fine PATCH A ---------------------------- */
+
 // Validazioni input minime
 if ($comp_key === '' || !isset($competitions[$comp_key])) {
     $err = 'Competizione mancante o non valida (param "comp").';
