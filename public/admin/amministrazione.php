@@ -169,6 +169,14 @@ try {
       </table>
     <?php endif; ?>
   </section>
+    
+      <!-- Catalogo premi -->
+  <section class="admin-card">
+    <h2>Catalogo premi</h2>
+    <p class="muted">Gestisci i premi mostrati agli utenti nella pagina <em>Premi</em>.</p>
+    <a class="btn btn--outline" href="/admin/premi_catalogo.php">Apri catalogo</a>
+  </section>
+    
 </main>
 
 <!-- Popup conferma -->
