@@ -98,6 +98,7 @@ if (!empty($_SESSION['user_id'])) {
       <li class="subhdr__item"><a class="subhdr__link" href="/storico_tornei.php">Storico Tornei</a></li>
       <li class="subhdr__item"><a class="subhdr__link" href="/lista_movimenti.php">Lista movimenti</a></li>
       <li class="subhdr__item"><a class="subhdr__link" href="/dati_utente.php">Dati Utente</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="/premi.php">Premi</a></li>
     </ul>
   </div>
 </nav>
