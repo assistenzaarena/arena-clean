@@ -16,23 +16,23 @@ $POP   = function(){ $f = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
-// ================== CONFIG UPLOAD (robusta, no loop redirect) ==================
-// Individua la root pubblica: 1) DOCUMENT_ROOT (tipico /var/www/html), 2) fallback: padre di /admin
+// ================== CONFIG UPLOAD (uso /tmp, nessun permesso richiesto) ==================
 $PUBLIC_ROOT = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
 if ($PUBLIC_ROOT === '' || !is_dir($PUBLIC_ROOT)) {
-    $PUBLIC_ROOT = realpath(__DIR__ . '/..'); // es: /var/www/html oppure /var/www/html/public
+    $PUBLIC_ROOT = realpath(__DIR__ . '/..'); // fallback /var/www/html/public o /var/www/html
 }
-if ($PUBLIC_ROOT === false) { $PUBLIC_ROOT = '/var/www/html'; } // ultimo fallback prudente
+if ($PUBLIC_ROOT === false) { $PUBLIC_ROOT = '/var/www/html'; }
 
-// Path FS e URL per /uploads/prizes
-$UPLOAD_DIR_FS  = $PUBLIC_ROOT . '/uploads/prizes';
-$UPLOAD_DIR_URL = '/uploads/prizes';
+// Scrivo i file in /tmp (sempre scrivibile)
+$UPLOAD_DIR_FS  = rtrim(sys_get_temp_dir(), '/') . '/uploads/prizes';
+// L’URL pubblico passerà dal gateway PHP
+$UPLOAD_DIR_URL = '/serve_prize.php?f='; // es: /serve_prize.php?f=nomefile.webp
 
 $MAX_SIZE     = 3 * 1024 * 1024;                // 3 MB
 $ALLOWED_EXT  = ['jpg','jpeg','png','webp'];
 $ALLOWED_MIME = ['image/jpeg','image/png','image/webp'];
 
-// Crea la cartella se non esiste (no errore se fallisce: mostriamo solo flash più sotto)
+// Crea la cartella se non esiste
 if (!is_dir($UPLOAD_DIR_FS)) {
     @mkdir($UPLOAD_DIR_FS, 0755, true);
 }
