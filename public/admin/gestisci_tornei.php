@@ -64,6 +64,10 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
     th{text-align:left;color:#c9c9c9;text-transform:uppercase;font-size:12px;letter-spacing:.03em}
+/* Pulsanti ordinati nella colonna Azioni */
+.actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.actions form { display:inline-block; margin:0; }
+.actions .btn { height:32px; }
   </style>
 </head>
 <body>
@@ -132,7 +136,7 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     </td>
     <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
  <td>
-  <!-- Link gestione esistente -->
+    <!-- Link gestione esistente -->
   <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
 
   <!-- FINALIZZA: sempre disponibile (forza) -->
@@ -158,10 +162,17 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     <input type="hidden" name="redirect" value="1">
     <button class="btn" type="submit">Riapri scelte</button>
   </form>
-     <!-- RICALCOLO: link all'anteprima/applicazione ricalcolo dell’ultimo round -->
+
+  <!-- RICALCOLO: link all'anteprima/applicazione ricalcolo dell’ultimo round -->
   <a class="btn" style="margin-left:6px"
      href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$t['id']; ?>">
     Ricalcolo ultimo round
+  </a>
+
+  <!-- GESTIONE VITE: nuova azione richiesta -->
+  <a class="btn" style="margin-left:6px"
+     href="/admin/utente_vite.php?tournament_id=<?php echo (int)$t['id']; ?>">
+    Gestione vite
   </a>
 </td>
   </tr>
