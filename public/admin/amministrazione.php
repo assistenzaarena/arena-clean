@@ -137,6 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
       color:#fff; border-radius:8px; padding:6px 12px; font-weight:800;
     }
     .btn--danger:hover{ background:#c01c21; }
+
+      .admin-card .btn--danger, 
+.admin-card .btn--outline { min-width: 160px; text-align: center; }
+      
   </style>
 </head>
 <body>
