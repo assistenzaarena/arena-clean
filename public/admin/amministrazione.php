@@ -43,6 +43,29 @@ try {
 } catch (Throwable $e) {
     $totale = 0;
 }
+    /* === Stato pagina Premi + toggle === */
+try {
+  $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='prizes_enabled' LIMIT 1");
+  $st->execute();
+  $prizesEnabled = (int)($st->fetchColumn() ?? 1);
+} catch (Throwable $e) {
+  $prizesEnabled = 1; // fallback “on” se manca la riga
+}
+
+/* Handle toggle */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_prizes') {
+  if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf'] ?? '')) {
+    $_SESSION['flash'] = 'CSRF non valido.';
+    header("Location: /admin/amministrazione.php");
+    exit;
+  }
+  $new = $prizesEnabled ? 0 : 1;
+  $up = $pdo->prepare("UPDATE admin_settings SET setting_value=? WHERE setting_key='prizes_enabled'");
+  $up->execute([$new]);
+  $_SESSION['flash'] = $new ? 'Pagina Premi attivata.' : 'Pagina Premi disattivata.';
+  header("Location: /admin/amministrazione.php");
+  exit;
+}
 ?>
 <!doctype html>
 <html lang="it">
@@ -170,12 +193,28 @@ try {
     <?php endif; ?>
   </section>
     
-      <!-- Catalogo premi -->
-  <section class="admin-card">
-    <h2>Catalogo premi</h2>
-    <p class="muted">Gestisci i premi mostrati agli utenti nella pagina <em>Premi</em>.</p>
-    <a class="btn btn--outline" href="/admin/premi_catalogo.php">Apri catalogo</a>
-  </section>
+<!-- Catalogo premi -->
+<section class="admin-card">
+  <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
+    <h2 style="margin:0">Catalogo premi</h2>
+    <form method="post" style="margin:0;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="action" value="toggle_prizes">
+      <?php if (!empty($prizesEnabled)): ?>
+        <button type="submit" class="btn btn--danger" title="Disattiva pagina Premi">Disattiva Premi</button>
+      <?php else: ?>
+        <button type="submit" class="btn btn--outline" title="Attiva pagina Premi">Attiva Premi</button>
+      <?php endif; ?>
+    </form>
+  </div>
+
+  <p class="muted" style="margin:8px 0 12px;">
+    Gestisci i premi mostrati agli utenti nella pagina <em>Premi</em>.
+    Stato: <strong><?php echo $prizesEnabled ? 'ATTIVA' : 'DISATTIVA'; ?></strong>
+  </p>
+
+  <a class="btn btn--outline" href="/admin/premi_catalogo.php">Apri catalogo</a>
+</section>
     
 </main>
 
