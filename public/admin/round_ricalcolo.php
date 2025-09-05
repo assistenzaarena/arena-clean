@@ -19,6 +19,13 @@ $FLASH = function(string $kind, string $text){ $_SESSION['flash'] = ['k'=>$kind,
 $POP   = function(){ $f=$_SESSION['flash']??null; unset($_SESSION['flash']); return $f; };
 
 $tid = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : 0;
+/* PATCH: leggo round passato in query (supporto sia round che round_no) */
+$roundFromGet = 0;
+if (isset($_GET['round'])) {
+    $roundFromGet = (int)$_GET['round'];
+} elseif (isset($_GET['round_no'])) {
+    $roundFromGet = (int)$_GET['round_no'];
+}
 $roundNo = null;
 $torneos = [];
 $preview = null;
@@ -31,10 +38,20 @@ try {
 } catch (Throwable $e) { $torneos = []; }
 
 if ($tid > 0) {
-  // prendo current_round_no come “round da ricalcolare” (il più recente)
-  $roundNo = rr_get_current_round($pdo, $tid);
+  // 1) Se arrivo da "Modifica risultati", onoro il round passato in query
+  if ($roundFromGet > 0) {
+      $roundNo = $roundFromGet;
+  } else {
+      // 2) Altrimenti uso il round corrente (ultimo round chiuso/attuale)
+      $roundNo = rr_get_current_round($pdo, $tid);
+  }
+
   if ($roundNo !== null) {
-    try { $preview = rr_preview($pdo, $tid, $roundNo); } catch (Throwable $e) { $preview = null; }
+    try {
+      $preview = rr_preview($pdo, $tid, $roundNo);
+    } catch (Throwable $e) {
+      $preview = null;
+    }
   }
 }
 
