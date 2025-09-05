@@ -75,9 +75,9 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     }
     .actions form { margin:0; }
  .actions .btn { 
-  width:100px;      /* più stretti */
-  height:23px;      /* più bassi */
-  font-size:10px;   /* testo più piccolo */
+  width:120px;      /* più stretti */
+  height:28px;      /* più bassi */
+  font-size:12px;   /* testo più piccolo */
   flex:0 0 120px;   /* stessa larghezza per tutti */
   text-align:center;
 }
