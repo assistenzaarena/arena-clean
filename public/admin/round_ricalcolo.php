@@ -96,7 +96,7 @@ if ($tid > 0) {
       <button class="btn" type="submit">Anteprima</button>
       <?php if ($tid>0 && $roundNo!==null): ?>
         <span class="spacer"></span>
-        <a class="btn" href="/admin/fixtures_preview.php?tournament_id=<?php echo (int)$tid; ?>&round=<?php echo (int)$roundNo; ?>">Modifica risultati partite</a>
+        <a class="btn" href="/admin/risultati_round.php?tournament_id=<?php echo (int)$tid; ?>&round=<?php echo (int)$roundNo; ?>">Modifica risultati partite</a>
       <?php endif; ?>
     </form>
   </section>
