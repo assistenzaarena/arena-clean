@@ -14,6 +14,18 @@ require_once $ROOT . '/src/db.php';
 require_once $ROOT . '/src/guards.php';
 require_once $ROOT . '/src/utils.php'; // per generate_unique_code8()
 
+/* Gate: se la pagina Premi è disattivata → 403 + messaggio */
+try {
+  $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='prizes_enabled' LIMIT 1");
+  $st->execute();
+  if ((int)$st->fetchColumn() !== 1) {
+    http_response_code(403);
+    die('La sezione premi è momentaneamente disattivata.');
+  }
+} catch (Throwable $e) {
+  // in caso di errore DB non blocco, ma puoi decidere di forzare OFF
+}
+
 require_login();
 $uid = (int)($_SESSION['user_id'] ?? 0);
 
