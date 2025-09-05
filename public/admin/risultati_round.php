@@ -64,7 +64,7 @@ $labels = [
       <label>Round <input name="round" type="number" min="1" value="<?php echo (int)$round; ?>"></label>
       <button class="btn" type="submit">Vai</button>
     </form>
-    <a class="btn" href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$tid; ?>" style="margin-left:auto;">← Torna al ricalcolo</a>
+    <a class="btn" href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$tid; ?>&round=<?php echo (int)$round; ?>" style="margin-left:auto;">← Torna al ricalcolo</a>
   </div>
 
   <div class="card">
@@ -89,12 +89,13 @@ $labels = [
               <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '—'; ?></td>
               <td><?php echo htmlspecialchars(($e['home_team_name'] ?? '??').' vs '.($e['away_team_name'] ?? '??')); ?></td>
               <td>
-                <form id="<?php echo $formId; ?>" method="post" action="/admin/set_event_result.php">
-                  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                  <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
-                  <input type="hidden" name="event_id" value="<?php echo (int)$e['id']; ?>">
-                  <input type="hidden" name="redirect" value="1">
-                  <select name="result_status">
+              <form id="<?php echo $formId; ?>" method="post" action="/admin/set_event_result.php">
+  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+  <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
+  <input type="hidden" name="round_no" value="<?php echo (int)$round; ?>">  <!-- AGGIUNTA -->
+  <input type="hidden" name="event_id" value="<?php echo (int)$e['id']; ?>">
+  <input type="hidden" name="redirect" value="1">
+  <select name="result_status">
                     <?php foreach (['pending','home_win','draw','away_win','postponed','void'] as $rs): ?>
                       <option value="<?php echo $rs; ?>" <?php echo ($e['result_status']===$rs?'selected':''); ?>>
                         <?php echo $labels[$rs] ?? $rs; ?>
