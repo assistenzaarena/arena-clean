@@ -111,7 +111,12 @@ if ($tournamentId>0) {
               <?php $formId = 'lf_' . (int)$tournamentId . '_' . (int)$r['user_id']; ?>
               <tr>
                 <td><?php echo (int)$r['user_id']; ?></td>
-                <td><?php echo htmlspecialchars($r['username'] ?? ''); ?></td>
+                <td>
+  <a href="/admin/utente_scelte.php?tournament_id=<?php echo (int)$tournamentId; ?>&user_id=<?php echo (int)$r['user_id']; ?>"
+     style="color:#00c0ff; text-decoration:underline;">
+    <?php echo htmlspecialchars($r['username'] ?? ''); ?>
+  </a>
+</td>
                 <td><?php echo (int)$r['lives']; ?></td>
 
                 <!-- Colonna "Imposta vite": creo il form e lo chiudo nella stessa cella -->
