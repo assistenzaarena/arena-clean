@@ -101,6 +101,14 @@ if ($tid > 0) {
     </form>
   </section>
 
+  <?php if ($tid>0 && $roundNo!==null && $preview===null): ?>
+  <section class="card">
+    <div class="flash warn">
+      Nessuna anteprima ancora calcolata per questo torneo/round. Premi <strong>Anteprima</strong> qui sopra per ricaricare i dati.
+    </div>
+  </section>
+<?php endif; ?>
+
   <?php if ($tid>0 && $roundNo!==null && $preview): 
         $before = $preview['before_lives'] ?? [];
         $after  = $preview['after_lives'] ?? [];
