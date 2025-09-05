@@ -64,10 +64,20 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
     th{text-align:left;color:#c9c9c9;text-transform:uppercase;font-size:12px;letter-spacing:.03em}
-/* Pulsanti ordinati nella colonna Azioni */
-.actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-.actions form { display:inline-block; margin:0; }
-.actions .btn { height:32px; }
+    /* Pulsanti ordinati nella colonna Azioni */
+    .actions { 
+      display:flex; 
+      flex-wrap:wrap; 
+      gap:8px; 
+      align-items:center; 
+      justify-content:flex-start;
+    }
+    .actions form { display:inline-block; margin:0; }
+    .actions .btn { 
+      height:32px; 
+      flex:0 0 150px; /* stessa larghezza per tutti */
+      text-align:center;
+    }
   </style>
 </head>
 <body>
@@ -87,16 +97,6 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
   <?php unset($_SESSION['flash'], $_SESSION['flash_type']); ?>
 <?php endif; ?>
   <div class="kpi"><strong>Tornei in corso:</strong> <?php echo $tot_open; ?></div>
-
-  <!-- Scorciatoie amministrative -->
-<div class="admin-shortcuts" style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px;">
-  <a class="btn" href="/admin/round_ricalcolo.php">
-    Ricalcolo round
-  </a>
-  <a class="btn" href="/admin/utente_vite.php">
-    Gestione vite
-  </a>
-</div>
 
   <form class="filters" method="get" action="/admin/gestisci_tornei.php">
     <input type="text" name="q" placeholder="Cerca (nome, lega, codice torneo)" value="<?php echo htmlspecialchars($q); ?>">
@@ -135,45 +135,41 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
         : '<span style="color:#00c074;">Aperte</span>'; ?>
     </td>
     <td><?php echo htmlspecialchars($t['updated_at']); ?></td>
- <td>
+<td>
+  <div class="actions">
     <!-- Link gestione esistente -->
-  <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
+    <a class="btn" href="/admin/torneo_open.php?id=<?php echo (int)$t['id']; ?>">Gestisci</a>
 
-  <!-- FINALIZZA: sempre disponibile (forza) -->
-  <form method="post"
-        action="/api/finalize_round.php"
-        style="display:inline-block; margin-left:6px;"
-        onsubmit="return confirm('Finalizzare le scelte di questo torneo? L’azione congela le scelte correnti.');">
-    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-    <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
-    <input type="hidden" name="action" value="finalize">
-    <input type="hidden" name="redirect" value="1">
-    <button class="btn" type="submit">Finalizza scelte</button>
-  </form>
+    <!-- FINALIZZA -->
+    <form method="post" action="/api/finalize_round.php"
+          onsubmit="return confirm('Finalizzare le scelte di questo torneo? L’azione congela le scelte correnti.');">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
+      <input type="hidden" name="action" value="finalize">
+      <input type="hidden" name="redirect" value="1">
+      <button class="btn" type="submit">Finalizza scelte</button>
+    </form>
 
-  <!-- RIAPRI: sempre disponibile (forza) -->
-  <form method="post"
-        action="/api/finalize_round.php"
-        style="display:inline-block; margin-left:6px;"
-        onsubmit="return confirm('Vuoi RIAPRIRE le scelte di questo torneo? Verranno sbloccate (round corrente).');">
-    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-    <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
-    <input type="hidden" name="action" value="reopen">
-    <input type="hidden" name="redirect" value="1">
-    <button class="btn" type="submit">Riapri scelte</button>
-  </form>
+    <!-- RIAPRI -->
+    <form method="post" action="/api/finalize_round.php"
+          onsubmit="return confirm('Vuoi RIAPRIRE le scelte di questo torneo? Verranno sbloccate (round corrente).');">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$t['id']; ?>">
+      <input type="hidden" name="action" value="reopen">
+      <input type="hidden" name="redirect" value="1">
+      <button class="btn" type="submit">Riapri scelte</button>
+    </form>
 
-  <!-- RICALCOLO: link all'anteprima/applicazione ricalcolo dell’ultimo round -->
-  <a class="btn" style="margin-left:6px"
-     href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$t['id']; ?>">
-    Ricalcolo ultimo round
-  </a>
+    <!-- RICALCOLO -->
+    <a class="btn" href="/admin/round_ricalcolo.php?tournament_id=<?php echo (int)$t['id']; ?>">
+      Ricalcolo round
+    </a>
 
-  <!-- GESTIONE VITE: nuova azione richiesta -->
-  <a class="btn" style="margin-left:6px"
-     href="/admin/utente_vite.php?tournament_id=<?php echo (int)$t['id']; ?>">
-    Gestione vite
-  </a>
+    <!-- GESTIONE VITE -->
+    <a class="btn" href="/admin/utente_vite.php?tournament_id=<?php echo (int)$t['id']; ?>">
+      Gestione vite
+    </a>
+  </div>
 </td>
   </tr>
         <?php endforeach; ?>
