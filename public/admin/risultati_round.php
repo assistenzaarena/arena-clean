@@ -88,22 +88,22 @@ $labels = [
               <td><?php echo (int)$e['id']; ?></td>
               <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '—'; ?></td>
               <td><?php echo htmlspecialchars(($e['home_team_name'] ?? '??').' vs '.($e['away_team_name'] ?? '??')); ?></td>
-              <td>
-              <form id="<?php echo $formId; ?>" method="post" action="/admin/set_event_result.php">
-  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-  <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
-  <input type="hidden" name="round_no" value="<?php echo (int)$round; ?>">  <!-- AGGIUNTA -->
-  <input type="hidden" name="event_id" value="<?php echo (int)$e['id']; ?>">
-  <input type="hidden" name="redirect" value="1">
-  <select name="result_status">
-                    <?php foreach (['pending','home_win','draw','away_win','postponed','void'] as $rs): ?>
-                      <option value="<?php echo $rs; ?>" <?php echo ($e['result_status']===$rs?'selected':''); ?>>
-                        <?php echo $labels[$rs] ?? $rs; ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </form>
-              </td>
+ <td>
+  <form id="<?php echo $formId; ?>" method="post" action="/admin/set_event_result.php">
+    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+    <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
+    <input type="hidden" name="round_no" value="<?php echo (int)$round; ?>">
+    <input type="hidden" name="event_id" value="<?php echo (int)$e['id']; ?>">
+    <input type="hidden" name="redirect" value="1">
+    <select name="result_status">
+      <?php foreach (['pending','home_win','draw','away_win','postponed','void'] as $rs): ?>
+        <option value="<?php echo $rs; ?>" <?php echo ($e['result_status']===$rs?'selected':''); ?>>
+          <?php echo $labels[$rs] ?? $rs; ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </form>
+</td>
               <td><?php echo $e['result_at'] ? htmlspecialchars($e['result_at']) : '—'; ?></td>
               <td><button class="btn" type="submit" form="<?php echo $formId; ?>">Salva</button></td>
             </tr>
