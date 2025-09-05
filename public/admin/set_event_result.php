@@ -48,6 +48,7 @@ if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
 $event_id  = isset($_POST['event_id'])  ? (int)$_POST['event_id']  : 0;
 $tour_id   = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
 $status    = isset($_POST['result_status']) ? strtolower(trim((string)$_POST['result_status'])) : '';
+$round_from_post = isset($_POST['round_no']) ? (int)$_POST['round_no'] : ( isset($_POST['round']) ? (int)$_POST['round'] : 0 );
 
 $allowed = ['home_win','away_win','draw','postponed','void'];
 if ($event_id <= 0 || $tour_id <= 0 || !in_array($status, $allowed, true)) {
@@ -71,19 +72,21 @@ try {
   $up = $pdo->prepare("UPDATE tournament_events SET result_status = ?, result_at = NOW() WHERE id = ? LIMIT 1");
   $up->execute([$status, $event_id]);
 
-  // 3) Risposta
-  if ($wantRedirect) {
-    redirect_back_with_flash('Risultato aggiornato.', 'ok');
-  } else {
-    respond_json(['ok'=>true, 'event_id'=>$event_id, 'result_status'=>$status]);
+ // 3) Risposta
+if ($wantRedirect) {
+  // Se ho i dati del torneo, porto l'admin DIRETTAMENTE al ricalcolo del round corretto
+  if ($tour_id > 0) {
+    $_SESSION['flash'] = 'Risultato aggiornato.';
+    $_SESSION['flash_type'] = 'ok';
+    $url = '/admin/round_ricalcolo.php?tournament_id='.$tour_id;
+    if ($round_from_post > 0) {
+      $url .= '&round='.$round_from_post;
+    }
+    header('Location: '.$url);
+    exit;
   }
-
-} catch (Throwable $e) {
-  // log nominale
-  error_log('[set_event_result] '.$e->getMessage());
-  if ($wantRedirect) {
-    redirect_back_with_flash('Errore interno, riprova.', 'error');
-  } else {
-    respond_json(['ok'=>false,'error'=>'exception'], 500);
-  }
+  // Fallback: torna alla pagina precedente
+  redirect_back_with_flash('Risultato aggiornato.', 'ok');
+} else {
+  respond_json(['ok'=>true, 'event_id'=>$event_id, 'result_status'=>$status]);
 }
