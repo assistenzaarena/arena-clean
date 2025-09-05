@@ -40,6 +40,11 @@ try {
 if ($tid > 0) {
   $forceCalc = isset($_GET['calc']) ? (int)$_GET['calc'] : 0;
 
+  // onora round passato in query (?round=) altrimenti usa il current
+  $roundFromGet = 0;
+  if (isset($_GET['round']))      $roundFromGet = (int)$_GET['round'];
+  elseif (isset($_GET['round_no'])) $roundFromGet = (int)$_GET['round_no'];
+
   if ($roundFromGet > 0) {
     $roundNo = $roundFromGet;
   } else {
@@ -48,16 +53,34 @@ if ($tid > 0) {
 
   if ($roundNo !== null) {
     try {
-      // se calc=1 (redirect dal salvataggio) o comunque per default, calcoliamo
-      if ($forceCalc === 1) {
-        $preview = rr_preview($pdo, $tid, $roundNo);
-      } else {
-        // puoi lasciarlo così; di fatto calcoliamo sempre l'anteprima
-        $preview = rr_preview($pdo, $tid, $roundNo);
-      }
+      // calcoliamo sempre l’anteprima (o quando calc=1)
+      $preview = rr_preview($pdo, $tid, $roundNo);
     } catch (Throwable $e) {
       $preview = null;
-      // error_log('[round_ricalcolo] '.$e->getMessage());
+      $diagErr = $e->getMessage();
+    }
+
+    // DIAGNOSTICA DATI: se preview è null, mostriamo qualche numero utile
+    if ($preview === null) {
+      try {
+        $cEv  = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=? AND round_no=?");
+        $cEv->execute([$tid, $roundNo]);
+        $evCount = (int)$cEv->fetchColumn();
+
+        $cRes = $pdo->prepare("SELECT result_status, COUNT(*) AS c
+                               FROM tournament_events
+                               WHERE tournament_id=? AND round_no=?
+                               GROUP BY result_status");
+        $cRes->execute([$tid, $roundNo]);
+        $byStatus = $cRes->fetchAll(PDO::FETCH_ASSOC);
+
+        $diagCount = [
+          'events' => $evCount,
+          'by_status' => $byStatus,
+        ];
+      } catch (Throwable $e) {
+        // se fallisce anche la diagnostica: non bloccare la pagina
+      }
     }
   }
 }
@@ -125,10 +148,30 @@ if ($tid > 0) {
     </form>
   </section>
 
-  <?php if ($tid>0 && $roundNo!==null && $preview===null): ?>
+<?php if ($tid>0 && $roundNo!==null && $preview===null): ?>
   <section class="card">
-    <div class="flash warn">
-      Nessuna anteprima ancora calcolata per questo torneo/round. Premi <strong>Anteprima</strong> qui sopra per ricaricare i dati.
+    <?php if ($diagErr): ?>
+      <div class="flash err">Errore anteprima: <?php echo htmlspecialchars($diagErr); ?></div>
+    <?php else: ?>
+      <div class="flash warn">Nessuna anteprima disponibile per torneo #<?php echo (int)$tid; ?>, round <?php echo (int)$roundNo; ?>.</div>
+    <?php endif; ?>
+
+    <?php if ($diagCount): ?>
+      <div class="muted" style="margin-top:8px">
+        <div>Eventi nel round: <strong><?php echo (int)$diagCount['events']; ?></strong></div>
+        <?php if (!empty($diagCount['by_status'])): ?>
+          <div>Distribuzione risultati:</div>
+          <ul>
+            <?php foreach ($diagCount['by_status'] as $r): ?>
+              <li><?php echo htmlspecialchars($r['result_status'] ?? 'NULL'); ?> → <?php echo (int)$r['c']; ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
+    <div class="muted" style="margin-top:8px">
+      Se hai appena aggiornato un risultato, verifica che il round selezionato (in alto) sia quello corretto e ripremi <b>Anteprima</b>.
     </div>
   </section>
 <?php endif; ?>
