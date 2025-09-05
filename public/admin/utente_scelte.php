@@ -1,132 +1,103 @@
 <?php
 // =====================================================================
-// /admin/utente_scelte.php — Dettaglio scelte di un utente per torneo
-// Mostra round per round le scelte effettuate (per vita) ed esito.
+// /admin/utente_scelte.php — Dettaglio scelte di un utente in un torneo
+// Mostra: Round, Vita (life_index), Squadra, Data scelta, Esito (✅/❌/—)
+// Dipendenze DB: tournament_selections, tournament_events, utenti, tournaments
 // =====================================================================
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = dirname(__DIR__); // /var/www/html
-require_once $ROOT . '/src/guards.php';  require_admin();
-require_once $ROOT . '/src/config.php';
-require_once $ROOT . '/src/db.php';
+require_once __DIR__ . '/../src/guards.php';  require_admin();
+require_once __DIR__ . '/../src/config.php';
+require_once __DIR__ . '/../src/db.php';
 
-$tournamentId = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : 0;
-$userId       = isset($_GET['user_id'])       ? (int)$_GET['user_id']       : 0;
+$tid = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : 0;
+$uid = isset($_GET['user_id'])       ? (int)$_GET['user_id']       : 0;
 
-if ($tournamentId <= 0 || $userId <= 0) {
+if ($tid <= 0 || $uid <= 0) {
   http_response_code(400);
-  echo 'Parametri mancanti.';
+  echo 'Parametri mancanti (tournament_id / user_id).';
   exit;
 }
 
-// Info torneo e utente (per header pagina)
-$torneo = ['id'=>$tournamentId,'name'=>'Torneo'];
-$utente = ['id'=>$userId,'username'=>'utente'];
+// Meta: torneo + utente
+$torneo = $utente = null;
 try {
-  $st = $pdo->prepare("SELECT id, name FROM tournaments WHERE id=? LIMIT 1");
-  $st->execute([$tournamentId]);
-  if ($r = $st->fetch(PDO::FETCH_ASSOC)) $torneo = $r;
-} catch(Throwable $e){/*noop*/}
+  $st = $pdo->prepare("SELECT id, name, tournament_code FROM tournaments WHERE id=? LIMIT 1");
+  $st->execute([$tid]);
+  $torneo = $st->fetch(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { $torneo = null; }
 
 try {
-  $st = $pdo->prepare("SELECT id, username FROM utenti WHERE id=? LIMIT 1");
-  $st->execute([$userId]);
-  if ($r = $st->fetch(PDO::FETCH_ASSOC)) $utente = $r;
-} catch(Throwable $e){/*noop*/}
+  $su = $pdo->prepare("SELECT id, username, nome, cognome FROM utenti WHERE id=? LIMIT 1");
+  $su->execute([$uid]);
+  $utente = $su->fetch(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { $utente = null; }
 
-// Carico le scelte.
-// Schema atteso (più comune):
-//   tournament_selections s: id, tournament_id, user_id, round_no, life_index,
-//                            event_id, pick_side ('home'|'away'|'draw'?), pick_team_name
-//   tournament_events e:    id, home_team_name, away_team_name, result_status, result_at
-//
-// Se il DB ha nomi diversi per le colonne pick_* il codice mostra comunque la riga, ma senza esito.
+if (!$torneo || !$utente) {
+  http_response_code(404);
+  echo 'Torneo o utente non trovato.';
+  exit;
+}
+
+// Leggi scelte: join “debole” con eventi del round (per risalire al risultato)
 $rows = [];
-$errorMsg = null;
 try {
   $sql = "
     SELECT
-      s.id,
-      s.round_no,
-      s.life_index,
-      s.event_id,
-      /* pick-side/label possono non esistere in alcuni schemi */
-      CASE
-        WHEN EXISTS(
-          SELECT 1 FROM information_schema.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='tournament_selections' AND COLUMN_NAME='pick_side'
-        ) THEN s.pick_side
-        ELSE NULL
-      END AS pick_side,
-      CASE
-        WHEN EXISTS(
-          SELECT 1 FROM information_schema.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='tournament_selections' AND COLUMN_NAME='pick_team_name'
-        ) THEN s.pick_team_name
-        ELSE NULL
-      END AS pick_team_name,
-
-      e.home_team_name, e.away_team_name, e.result_status, e.result_at
-    FROM tournament_selections s
-    LEFT JOIN tournament_events e
-      ON e.id = s.event_id
-    WHERE s.tournament_id = :t AND s.user_id = :u
-    ORDER BY s.round_no ASC, s.life_index ASC, s.id ASC
+      ts.round_no,
+      ts.life_index,
+      ts.team_id,
+      ts.created_at,
+      te.id              AS event_id,
+      te.home_team_id,
+      te.home_team_name,
+      te.away_team_id,
+      te.away_team_name,
+      te.result_status
+    FROM tournament_selections ts
+    LEFT JOIN tournament_events te
+           ON te.tournament_id = ts.tournament_id
+          AND te.round_no      = ts.round_no
+          AND (te.home_team_id = ts.team_id OR te.away_team_id = ts.team_id)
+    WHERE ts.tournament_id = :tid
+      AND ts.user_id       = :uid
+    ORDER BY ts.round_no ASC, ts.life_index ASC, ts.created_at ASC
   ";
-  $st = $pdo->prepare($sql);
-  $st->execute([':t'=>$tournamentId, ':u'=>$userId]);
-  $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+  $q = $pdo->prepare($sql);
+  $q->execute([':tid'=>$tid, ':uid'=>$uid]);
+  $rows = $q->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-  $errorMsg = 'Impossibile leggere le scelte (schema DB non compatibile).';
+  $rows = [];
 }
 
-// Funzione esito: prova a dedurre WIN/LOSE se abbiamo pick_side e result_status
-function esito_testuale(array $r): array {
-  $status = $r['result_status'] ?? null;
-  $side   = $r['pick_side']     ?? null;
-
-  // normalizza
-  $status = is_string($status) ? strtolower($status) : null;
-  $side   = is_string($side)   ? strtolower($side)   : null;
-
-  $text = '—';
-  $class = ''; // '' | win | lose | pend
-
-  if (!$status) {
-    return ['text'=>$text, 'class'=>''];
+// Helper: nome squadra scelto
+function chosen_team_name(array $r): string {
+  $team = (int)($r['team_id'] ?? 0);
+  if ($team !== 0) {
+    if (!empty($r['home_team_id']) && (int)$r['home_team_id'] === $team) return (string)$r['home_team_name'];
+    if (!empty($r['away_team_id']) && (int)$r['away_team_id'] === $team) return (string)$r['away_team_name'];
   }
+  // fallback generico
+  return $team ? ('Team #'.$team) : '—';
+}
 
-  if ($status === 'pending') {
-    return ['text'=>'In attesa', 'class'=>'pend'];
-  }
-  if ($status === 'postponed') {
-    return ['text'=>'Rinviata', 'class'=>'pend'];
-  }
-  if ($status === 'void') {
-    return ['text'=>'Annullata', 'class'=>'pend'];
-  }
+// Helper: etichetta esito
+function outcome_label(array $r): array {
+  // ritorna [label, class]
+  $rs = (string)($r['result_status'] ?? '');
+  if ($rs === '' || $rs === 'pending') return ['—', 'muted'];
+  if ($rs === 'draw' || $rs === 'postponed' || $rs === 'void') return ['✅ Sopravvive', 'ok'];
 
-  // se non abbiamo pick_side, mostriamo solo lo stato evento
-  if (!$side) {
-    $map = ['home_win'=>'Casa vince','away_win'=>'Trasferta vince','draw'=>'Pareggio'];
-    return ['text'=>($map[$status] ?? $status), 'class'=>''];
+  $team = (int)($r['team_id'] ?? 0);
+  if ($rs === 'home_win') {
+    return (!empty($r['home_team_id']) && (int)$r['home_team_id'] === $team)
+           ? ['✅ Vinta', 'ok'] : ['❌ Persa', 'err'];
   }
-
-  $win = (
-    ($status === 'home_win' && $side === 'home') ||
-    ($status === 'away_win' && $side === 'away') ||
-    ($status === 'draw'     && $side === 'draw')
-  );
-
-  if ($win) {
-    return ['text'=>'Vinta', 'class'=>'win'];
+  if ($rs === 'away_win') {
+    return (!empty($r['away_team_id']) && (int)$r['away_team_id'] === $team)
+           ? ['✅ Vinta', 'ok'] : ['❌ Persa', 'err'];
   }
-  // se lo stato evento è definito e side non corrisponde -> persa
-  if (in_array($status, ['home_win','away_win','draw'], true)) {
-    return ['text'=>'Persa', 'class'=>'lose'];
-  }
-
-  return ['text'=>'—', 'class'=>''];
+  return ['—', 'muted'];
 }
 
 ?>
@@ -134,88 +105,83 @@ function esito_testuale(array $r): array {
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Scelte — <?php echo htmlspecialchars($utente['username']); ?> — #<?php echo (int)$torneo['id']; ?></title>
+  <title>Scelte utente — Torneo #<?php echo htmlspecialchars($torneo['tournament_code'] ?? (string)$torneo['id']); ?></title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
   <style>
-    .wrap{max-width:1100px;margin:20px auto;padding:0 16px;color:#fff}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px;color:#fff}
     .card{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px;margin-bottom:16px}
-    .muted{color:#bdbdbd}
+    .hstack{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .spacer{flex:1 1 auto}
+    .btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;color:#fff;text-decoration:none;font-weight:800}
+    .btn:hover{border-color:#fff}
+    .meta{color:#cfcfcf}
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
     th{text-align:left;color:#c9c9c9;text-transform:uppercase;font-size:12px;letter-spacing:.03em}
-    .pill{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:800}
-    .pill.win{background:#0b6e44;color:#fff}
-    .pill.lose{background:#7a1a1a;color:#fff}
-    .pill.pend{background:#30343a;color:#ddd}
-    .btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;color:#fff;text-decoration:none;font-weight:800}
-    .btn:hover{border-color:#fff}
+    .ok{color:#00d07e;font-weight:900}
+    .err{color:#ff6b6b;font-weight:900}
+    .muted{color:#a8a8a8}
+    .badge{display:inline-block;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:2px 8px;font-size:11px}
   </style>
 </head>
 <body>
-<?php require $ROOT . '/header_admin.php'; ?>
+<?php require __DIR__ . '/../header_admin.php'; ?>
+
 <div class="wrap">
+  <div class="hstack">
+    <h1 style="margin:0">Scelte utente</h1>
+    <span class="spacer"></span>
+    <a class="btn" href="/admin/utente_vite.php?tournament_id=<?php echo (int)$tid; ?>">← Torna a Gestione vite</a>
+  </div>
 
   <div class="card">
-    <h1 style="margin:0 0 8px;">Scelte utente — <?php echo htmlspecialchars($utente['username']); ?></h1>
-    <div class="muted">Torneo #<?php echo (int)$torneo['id']; ?> — <?php echo htmlspecialchars($torneo['name']); ?></div>
-    <div style="margin-top:10px">
-      <a class="btn" href="/admin/utente_vite.php?tournament_id=<?php echo (int)$torneo['id']; ?>">← Torna a Gestione vite</a>
+    <div class="meta">
+      <div><b>Torneo:</b> #<?php echo htmlspecialchars($torneo['tournament_code'] ?? (string)$torneo['id']); ?> — <?php echo htmlspecialchars($torneo['name'] ?? 'Torneo'); ?></div>
+      <div><b>Utente:</b> #<?php echo (int)$utente['id']; ?> — <?php echo htmlspecialchars($utente['username'] ?? ''); ?>
+        <?php if (!empty($utente['nome']) || !empty($utente['cognome'])): ?>
+          <span class="badge"><?php echo htmlspecialchars(trim(($utente['nome']??'').' '.($utente['cognome']??''))); ?></span>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
 
-  <?php if ($errorMsg): ?>
-    <div class="card" style="color:#ff7076;"><?php echo htmlspecialchars($errorMsg); ?></div>
-  <?php elseif (!$rows): ?>
-    <div class="card muted">Nessuna scelta trovata per questo utente in questo torneo.</div>
-  <?php else: ?>
-    <div class="card">
+  <div class="card">
+    <?php if (!$rows): ?>
+      <div class="muted">Nessuna scelta registrata per questo utente in questo torneo.</div>
+    <?php else: ?>
       <table>
         <thead>
           <tr>
             <th>Round</th>
             <th>Vita</th>
-            <th>Partita</th>
-            <th>Scelta</th>
+            <th>Squadra</th>
+            <th>Data scelta</th>
             <th>Esito</th>
-            <th>Ultimo aggiornamento</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($rows as $r): 
-            $match = '—';
-            if (!empty($r['home_team_name']) || !empty($r['away_team_name'])) {
-              $match = trim(($r['home_team_name'] ?? '??').' vs '.($r['away_team_name'] ?? '??'));
-            }
-            $pick = $r['pick_team_name'] ?? null;
-            if (!$pick) { // se non abbiamo il nome squadra, usa pick_side
-              if (!empty($r['pick_side'])) {
-                $sideLbl = ['home'=>'Casa','away'=>'Trasferta','draw'=>'Pareggio'];
-                $pick = $sideLbl[strtolower($r['pick_side'])] ?? $r['pick_side'];
-              } else {
-                $pick = '—';
-              }
-            }
-            $esito = esito_testuale($r);
+          <?php foreach ($rows as $r):
+            $teamName = chosen_team_name($r);
+            [$esito, $cls] = outcome_label($r);
           ?>
             <tr>
-              <td><?php echo (int)($r['round_no'] ?? 0); ?></td>
-              <td><?php echo (int)($r['life_index'] ?? 0); ?></td>
-              <td><?php echo htmlspecialchars($match); ?></td>
-              <td><?php echo htmlspecialchars($pick); ?></td>
-              <td>
-                <span class="pill <?php echo htmlspecialchars($esito['class']); ?>">
-                  <?php echo htmlspecialchars($esito['text']); ?>
-                </span>
-              </td>
-              <td><?php echo !empty($r['result_at']) ? htmlspecialchars($r['result_at']) : '—'; ?></td>
+              <td><?php echo (int)$r['round_no']; ?></td>
+              <td><?php echo (int)$r['life_index']; ?></td>
+              <td><?php echo htmlspecialchars($teamName); ?></td>
+              <td><?php echo $r['created_at'] ? htmlspecialchars($r['created_at']) : '—'; ?></td>
+              <td class="<?php echo $cls; ?>"><?php echo htmlspecialchars($esito); ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
-    </div>
-  <?php endif; ?>
-
+      <p class="muted" style="margin-top:8px">
+        Nota: per il calcolo dell’esito si considera il risultato dell’unico evento del round in cui la squadra scelta ha giocato.
+        Per <i>draw / rinviata / annullata</i> la vita sopravvive.
+      </p>
+    <?php endif; ?>
+  </div>
 </div>
+
 </body>
 </html>
