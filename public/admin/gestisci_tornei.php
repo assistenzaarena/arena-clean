@@ -54,7 +54,7 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
   <title>Admin — Gestisci Tornei (in corso)</title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
-  <style>
+<style>
     .wrap{max-width: 1200px; margin:20px auto; padding:0 16px; color:#fff;}
     .kpi{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;display:inline-block;margin-bottom:12px}
     .filters{display:flex;gap:8px;align-items:center;margin-bottom:12px}
@@ -64,21 +64,22 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
     th{text-align:left;color:#c9c9c9;text-transform:uppercase;font-size:12px;letter-spacing:.03em}
-    /* Pulsanti ordinati nella colonna Azioni */
+
+    /* Pulsanti ordinati in griglia nella colonna Azioni */
     .actions { 
-      display:flex; 
-      flex-wrap:wrap; 
-      gap:8px; 
-      align-items:center; 
-      justify-content:flex-start;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* pulsanti uniformi */
+      gap:8px;
+      align-items:center;
+      justify-items:center;
     }
-    .actions form { display:inline-block; margin:0; }
+    .actions form { margin:0; }
     .actions .btn { 
       height:32px; 
-      flex:0 0 150px; /* stessa larghezza per tutti */
+      width:150px;   /* stessa larghezza per tutti */
       text-align:center;
     }
-  </style>
+</style>
 </head>
 <body>
 <?php require $ROOT . '/header_admin.php'; ?>
