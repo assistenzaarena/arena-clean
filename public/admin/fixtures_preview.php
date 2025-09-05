@@ -202,6 +202,23 @@ if ($comp_key === '' || !isset($competitions[$comp_key])) {
       <?php endif; ?>
     </div>
 
+   <?php
+// link di ritorno al ricalcolo ultimo round, se mi hai passato un tournament_id
+$backToRecalc = '';
+if (!empty($_GET['tournament_id'])) {
+  $backToRecalc = '/admin/round_ricalcolo.php?tournament_id='.(int)$_GET['tournament_id'];
+  // se vuoi, conserva il round selezionato
+  if (!empty($_GET['round'])) {
+    $backToRecalc .= '&round='.(int)$_GET['round'];
+  } elseif (!empty($_GET['round_no'])) {
+    $backToRecalc .= '&round='.(int)$_GET['round_no'];
+  }
+}
+?>
+<?php if ($backToRecalc): ?>
+  <a class="btn" href="<?php echo $backToRecalc; ?>">← Torna al ricalcolo</a>
+<?php endif; ?>
+   
     <a class="btn" href="/admin/crea_torneo.php">← Torna a Crea Tornei</a>
   <?php endif; ?>
 </div>
