@@ -1,102 +1,75 @@
 <?php
-// public/admin/set_event_result.php
-// [SCOPO] Aggiorna l'esito di un evento del torneo (admin only).
-//         Supporta JSON (default) oppure redirect con flash se arriva redirect=1.
-// [ESITI] result_status: 'home_win', 'away_win', 'draw', 'postponed', 'void'
-
+// =====================================================================
+// /public/admin/set_event_result.php
+// Aggiorna l'esito di un evento del torneo (admin). Supporta redirect.
+// =====================================================================
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = dirname(__DIR__, 1); // /var/www/html/public/admin -> /var/www/html
-require_once $ROOT . '/src/guards.php';    // require_admin()
+$ROOT = dirname(__DIR__); // /var/www/html
+require_once $ROOT . '/src/guards.php';  require_admin();
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 
-require_admin(); // solo admin
-
-// ---------- Helper risposta ----------
-function respond_json(array $payload, int $code = 200) {
-  http_response_code($code);
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode($payload);
-  exit;
-}
-function redirect_back_with_flash(string $msg, string $type = 'ok', string $fallback = '/admin/gestisci_tornei.php') {
+// Helpers
+function back_with_flash(string $msg, string $type='ok', string $fallback='/admin/gestisci_tornei.php'){
   $_SESSION['flash'] = $msg;
-  $_SESSION['flash_type'] = ($type === 'error') ? 'error' : 'ok';
-  $back = $_SERVER['HTTP_REFERER'] ?? $fallback;
-  header('Location: ' . $back);
+  $_SESSION['flash_type'] = ($type==='error'?'error':'ok');
+  $ref = $_SERVER['HTTP_REFERER'] ?? $fallback;
+  header('Location: '.$ref);
   exit;
 }
 
-// ---------- Modalità di risposta ----------
 $wantRedirect = !empty($_POST['redirect']) || !empty($_GET['redirect']);
 
-// ---------- Metodo e CSRF ----------
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  $wantRedirect
-    ? redirect_back_with_flash('Metodo non consentito.', 'error')
-    : respond_json(['ok'=>false,'error'=>'bad_method'], 405);
+  $wantRedirect ? back_with_flash('Metodo non consentito.','error') : (http_response_code(405) && exit('bad method'));
 }
+
 $csrf = $_POST['csrf'] ?? '';
 if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
-  $wantRedirect
-    ? redirect_back_with_flash('Sessione scaduta, ricarica la pagina.', 'error')
-    : respond_json(['ok'=>false,'error'=>'bad_csrf'], 403);
+  $wantRedirect ? back_with_flash('Sessione scaduta, ricarica la pagina.','error') : (http_response_code(403) && exit('bad csrf'));
 }
 
-// ---------- Input ----------
-$event_id  = isset($_POST['event_id'])  ? (int)$_POST['event_id']  : 0;
-$tour_id   = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
+// Input
+$eventId   = isset($_POST['event_id']) ? (int)$_POST['event_id'] : 0;
+$tourId    = isset($_POST['tournament_id']) ? (int)$_POST['tournament_id'] : 0;
 $status    = isset($_POST['result_status']) ? strtolower(trim((string)$_POST['result_status'])) : '';
-$round_from_post = isset($_POST['round_no']) ? (int)$_POST['round_no'] : ( isset($_POST['round']) ? (int)$_POST['round'] : 0 );
+$roundFrom = isset($_POST['round_no']) ? (int)$_POST['round_no'] : (isset($_POST['round'])?(int)$_POST['round']:0);
 
-$allowed = ['home_win','away_win','draw','postponed','void'];
-if ($event_id <= 0 || $tour_id <= 0 || !in_array($status, $allowed, true)) {
-  $wantRedirect
-    ? redirect_back_with_flash('Parametri non validi.', 'error')
-    : respond_json(['ok'=>false,'error'=>'bad_params'], 400);
+$allowed = ['pending','home_win','draw','away_win','postponed','void'];
+if ($eventId<=0 || $tourId<=0 || !in_array($status, $allowed, true)) {
+  $wantRedirect ? back_with_flash('Parametri non validi.','error') : (http_response_code(400) && exit('bad params'));
 }
 
 try {
-  // 1) Verifica che l’evento appartenga al torneo
-  $st = $pdo->prepare("SELECT id FROM tournament_events WHERE id = ? AND tournament_id = ? LIMIT 1");
-  $st->execute([$event_id, $tour_id]);
+  // verifica appartenenza evento
+  $st = $pdo->prepare("SELECT id FROM tournament_events WHERE id=? AND tournament_id=? LIMIT 1");
+  $st->execute([$eventId, $tourId]);
   if (!$st->fetchColumn()) {
-    $wantRedirect
-      ? redirect_back_with_flash('Evento non trovato per questo torneo.', 'error')
-      : respond_json(['ok'=>false,'error'=>'event_not_found'], 404);
+    $wantRedirect ? back_with_flash('Evento non trovato per questo torneo.','error') : (http_response_code(404) && exit('not found'));
   }
 
-  // 2) Aggiorna lo stato risultato + result_at (sempre NOW(), anche per 'postponed'/'void')
-  $up = $pdo->prepare("UPDATE tournament_events SET result_status = ?, result_at = NOW() WHERE id = ? LIMIT 1");
-  $up->execute([$status, $event_id]);
+  // update risultato
+  $up = $pdo->prepare("UPDATE tournament_events SET result_status=?, result_at=NOW() WHERE id=? LIMIT 1");
+  $up->execute([$status, $eventId]);
 
-  // 3) Risposta
   if ($wantRedirect) {
-    // Se ho i dati del torneo, riporta DIRETTAMENTE al ricalcolo del round corretto e forza l'anteprima
-    if ($tour_id > 0) {
-      $_SESSION['flash'] = 'Risultato aggiornato.';
-      $_SESSION['flash_type'] = 'ok';
-      $url = '/admin/round_ricalcolo.php?tournament_id=' . $tour_id;
-      if ($round_from_post > 0) {
-        $url .= '&round=' . $round_from_post;
-      }
-      $url .= '&calc=1&from=result_save';
-      header('Location: ' . $url);
-      exit;
-    }
-    // Fallback: torna alla pagina precedente
-    redirect_back_with_flash('Risultato aggiornato.', 'ok');
-  } else {
-    respond_json(['ok'=>true, 'event_id'=>$event_id, 'result_status'=>$status]);
+    // redirect diretto al ricalcolo del round corretto
+    $_SESSION['flash'] = 'Risultato aggiornato.';
+    $_SESSION['flash_type'] = 'ok';
+    $url = '/admin/round_ricalcolo.php?tournament_id='.$tourId;
+    if ($roundFrom > 0) { $url .= '&round='.$roundFrom; }
+    // opzionale: aggiungi &calc=1 per forzare un recalcolo in memoria se previsto
+    $url .= '&from=result_save';
+    header('Location: '.$url);
+    exit;
   }
+
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode(['ok'=>true, 'event_id'=>$eventId, 'result_status'=>$status]); exit;
 
 } catch (Throwable $e) {
-  // log nominale e risposta di errore
-  error_log('[set_event_result] ' . $e->getMessage());
-  if ($wantRedirect) {
-    redirect_back_with_flash('Errore interno, riprova.', 'error');
-  } else {
-    respond_json(['ok'=>false,'error'=>'exception'], 500);
-  }
+  error_log('[set_event_result] '.$e->getMessage());
+  if ($wantRedirect) back_with_flash('Errore interno, riprova.','error');
+  http_response_code(500); echo 'exception'; exit;
 }
