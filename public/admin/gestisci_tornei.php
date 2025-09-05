@@ -74,11 +74,13 @@ $tot_open = (int)$pdo->query("SELECT COUNT(*) FROM tournaments WHERE status='ope
       justify-items:center;
     }
     .actions form { margin:0; }
-    .actions .btn { 
-      height:32px; 
-      width:150px;   /* stessa larghezza per tutti */
-      text-align:center;
-    }
+ .actions .btn { 
+  width:100px;      /* più stretti */
+  height:23px;      /* più bassi */
+  font-size:10px;   /* testo più piccolo */
+  flex:0 0 120px;   /* stessa larghezza per tutti */
+  text-align:center;
+}
 </style>
 </head>
 <body>
