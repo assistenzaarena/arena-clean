@@ -1,7 +1,8 @@
 <?php
 // =====================================================================
-// /admin/round_ricalcolo.php — Anteprima + applicazione ricalcolo ultimo round
-// Usa la libreria src/round_recalc_lib.php (funz.: rr_get_current_round, rr_preview)
+// /public/admin/round_ricalcolo.php
+// Anteprima differenze + applicazione ricalcolo del round
+// Dipendenze: src/round_recalc_lib.php (rr_get_current_round, rr_preview)
 // =====================================================================
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
@@ -14,43 +15,41 @@ require_once __DIR__ . '/../src/round_recalc_lib.php';
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 
-// Flash helpers
-$FLASH = function(string $kind, string $text){ $_SESSION['flash'] = ['k'=>$kind,'t'=>$text]; };
-$POP   = function(){ $f=$_SESSION['flash']??null; unset($_SESSION['flash']); return $f; };
+// Flash
+$POP_FLASH = function() {
+  $f = $_SESSION['flash'] ?? null;
+  unset($_SESSION['flash'], $_SESSION['flash_type']);
+  return $f ? ['k'=>($_SESSION['flash_type'] ?? 'ok'), 't'=>$f] : ($f);
+};
+$flash = $POP_FLASH();
 
-$flash = $POP();
+// Query params
+$tid          = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : 0;
+$roundFromGet = isset($_GET['round']) ? (int)$_GET['round'] : (isset($_GET['round_no']) ? (int)$_GET['round_no'] : 0);
+$forceCalc    = isset($_GET['calc']) ? (int)$_GET['calc'] : 0;      // opzionale
+$from         = $_GET['from'] ?? '';                                 // “result_save” quando torno dal salvataggio
 
-// --- Parametri GET ---
-$tid           = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : 0;
-$roundFromGet  = isset($_GET['round']) ? (int)$_GET['round'] : ( isset($_GET['round_no']) ? (int)$_GET['round_no'] : 0 );
-$forceCalc     = isset($_GET['calc']) ? (int)$_GET['calc'] : 0;     // quando ritorno da "Salva risultato"
-$fromResultSave= isset($_GET['from']) && $_GET['from']==='result_save';
-
-// --- Elenco tornei per la select ---
+// Elenco tornei
 $torneos = [];
 try {
-  $q = $pdo->query("SELECT id, name, current_round_no FROM tournaments ORDER BY id DESC");
-  $torneos = $q->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) { $torneos = []; }
+  $st = $pdo->query("SELECT id, name, current_round_no FROM tournaments ORDER BY id DESC");
+  $torneos = $st->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+  $torneos = [];
+}
 
-// --- Anteprima ---
-$roundNo  = null;
-$preview  = null;
-$diagErr  = null;
-$diagCount= [];
+// Anteprima
+$roundNo = null;
+$preview = null;
+$diagErr = null;         // errore thrown da rr_preview
+$diag    = ['events'=>0,'by_status'=>[]]; // diagnostica quando anteprima non disponibile
 
 if ($tid > 0) {
-  // Se mi hanno passato un round in query lo onoro, altrimenti prendo il current del torneo
-  if ($roundFromGet > 0) {
-    $roundNo = $roundFromGet;
-  } else {
-    $roundNo = rr_get_current_round($pdo, $tid);
-  }
+  $roundNo = ($roundFromGet > 0) ? $roundFromGet : rr_get_current_round($pdo, $tid);
 
   if ($roundNo !== null) {
     try {
-      // rr_preview() deve calcolare un'anteprima in base ai risultati attuali delle partite
-      // Se hai implementato un flag $forceCalc nella tua libreria, puoi passarlo qui.
+      // Se rr_preview supporta un 4° parametro “force”, puoi decommentare e passare $forceCalc===1
       // $preview = rr_preview($pdo, $tid, $roundNo, $forceCalc===1);
       $preview = rr_preview($pdo, $tid, $roundNo);
     } catch (Throwable $e) {
@@ -58,32 +57,27 @@ if ($tid > 0) {
       $diagErr = $e->getMessage();
     }
 
-    // Se preview è null, preparo qualche diagnostica sugli eventi
     if ($preview === null) {
       try {
-        // Quanti eventi ha il round?
-        $st = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=? AND round_no=?");
-        $st->execute([$tid, $roundNo]);
-        $diagCount['events'] = (int)$st->fetchColumn();
+        $q1 = $pdo->prepare("SELECT COUNT(*) FROM tournament_events WHERE tournament_id=? AND round_no=?");
+        $q1->execute([$tid, $roundNo]);
+        $diag['events'] = (int)$q1->fetchColumn();
 
-        // Distribuzione per result_status
-        $st = $pdo->prepare("
+        $q2 = $pdo->prepare("
           SELECT result_status, COUNT(*) AS c
           FROM tournament_events
           WHERE tournament_id=? AND round_no=?
           GROUP BY result_status
           ORDER BY result_status
         ");
-        $st->execute([$tid, $roundNo]);
-        $diagCount['by_status'] = $st->fetchAll(PDO::FETCH_ASSOC);
+        $q2->execute([$tid, $roundNo]);
+        $diag['by_status'] = $q2->fetchAll(PDO::FETCH_ASSOC);
       } catch (Throwable $e) {
-        // solo log
         error_log('[round_ricalcolo:diag] '.$e->getMessage());
       }
     }
   }
 }
-
 ?>
 <!doctype html>
 <html lang="it">
@@ -125,14 +119,20 @@ if ($tid > 0) {
   </div>
 
   <?php if ($flash): ?>
-    <div class="flash <?php echo htmlspecialchars($flash['k']); ?>"><?php echo htmlspecialchars($flash['t']); ?></div>
+    <div class="flash <?php echo htmlspecialchars($_SESSION['flash_type'] ?? 'ok'); ?>">
+      <?php echo htmlspecialchars($flash['t'] ?? (is_string($flash)?$flash:'')); ?>
+    </div>
   <?php endif; ?>
 
-  <!-- Selettore torneo -->
+  <?php if ($from==='result_save'): ?>
+    <div class="flash warn">Hai aggiornato un risultato. Esegui l’<b>Anteprima</b> qui sotto per ricalcolare la differenza.</div>
+  <?php endif; ?>
+
+  <!-- Selettore torneo + round (round nascosto se già noto) -->
   <section class="card">
     <form class="hstack" method="get" action="/admin/round_ricalcolo.php">
-      <label for="tid" class="note">Torneo</label>
-      <select id="tid" name="tournament_id" style="background:#0a0a0b;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;height:36px;padding:0 10px;">
+      <label class="note">Torneo</label>
+      <select name="tournament_id" style="background:#0a0a0b;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;height:36px;padding:0 10px;">
         <option value="0">— seleziona —</option>
         <?php foreach ($torneos as $t): ?>
           <option value="<?php echo (int)$t['id']; ?>" <?php echo ($tid===(int)$t['id']?'selected':''); ?>>
@@ -149,39 +149,34 @@ if ($tid > 0) {
 
       <?php if ($tid>0 && $roundNo!==null): ?>
         <span class="spacer"></span>
-        <a class="btn" href="/admin/risultati_round.php?tournament_id=<?php echo (int)$tid; ?>&round=<?php echo (int)$roundNo; ?>">
-          Modifica risultati partite
-        </a>
+        <a class="btn" href="/admin/risultati_round.php?tournament_id=<?php echo (int)$tid; ?>&round=<?php echo (int)$roundNo; ?>">Modifica risultati partite</a>
       <?php endif; ?>
     </form>
   </section>
 
-  <?php
-  // Blocco diagnostico quando non c'è anteprima (evita "schermata nera")
-  if ($tid>0 && $roundNo!==null && $preview===null): ?>
+  <?php if ($tid>0 && $roundNo!==null && $preview===null): ?>
     <section class="card">
-      <?php if (!empty($diagErr)): ?>
+      <?php if ($diagErr): ?>
         <div class="flash err">Errore anteprima: <?php echo htmlspecialchars($diagErr); ?></div>
       <?php else: ?>
-        <div class="flash warn">Nessuna anteprima disponibile per torneo #<?php echo (int)$tid; ?>, round <?php echo (int)$roundNo; ?>.</div>
-      <?php endif; ?>
-
-      <?php if (!empty($diagCount)): ?>
-        <div class="muted" style="margin-top:8px">
-          <div>Eventi nel round: <strong><?php echo (int)($diagCount['events'] ?? 0); ?></strong></div>
-          <?php if (!empty($diagCount['by_status'])): ?>
-            <div>Distribuzione risultati:</div>
-            <ul>
-              <?php foreach ($diagCount['by_status'] as $r): ?>
-                <li><?php echo htmlspecialchars($r['result_status'] ?? 'NULL'); ?> → <?php echo (int)($r['c'] ?? 0); ?></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endif; ?>
-        </div>
+        <div class="flash warn">Anteprima non disponibile per torneo #<?php echo (int)$tid; ?>, round <?php echo (int)$roundNo; ?>.</div>
       <?php endif; ?>
 
       <div class="muted" style="margin-top:8px">
-        Se hai appena aggiornato un risultato, verifica che il round selezionato in alto sia quello corretto e premi <b>Anteprima</b>.
+        <div>Eventi nel round: <strong><?php echo (int)$diag['events']; ?></strong></div>
+        <?php if (!empty($diag['by_status'])): ?>
+          <div>Distribuzione risultati:</div>
+          <ul style="margin:6px 0 0 18px">
+            <?php foreach ($diag['by_status'] as $r): ?>
+              <li><?php echo htmlspecialchars($r['result_status'] ?? 'NULL'); ?> → <?php echo (int)($r['c'] ?? 0); ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </div>
+
+      <div class="note" style="margin-top:8px">
+        Se hai appena aggiornato i risultati, torna sopra e premi <b>Anteprima</b>.<br>
+        In alternativa verifica che il round selezionato sia quello corretto.
       </div>
     </section>
   <?php endif; ?>
@@ -220,16 +215,17 @@ if ($tid > 0) {
             <?php endforeach; ?>
           </tbody>
         </table>
-        <p class="note" style="margin-top:8px">Le vite vengono ricalcolate per ogni (user_id, life_index) in base alle selezioni finalizzate nel round e ai risultati correnti delle partite.</p>
-
-        <form id="applyForm" method="post" action="/admin/round_ricalcolo_apply.php" class="hstack" style="justify-content:flex-end;margin-top:12px">
-          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-          <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
-          <input type="hidden" name="round_no" value="<?php echo (int)$roundNo; ?>">
-          <input type="text" name="note" placeholder="Nota (opzionale)" style="background:#0a0a0b;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;height:34px;padding:0 10px;min-width:260px">
-          <button type="button" class="btn btn-danger" id="btnApply">Applica ricalcolo</button>
-        </form>
       <?php endif; ?>
+
+      <p class="note" style="margin-top:8px">Le vite vengono ricalcolate per ogni (user_id, life_index) in base alle selezioni finalizzate nel round e ai risultati correnti delle partite.</p>
+
+      <form id="applyForm" method="post" action="/admin/round_ricalcolo_apply.php" class="hstack" style="justify-content:flex-end;margin-top:12px">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+        <input type="hidden" name="tournament_id" value="<?php echo (int)$tid; ?>">
+        <input type="hidden" name="round_no" value="<?php echo (int)$roundNo; ?>">
+        <input type="text" name="note" placeholder="Nota (opzionale)" style="background:#0a0a0b;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;height:34px;padding:0 10px;min-width:260px">
+        <button type="button" class="btn btn-danger" id="btnApply">Applica ricalcolo</button>
+      </form>
     </section>
   <?php elseif ($tid>0 && $roundNo===null): ?>
     <section class="card">
@@ -238,11 +234,11 @@ if ($tid > 0) {
   <?php endif; ?>
 </main>
 
-<!-- Conferma modal -->
+<!-- Modal conferma -->
 <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="modal-card">
     <h3 id="mTitle" style="margin:0 0 8px">Confermi il ricalcolo?</h3>
-    <p class="muted" style="margin:0 0 12px">L’operazione aggiornerà le vite degli iscritti in base alle selezioni del round e ai risultati attuali. È registrata in audit.</p>
+    <p class="muted" style="margin:0 0 12px">L’operazione aggiornerà le vite degli iscritti in base alle selezioni del round e ai risultati attuali. L’azione è tracciata in audit.</p>
     <div class="hstack" style="justify-content:flex-end">
       <button type="button" class="btn" id="mCancel">Annulla</button>
       <button type="button" class="btn btn-ok" id="mConfirm">Conferma</button>
