@@ -38,19 +38,26 @@ try {
 } catch (Throwable $e) { $torneos = []; }
 
 if ($tid > 0) {
-  // 1) Se arrivo da "Modifica risultati", onoro il round passato in query
+  $forceCalc = isset($_GET['calc']) ? (int)$_GET['calc'] : 0;
+
   if ($roundFromGet > 0) {
-      $roundNo = $roundFromGet;
+    $roundNo = $roundFromGet;
   } else {
-      // 2) Altrimenti uso il round corrente (ultimo round chiuso/attuale)
-      $roundNo = rr_get_current_round($pdo, $tid);
+    $roundNo = rr_get_current_round($pdo, $tid);
   }
 
   if ($roundNo !== null) {
     try {
-      $preview = rr_preview($pdo, $tid, $roundNo);
+      // se calc=1 (redirect dal salvataggio) o comunque per default, calcoliamo
+      if ($forceCalc === 1) {
+        $preview = rr_preview($pdo, $tid, $roundNo);
+      } else {
+        // puoi lasciarlo così; di fatto calcoliamo sempre l'anteprima
+        $preview = rr_preview($pdo, $tid, $roundNo);
+      }
     } catch (Throwable $e) {
       $preview = null;
+      // error_log('[round_ricalcolo] '.$e->getMessage());
     }
   }
 }
