@@ -9,6 +9,16 @@ $ROOT = __DIR__;
 require_once $ROOT . '/src/config.php';
 require_once $ROOT . '/src/db.php';
 
+/* Flag visibilità pagina Premi */
+$prizesEnabled = 1;
+try {
+  $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='prizes_enabled' LIMIT 1");
+  $st->execute();
+  $prizesEnabled = (int)($st->fetchColumn() ?? 1);
+} catch (Throwable $e) {
+  $prizesEnabled = 1;
+}
+
 // Username da sessione (fallback "DemoUser" se manca)
 $username  = $_SESSION['username'] ?? 'DemoUser';
 $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));
@@ -98,7 +108,9 @@ if (!empty($_SESSION['user_id'])) {
       <li class="subhdr__item"><a class="subhdr__link" href="/storico_tornei.php">Storico Tornei</a></li>
       <li class="subhdr__item"><a class="subhdr__link" href="/lista_movimenti.php">Lista movimenti</a></li>
       <li class="subhdr__item"><a class="subhdr__link" href="/dati_utente.php">Dati Utente</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="/premi.php">Premi</a></li>
+      <?php if (!empty($prizesEnabled)): ?>
+        <li class="subhdr__item"><a class="subhdr__link" href="/premi.php">Premi</a></li>
+      <?php endif; ?>
     </ul>
   </div>
 </nav>
