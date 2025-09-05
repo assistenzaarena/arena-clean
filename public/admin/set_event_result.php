@@ -1,6 +1,6 @@
 <?php
 // public/admin/set_event_result.php
-// [SCOPO] Aggiornare l'esito di un evento del torneo (admin only).
+// [SCOPO] Aggiorna l'esito di un evento del torneo (admin only).
 //         Supporta JSON (default) oppure redirect con flash se arriva redirect=1.
 // [ESITI] result_status: 'home_win', 'away_win', 'draw', 'postponed', 'void'
 
@@ -73,7 +73,7 @@ try {
 
   // 3) Risposta
   if ($wantRedirect) {
-    // Se ho i dati del torneo, porto l'admin DIRETTAMENTE al ricalcolo del round corretto
+    // Se ho i dati del torneo, riporta DIRETTAMENTE al ricalcolo del round corretto e forza l'anteprima
     if ($tour_id > 0) {
       $_SESSION['flash'] = 'Risultato aggiornato.';
       $_SESSION['flash_type'] = 'ok';
@@ -81,6 +81,7 @@ try {
       if ($round_from_post > 0) {
         $url .= '&round=' . $round_from_post;
       }
+      $url .= '&calc=1&from=result_save';
       header('Location: ' . $url);
       exit;
     }
