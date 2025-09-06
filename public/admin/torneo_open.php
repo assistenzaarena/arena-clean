@@ -579,7 +579,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
   </div>
 </div>
 
-<!-- =========================
+<<!-- =========================
      Helper JS: toast, calcolo round (AJAX) e “Risolvi ID”
      ========================= -->
 <script>
@@ -666,15 +666,23 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
         + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
       .then(r => r.ok ? r.json() : null)
       .then(js => {
-        if (!js || !js.ok) { boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>'; return; }
-        if (!js.suggestions || !js.suggestions.length) { boxSug.innerHTML = '<div style="color:#aaa;">Nessun suggerimento.</div>'; return; }
+        // ✅ aggiunto controllo per errore/suggerimenti mancanti
+        if(!js || js.ok !== true){
+          boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>';
+          return;
+        }
+        if (!js.suggestions || !js.suggestions.length) {
+          boxSug.innerHTML = '<div style="color:#aaa;">Nessun suggerimento.</div>';
+          return;
+        }
         boxSug.innerHTML = js.suggestions.map(function(s){
           return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);">'
             + '<div><b>'+escapeHtml(s.name)+'</b> <span style="color:#aaa;">(ID '+s.team_id+')</span></div>'
             + '<button class="btn btn--tiny" data-nuse="'+s.team_id+'">Usa ID</button>'
           + '</div>';
         }).join('');
-      }).catch(function(){ boxSug.innerHTML = '<div style="color:#ff7076;">Errore richiesta.</div>'; });
+      })
+      .catch(function(){ boxSug.innerHTML = '<div style="color:#ff7076;">Errore richiesta.</div>'; });
     });
 
     // Applica suggerimento
