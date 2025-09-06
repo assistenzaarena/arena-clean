@@ -212,7 +212,7 @@
 
 /* I valori (crediti, username) sempre bianchi */
 .mdr-section .mdr-list .mdr-muted strong {
-  color:#fff;
+  color:#fff !important;
   font-weight:800;
 }
 }
