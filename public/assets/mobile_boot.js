@@ -1,26 +1,33 @@
 (function () {
-  // Non fare nulla in area admin
+  // Non toccare l'area admin
   if (location.pathname.startsWith('/admin')) return;
 
-  const mm = window.matchMedia('(max-width: 900px)');
-  if (!mm.matches) return; // attiva solo su mobile
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
+  if (!isMobile) return;
 
-  // Già montato?
-  if (document.getElementById('mobileAppBar')) return;
+  // 1) Smonta qualsiasi appbar/drawer precedente (perché lo stato può essere cambiato tra guest/user)
+  (function unmountPrev() {
+    const oldBar = document.getElementById('mobileAppBar');
+    const oldBackdrop = document.getElementById('mobileDrawerBackdrop');
+    if (oldBar && oldBar.parentNode) oldBar.parentNode.removeChild(oldBar);
+    if (oldBackdrop && oldBackdrop.parentNode) oldBackdrop.parentNode.removeChild(oldBackdrop);
+  })();
 
-  // Prova a capire se è utente loggato, usando l'header_user esistente nel DOM
-  const userHeader = document.querySelector('.hdr.hdr--user');
-  const isUser = !!userHeader;
+  // 2) Capisco se sei USER o GUEST dalla pagina corrente (header_user ha questi elementi)
+  const isUser =
+    !!document.getElementById('headerCrediti') ||
+    !!document.querySelector('.logout-form') ||
+    !!document.querySelector('.user-display__name');
+
   const userName = isUser ? (document.querySelector('.user-display__name')?.textContent || '').trim() : '';
   const userCredits = isUser ? (document.getElementById('headerCrediti')?.textContent || '').trim() : '';
 
-  // Costruisci AppBar
-  const appbar = document.createElement('div');
-  appbar.id = 'mobileAppBar';
-  appbar.innerHTML = `
+  // 3) Crea AppBar mobile coerente
+  const bar = document.createElement('div');
+  bar.id = 'mobileAppBar';
+  bar.innerHTML = `
     <a class="mBrand" href="/">
-      <img src="/assets/logo_arena.png" alt="ARENA">
-      <span>ARENA</span>
+      <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
     </a>
     <div class="mRight">
       ${isUser
@@ -30,37 +37,34 @@
       <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
     </div>
   `;
-  document.body.prepend(appbar);
+  document.body.prepend(bar);
 
-  // Backdrop + Drawer
+  // 4) Costruisci Drawer + Backdrop
   const backdrop = document.createElement('div');
   backdrop.id = 'mobileDrawerBackdrop';
   const drawer = document.createElement('aside');
   drawer.id = 'mobileDrawer';
 
-  // Raccogli link subheader (se presenti nel DOM)
+  // Voci subheader (se presenti)
   const subLinks = Array.from(document.querySelectorAll('.subhdr__menu a'))
     .map(a => ({ href: a.getAttribute('href') || '#', label: (a.textContent || '').trim() }))
-    // Evita duplicati banali
-    .filter((v, i, arr) => arr.findIndex(x => x.href === v.href) === i);
+    .filter((v, i, arr) => v.label && arr.findIndex(x => x.href === v.href) === i);
 
-  // Raccogli link footer (fallback se footer nascosto)
+  // Voci footer (se presenti), altrimenti fallback
   const footerLinks = (function () {
-    const f = document.querySelector('footer') || document.querySelector('.footer') || document.getElementById('footer');
+    const f = document.querySelector('footer, .footer, #footer');
     if (!f) {
-      // fallback statico
       return [
         { href: '/contatti.php', label: 'Contatti' },
-        { href: '/termini.php', label: 'Termini e condizioni' },
-        { href: '/privacy.php', label: 'Privacy' }
+        { href: '/termini.php',  label: 'Termini e condizioni' },
+        { href: '/privacy.php',  label: 'Privacy' }
       ];
     }
-    const links = Array.from(f.querySelectorAll('a')).map(a => ({ href: a.getAttribute('href') || '#', label: (a.textContent || '').trim() }));
-    // filtra voci vuote
-    return links.filter(x => x.label);
+    return Array.from(f.querySelectorAll('a'))
+      .map(a => ({ href: a.getAttribute('href') || '#', label: (a.textContent || '').trim() }))
+      .filter(x => x.label);
   })();
 
-  // Se utente → sezione account sopra; se guest → Accedi/Registrati
   const accountSection = isUser
     ? `
       <div class="mdr-section">
@@ -82,24 +86,22 @@
         </div>
       </div>`;
 
-  // Sezione navigazione (subheader)
   const navSection = `
     <div class="mdr-section">
       <h4>Navigazione</h4>
       <div class="mdr-list">
         ${
           (subLinks.length ? subLinks : [
-            { href: '/', label: 'Home' },
-            { href: '/lobby.php', label: 'Tornei' },
+            { href: '/',                label: 'Home' },
+            { href: '/lobby.php',       label: 'Tornei' },
             { href: '/storico_tornei.php', label: 'Storico tornei' },
             { href: '/dati_utente.php', label: 'Dati utente' },
-            { href: '/premi.php', label: 'Premi' }
+            { href: '/premi.php',       label: 'Premi' }
           ]).map(l => `<a class="mdr-link" href="${l.href}">${l.label}</a>`).join('')
         }
       </div>
     </div>`;
 
-  // Sezione footer (contatti/termini ecc.)
   const footerSection = `
     <div class="mdr-section">
       <h4>Info</h4>
@@ -110,10 +112,7 @@
 
   drawer.innerHTML = `
     <div class="mdr-head">
-      <div class="mdr-title">
-        <img src="/assets/logo_arena.png" alt="" style="height:20px; width:auto;">
-        <span>Menu</span>
-      </div>
+      <div class="mdr-title"><img src="/assets/logo_arena.png" alt="" style="height:20px;width:auto;"><span>Menu</span></div>
       <button class="mdr-close" id="mClose" aria-label="Chiudi menu">✕</button>
     </div>
     ${accountSection}
@@ -123,27 +122,26 @@
   backdrop.appendChild(drawer);
   document.body.appendChild(backdrop);
 
-  // Toggle
+  // Toggle drawer
   const open = () => { backdrop.classList.add('open'); drawer.classList.add('open'); };
   const close = () => { backdrop.classList.remove('open'); drawer.classList.remove('open'); };
-
   document.getElementById('mBurger')?.addEventListener('click', open);
   document.getElementById('mClose')?.addEventListener('click', close);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
-  // Se header_user aggiorna il saldo (#headerCrediti), prova a sincronizzare anche il mobile
-  const observerTarget = document.getElementById('headerCrediti');
-  if (observerTarget) {
+  // 5) Sincronizza saldo se l'header desktop lo aggiorna (#headerCrediti)
+  const creditsEl = document.getElementById('headerCrediti');
+  if (creditsEl) {
     const sync = () => {
-      const val = (observerTarget.textContent || '').trim();
+      const val = (creditsEl.textContent || '').trim();
       const a = document.getElementById('mobileCredits');
       const b = document.getElementById('mobileCredits2');
-      if (a) a.textContent = val + ' cr';
-      if (b) b.textContent = val;
+      if (a) a.textContent = (val ? val + ' cr' : '0 cr');
+      if (b) b.textContent = (val || '0');
     };
     const obs = new MutationObserver(sync);
-    obs.observe(observerTarget, { childList: true, subtree: true, characterData: true });
+    obs.observe(creditsEl, { childList:true, subtree:true, characterData:true });
     sync();
   }
 })();
