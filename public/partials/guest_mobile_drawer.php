@@ -1,6 +1,3 @@
-<?php
-// partials/guest_mobile_drawer.php
-?>
 <style>
 /* Il drawer esiste sempre nel DOM, ma lo mostriamo solo su mobile */
 .mobile-only { display: none; }
