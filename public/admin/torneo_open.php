@@ -660,10 +660,10 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       if (!q) return;
       boxSug.innerHTML = 'Carico...'; boxSug.style.display='block';
 
-      fetch('/admin/api/resolve_team_id.php?action=suggest'
-        + '&tournament_id='+encodeURIComponent(ctx.tid)
-        + '&league_id='+encodeURIComponent(ctx.league)
-        + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
+fetch('/api/resolve_team_id.php?action=suggest'
+  + '&tournament_id='+encodeURIComponent(ctx.tid)
+  + '&league_id='+encodeURIComponent(ctx.league)
+  + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
       .then(r => r.ok ? r.json() : null)
       .then(js => {
         // ✅ aggiunto controllo per errore/suggerimenti mancanti
@@ -708,7 +708,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       fd.append('event_id', String(ctx.ev));
       fd.append('side', ctx.side);
       fd.append('team_id', String(teamId));
-      fetch('/admin/api/resolve_team_id.php', { method:'POST', body:fd, credentials:'same-origin' })
+      fetch('/api/resolve_team_id.php', { method:'POST', body:fd, credentials:'same-origin' })
         .then(r => r.ok ? r.json() : null)
         .then(js => {
           if (!js || !js.ok) { showToast('Errore salvataggio ID', 'err'); return; }
