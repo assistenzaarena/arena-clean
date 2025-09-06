@@ -19,7 +19,7 @@
 
     <!-- Pulsante "Esci" -->
     <div class="hdr__right" aria-label="Azioni account">
-      <a class="btn btn--outline" href="/home_guest.php">Esci</a>
+      <a class="btn btn--outline" href="/index.php">Esci</a>
     </div>
 
   </div>
