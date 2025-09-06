@@ -2,7 +2,7 @@
 // admin/api/resolve_team_id.php
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = dirname(__DIR__, 2); // .../public
+$ROOT = dirname(__DIR__); // .../html
 require_once $ROOT.'/src/guards.php';  require_admin();
 require_once $ROOT.'/src/config.php';
 require_once $ROOT.'/src/db.php';
