@@ -109,21 +109,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
     $eventCode = gen_event_code($pdo);
 
-    $pdo->prepare("
-      INSERT IGNORE INTO tournament_events
-        (tournament_id, round_no, fixture_id,
-         home_team_id, home_team_name, away_team_id, away_team_name,
-         kickoff, is_active, pick_locked, result_status, result_at, event_code)
-      VALUES (:tid, :rnd, :fid,
-              :hid, :hname, :aid, :aname,
-              NULL, 1, 0, 'pending', NULL, :ecode)
-    ")->execute([
-      ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
-      ':fid'=>(int)$one['fixture_id'],
-      ':hid'=>$one['home_id'], ':hname'=>$one['home_name'],
-      ':aid'=>$one['away_id'], ':aname'=>$one['away_name'],
-      ':ecode'=>$eventCode,
-    ]);
+   $ins = $pdo->prepare("
+  INSERT IGNORE INTO tournament_events
+    (tournament_id, round_no, fixture_id,
+     home_team_id, home_team_name, away_team_id, away_team_name,
+     kickoff, is_active, pick_locked, result_status, result_at, event_code)
+  VALUES (:tid, :rnd, :fid,
+          :hid, :hname, :aid, :aname,
+          NULL, 1, 0, 'pending', NULL, :ecode)
+");
+foreach ($list as $fx) {
+  $ins->execute([
+    ':tid'   => $id,
+    ':rnd'   => $current_round_no ?: 1,
+    ':fid'   => ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
+    ':hid'   => $fx['home_id'],
+    ':hname' => $fx['home_name'],
+    ':aid'   => $fx['away_id'],
+    ':aname' => $fx['away_name'],
+    ':ecode' => gen_event_code($pdo),
+  ]);
+}
 
     $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
     header('Location: /admin/torneo_open.php?id='.$id); exit;
