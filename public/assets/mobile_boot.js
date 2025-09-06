@@ -22,30 +22,37 @@
   const userName    = isUser ? (document.querySelector('.user-display__name')?.textContent || '').trim() : '';
   const userCredits = isUser ? (document.getElementById('headerCrediti')?.textContent || '').trim() : '';
 
-  // AppBar
-  const bar = document.createElement('div');
-  bar.id = 'mobileAppBar';
-  bar.innerHTML = `
-    <a class="mBrand" href="/">
-      <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
-    </a>
-    <div class="mRight">
-      ${
-        isAuth
-          // Sulle pagine di login/registrazione: header minimale con "Esci"
-          ? `<a href="/home_guest.php" class="mExit">Esci</a>`
-          : (isUser
-              // Utente loggato: Ricarica + username
-              ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
-              // Guest: Registrati + Accedi
-              : `<a class="mRegister" href="/registrazione.php">Registrati</a>
-                 <a class="mLogin" href="/login.php">Accedi</a>`
-            )
-      }
-      <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
-    </div>
-  `;
-  document.body.prepend(bar);
+// AppBar
+const bar = document.createElement('div');
+bar.id = 'mobileAppBar';
+
+const exitHref = '/'; // se preferisci: '/home_guest.php' (metti qui il path reale valido su guest)
+bar.innerHTML = `
+  <a class="mBrand" href="/">
+    <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
+  </a>
+  <div class="mRight">
+    ${
+      isAuth
+        // Pagine auth (login/registrazione): usa la testata login → link Esci che torna alla home guest
+        ? `<a href="${exitHref}" class="mExit">Esci</a>`
+        : (isUser
+            // Utente loggato: Ricarica + username (logout è nel drawer come POST)
+            ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
+            // Guest: Registrati + Accedi
+            : `<a class="mRegister" href="/registrazione.php">Registrati</a>
+               <a class="mLogin" href="/login.php">Accedi</a>`
+          )
+    }
+    <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
+  </div>
+`;
+document.body.prepend(bar);
+
+// Evita che qualcosa “mangi” il click su Esci (es. overlay)
+bar.querySelector('.mExit')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+}, { passive: true });
 
   // Drawer + backdrop
   const backdrop = document.createElement('div');
