@@ -15,6 +15,10 @@ $ROOT = __DIR__;
     .hero h1{ font-size:clamp(28px,4vw,56px); margin:0 0 12px; font-weight:900; }
     .hero p{ font-size:clamp(14px,2vw,18px); color:#aaa; margin:0; }
     @media (max-width:900px){ header, .header, #header { display:none !important; } }
+    @media (max-width: 900px){
+  header, .header, #header { display:none !important; }
+  .subhdr { display:none !important; }          /* ← nasconde la subheader desktop */
+}
   </style>
 </head>
 <body>
