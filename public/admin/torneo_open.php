@@ -51,6 +51,9 @@ $matchday  = $torneo['matchday'] ? (int)$torneo['matchday'] : null;
 $round_lbl = $torneo['round_label'] ?? null;
 $current_round_no = (int)($torneo['current_round_no'] ?? 1);
 
+/* === AGGIUNTA: league_id per pulsante “Risolvi ID” === */
+$league_id_for_map = (int)($torneo['league_id'] ?? 0);
+
 // =============== POST HANDLER ===============
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $posted_csrf = $_POST['csrf'] ?? '';
@@ -212,7 +215,7 @@ $eventsCountCurrentRound = (int)$stCR->fetchColumn();
 
 // =============== CARICO EVENTI PER TABELLA (SOLO ROUND CORRENTE) ===============
 $ev = $pdo->prepare("
-  SELECT id, fixture_id, home_team_name, away_team_name, is_active
+  SELECT id, fixture_id, home_team_name, away_team_name, home_team_id, away_team_id, is_active
   FROM tournament_events
   WHERE tournament_id = :tid
     AND round_no = :r
@@ -302,7 +305,42 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
             <tr>
               <td><?php echo (int)$e['id']; ?></td>
               <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '-'; ?></td>
-              <td><?php echo htmlspecialchars(($e['home_team_name'] ?? '??').' vs '.($e['away_team_name'] ?? '??')); ?></td>
+              <td>
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span><?php echo htmlspecialchars($e['home_team_name'] ?? '??'); ?></span>
+                    <?php if ((int)($e['home_team_id'] ?? 0) <= 0): ?>
+                      <span style="background:#ffba00;color:#111;font-weight:900;border-radius:999px;padding:2px 8px;font-size:11px;">ID mancante</span>
+                      <button
+                        type="button"
+                        class="btn js-resolve-id"
+                        data-ev="<?php echo (int)$e['id']; ?>"
+                        data-side="home"
+                        data-tid="<?php echo (int)$torneo['id']; ?>"
+                        data-league="<?php echo (int)$league_id_for_map; ?>"
+                        data-name="<?php echo htmlspecialchars($e['home_team_name'] ?? '', ENT_QUOTES); ?>"
+                        style="height:26px;padding:0 10px;border-radius:6px;"
+                      >Risolvi ID</button>
+                    <?php endif; ?>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span><?php echo htmlspecialchars($e['away_team_name'] ?? '??'); ?></span>
+                    <?php if ((int)($e['away_team_id'] ?? 0) <= 0): ?>
+                      <span style="background:#ffba00;color:#111;font-weight:900;border-radius:999px;padding:2px 8px;font-size:11px;">ID mancante</span>
+                      <button
+                        type="button"
+                        class="btn js-resolve-id"
+                        data-ev="<?php echo (int)$e['id']; ?>"
+                        data-side="away"
+                        data-tid="<?php echo (int)$torneo['id']; ?>"
+                        data-league="<?php echo (int)$league_id_for_map; ?>"
+                        data-name="<?php echo htmlspecialchars($e['away_team_name'] ?? '', ENT_QUOTES); ?>"
+                        style="height:26px;padding:0 10px;border-radius:6px;"
+                      >Risolvi ID</button>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </td>
               <td><?php echo ((int)$e['is_active']===1) ? 'Sì' : 'No'; ?></td>
               <td class="row-actions">
                 <form method="post" action="" style="display:inline">
@@ -454,6 +492,128 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     })
     .catch(()=>alert('Errore di rete'));
   }
+</script>
+
+<!-- =========================
+     (AGGIUNTA 3) Modal “Risolvi ID” + JS
+     ========================= -->
+<div id="resolveModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0f1114; border:1px solid rgba(255,255,255,.15); border-radius:12px; color:#fff; width:560px; max-width:calc(100vw - 32px); padding:16px;">
+    <h3 style="margin:0 0 10px; font-weight:900;">Risolvi ID squadra</h3>
+    <div id="rvInfo" style="color:#ccc; font-size:13px; margin-bottom:10px;"></div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+      <label style="min-width:140px;">Inserisci ID (numero):</label>
+      <input id="rvManualId" type="number" min="1" step="1" style="flex:1; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#0a0a0b; color:#fff; padding:0 10px;">
+      <button id="rvApplyManual" class="btn" style="height:34px;">Applica</button>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+      <label style="min-width:140px;">Suggerimenti nome:</label>
+      <input id="rvSearch" type="text" placeholder="Cerca tra nomi già visti" style="flex:1; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#0a0a0b; color:#fff; padding:0 10px;">
+      <button id="rvAsk" class="btn" style="height:34px;">Cerca</button>
+    </div>
+
+    <div id="rvSuggest" style="max-height:220px; overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:8px; background:#12161b; display:none;"></div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+      <button id="rvClose" class="btn" style="height:34px;">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var modal  = document.getElementById('resolveModal');
+  var info   = document.getElementById('rvInfo');
+  var inId   = document.getElementById('rvManualId');
+  var inQ    = document.getElementById('rvSearch');
+  var btnAsk = document.getElementById('rvAsk');
+  var btnApply = document.getElementById('rvApplyManual');
+  var btnClose = document.getElementById('rvClose');
+  var boxSug = document.getElementById('rvSuggest');
+
+  var ctx = { tid:0, ev:0, side:'home', league:0, name:'' };
+
+  function openModal(data){
+    ctx = data || ctx;
+    info.textContent = 'Torneo #'+ctx.tid+' — Evento #'+ctx.ev+' — Lato: '+ctx.side.toUpperCase()+' — Nome: "'+ctx.name+'"';
+    inId.value = '';
+    inQ.value = ctx.name || '';
+    boxSug.innerHTML = ''; boxSug.style.display = 'none';
+    modal.style.display = 'flex';
+  }
+  function closeModal(){ modal.style.display = 'none'; }
+
+  // Click su "Risolvi ID"
+  Array.prototype.slice.call(document.querySelectorAll('.js-resolve-id')).forEach(function(b){
+    b.addEventListener('click', function(){
+      openModal({
+        tid:    parseInt(b.getAttribute('data-tid'),10),
+        ev:     parseInt(b.getAttribute('data-ev'),10),
+        side:   (b.getAttribute('data-side')||'home'),
+        league: parseInt(b.getAttribute('data-league'),10),
+        name:   b.getAttribute('data-name')||''
+      });
+    });
+  });
+
+  // Chiede suggerimenti (match sui nomi già visti nel torneo)
+  btnAsk.addEventListener('click', function(){
+    var q = (inQ.value||'').trim();
+    if (!q) return;
+    boxSug.innerHTML = 'Carico...'; boxSug.style.display='block';
+
+    fetch('/admin/api/resolve_team_id.php?action=suggest'
+      + '&tournament_id='+encodeURIComponent(ctx.tid)
+      + '&league_id='+encodeURIComponent(ctx.league)
+      + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
+    .then(r => r.ok ? r.json() : null)
+    .then(js => {
+      if (!js || !js.ok) { boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>'; return; }
+      if (!js.suggestions || !js.suggestions.length) { boxSug.innerHTML = '<div style="color:#aaa;">Nessun suggerimento.</div>'; return; }
+      boxSug.innerHTML = js.suggestions.map(function(s){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);">'
+          + '<div><b>'+escapeHtml(s.name)+'</b> <span style="color:#aaa;">(ID '+s.team_id+')</span></div>'
+          + '<button class="btn btn-apply-sug" data-id="'+s.team_id+'" style="height:28px;">Usa ID</button>'
+        + '</div>';
+      }).join('');
+      Array.prototype.slice.call(boxSug.querySelectorAll('.btn-apply-sug')).forEach(function(x){
+        x.addEventListener('click', function(){
+          applyId(parseInt(x.getAttribute('data-id'),10));
+        });
+      });
+    }).catch(function(){ boxSug.innerHTML = '<div style="color:#ff7076;">Errore richiesta.</div>'; });
+  });
+
+  // Applica ID manuale
+  btnApply.addEventListener('click', function(){
+    var val = parseInt(inId.value, 10);
+    if (!val || val<=0) { inId.focus(); return; }
+    applyId(val);
+  });
+
+  // Salva su server
+  function applyId(teamId){
+    var fd = new FormData();
+    fd.append('tournament_id', String(ctx.tid));
+    fd.append('event_id', String(ctx.ev));
+    fd.append('side', ctx.side);
+    fd.append('team_id', String(teamId));
+    fetch('/admin/api/resolve_team_id.php', { method:'POST', body:fd, credentials:'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(js => {
+        if (!js || !js.ok) { alert('Errore: '+(js && js.error ? js.error : 'generico')); return; }
+        window.location.reload();
+      })
+      .catch(function(){ alert('Errore di rete.'); });
+  }
+
+  btnClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]; }); }
+})();
 </script>
 
 </body>
