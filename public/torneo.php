@@ -397,6 +397,11 @@ section{
         <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
       <?php else: ?>
         <div class="events-grid">
+          <?php
+            // === SOLO PER CANON ID (minimo indispensabile) ===
+            $leagueIdForCanon = (int)($torneo['league_id'] ?? 0);
+            $canonMapStmt = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id = ? AND team_id = ? LIMIT 1");
+          ?>
           <?php foreach ($events as $ev): ?>
             <?php
               $hn = trim($ev['home_team_name'] ?? 'Casa');
@@ -407,6 +412,20 @@ section{
 
               $hIni  = team_initials($hn);
               $aIni  = team_initials($an);
+
+              // --- CALCOLO CANON ID (unica variazione funzionale) ---
+              $homeCanonId = (int)($ev['home_team_id'] ?? 0);
+              $awayCanonId = (int)($ev['away_team_id'] ?? 0);
+              if ($leagueIdForCanon > 0 && $homeCanonId > 0) {
+                $canonMapStmt->execute([$leagueIdForCanon, $homeCanonId]);
+                $c = $canonMapStmt->fetchColumn();
+                if ($c !== false && $c !== null) { $homeCanonId = (int)$c; }
+              }
+              if ($leagueIdForCanon > 0 && $awayCanonId > 0) {
+                $canonMapStmt->execute([$leagueIdForCanon, $awayCanonId]);
+                $c = $canonMapStmt->fetchColumn();
+                if ($c !== false && $c !== null) { $awayCanonId = (int)$c; }
+              }
             ?>
             <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
   <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
@@ -417,7 +436,7 @@ section{
 
   <div class="ec-team team-side"
        data-side="home"
-       data-team-id="<?php echo (int)$ev['home_team_id']; ?>"
+       data-team-id="<?php echo $homeCanonId; ?>"
        title="Seleziona casa">
     <span class="logo-wrap">
       <img class="team-logo"
@@ -433,7 +452,7 @@ section{
 
   <div class="ec-team team-side"
        data-side="away"
-       data-team-id="<?php echo (int)$ev['away_team_id']; ?>"
+       data-team-id="<?php echo $awayCanonId; ?>"
        title="Seleziona trasferta">
     <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
     <span class="logo-wrap">
