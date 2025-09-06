@@ -43,22 +43,32 @@ if (($_GET['action'] ?? '') === 'suggest') {
     if ($id>0 && $nm!=='') $sug[$id] = $nm;
   }
 
-  // 2) se esiste il catalogo canon per la lega, aggiungo anche quelli
-  try {
-    $check = $pdo->query("SELECT 1 FROM admin_team_canon LIMIT 1");
-    if ($check) {
-      $sc = $pdo->prepare("SELECT canon_team_id, display_name FROM admin_team_canon
-                           WHERE league_id=? AND (display_name LIKE ? OR norm_name LIKE LOWER(REPLACE(?, ' ', '')) )
-                           ORDER BY display_name ASC LIMIT 50");
-      $sc->execute([$lg, $like, $q]);
-      foreach ($sc->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $id = (int)$r['canon_team_id']; $nm = (string)$r['display_name'];
-        if ($id>0 && $nm!=='') $sug[$id] = $nm;
-      }
+// 2) se esiste il catalogo canon per la lega, aggiungo anche quelli
+try {
+  $check = $pdo->query("SELECT 1 FROM admin_team_canon LIMIT 1");
+  if ($check) {
+    // NB: niente norm_name; facciamo matching su display_name con LIKE
+    //     + confronto normalizzato (spazi tolti, tutto lowercase)
+    $sc = $pdo->prepare("
+      SELECT canon_team_id, display_name
+      FROM admin_team_canon
+      WHERE league_id = ?
+        AND (
+              display_name LIKE ?
+              OR LOWER(REPLACE(display_name,' ','')) = LOWER(REPLACE(?, ' ', ''))
+            )
+      ORDER BY display_name ASC
+      LIMIT 50
+    ");
+    $sc->execute([$lg, $like, $q]);
+    foreach ($sc->fetchAll(PDO::FETCH_ASSOC) as $r) {
+      $id = (int)$r['canon_team_id']; $nm = (string)$r['display_name'];
+      if ($id>0 && $nm!=='') $sug[$id] = $nm;
     }
-  } catch (Throwable $e) {
-    // tabelle canon non presenti -> ignoro
   }
+} catch (Throwable $e) {
+  // tabelle canon non presenti -> ignoro
+}
 
   $out = [];
   foreach ($sug as $id=>$nm) { $out[] = ['team_id'=>$id, 'name'=>$nm]; }
