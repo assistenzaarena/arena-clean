@@ -73,8 +73,7 @@ try {
   $out = [];
   foreach ($sug as $id=>$nm) { $out[] = ['team_id'=>$id, 'name'=>$nm]; }
   if (empty($out)) out(['ok'=>false, 'suggestions'=>[]], 200);
-
-  out(['ok'=>true, 'suggestions'=>$out], 200);
+out(['ok' => true, 'suggestions' => $out ?: []], 200);
 }
 
 /* ---- APPLICA ID LATO EVENTO ----
