@@ -298,9 +298,22 @@ section{
   margin-top: 30px;      /* spazio tra i vari blocchi */
   margin-bottom: 30px;
 }
+
+/* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
+@media (max-width: 900px){
+  header, .header, #header { display:none !important; }
+}
 </style>
 </head>
 <body>
+
+<?php
+  // ===== MOBILE ONLY: header + drawer UTENTE (logo+ARENA, saldo+username, menu)
+  // Richiede i file creati prima:
+  // /partials/user_mobile_header.php e /partials/user_mobile_drawer.php
+  require_once $ROOT . '/../partials/user_mobile_header.php';
+  require_once $ROOT . '/../partials/user_mobile_drawer.php';
+?>
 
 <?php require $ROOT . '/header_user.php'; ?>
 
@@ -558,6 +571,8 @@ section{
         document.querySelectorAll('.life-heart').forEach(function(x){ x.classList.remove('life-heart--active'); });
         h.classList.add('life-heart--active');
         selectedLife = parseInt(h.getAttribute('data-life')||'0',10);
+
+        refreshDisabledTeams(selectedLife);
       });
     });
 
