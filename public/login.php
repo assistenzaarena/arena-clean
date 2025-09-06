@@ -89,15 +89,35 @@ exit;                // vai subito in lobby tornei
 <head>
   <meta charset="utf-8">
   <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- AGGIUNTA mobile -->
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_login.css">
   <link rel="stylesheet" href="/assets/login.css?v=7">
+  <style>
+    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
+    @media (max-width: 900px){
+      header, .header, #header { display:none !important; }
+    }
+  </style>
 </head>
 <body>
 
 <?php 
 // [RIGA] 5) Include dell’header SOLO ORA (dopo la logica e prima del main)
 require __DIR__ . '/header_login.php';
+?>
+
+<?php
+  // ===== MOBILE ONLY: header + drawer guest (logo+ARENA, Accedi, menu)
+  // Richiede i file creati prima:
+  // /partials/guest_mobile_header.php e /partials/guest_mobile_drawer.php
+  require __DIR__ . '/../partials/guest_mobile_header.php';
+
+  // (opzionale) Subheader guest per il drawer; se hai un file di config centrale, sostituisci con require.
+  // Lasciando vuoto, il drawer usa il fallback interno (Home/Tornei/Promo).
+  // $GUEST_SUBNAV = require $_SERVER['DOCUMENT_ROOT'].'/src/config/nav_guest.php';
+
+  require __DIR__ . '/../partials/guest_mobile_drawer.php';
 ?>
 
 <main class="auth">
