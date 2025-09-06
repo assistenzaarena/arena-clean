@@ -11,6 +11,55 @@ header('Content-Type: application/json; charset=utf-8');
 
 function out($js, $code=200){ http_response_code($code); echo json_encode($js); exit; }
 
+/**
+ * Ritorna il canon_team_id per (league_id, team_id/name).
+ * - Se team_id è già un canon -> lo ritorna.
+ * - Se è un alias del provider -> risale alla mappa.
+ * - Se esiste match per nome normalizzato -> crea la mappa e ritorna il canon.
+ * - Se non esiste nulla -> crea canon e mappa alias.
+ */
+function canonize_team_id(PDO $pdo, int $league_id, int $team_id, string $name): int {
+  if ($league_id <= 0 || $team_id <= 0) return $team_id;
+
+  // 1) già canon?
+  $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon WHERE league_id=? AND canon_team_id=? LIMIT 1");
+  $st->execute([$league_id, $team_id]);
+  if ($st->fetchColumn()) return $team_id;
+
+  // 2) alias mappato?
+  $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id=? AND team_id=? LIMIT 1");
+  $st->execute([$league_id, $team_id]);
+  $canon = (int)($st->fetchColumn() ?: 0);
+  if ($canon > 0) return $canon;
+
+  // 3) prova per nome normalizzato
+  $norm = mb_strtolower(str_replace(' ', '', (string)$name));
+  if ($norm !== '') {
+    $st = $pdo->prepare("
+      SELECT canon_team_id FROM admin_team_canon
+      WHERE league_id=? AND LOWER(REPLACE(display_name,' ',''))=?
+      LIMIT 1
+    ");
+    $st->execute([$league_id, $norm]);
+    $canon = (int)($st->fetchColumn() ?: 0);
+    if ($canon > 0) {
+      $mk = $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)");
+      $mk->execute([$league_id, $team_id, $canon]);
+      return $canon;
+    }
+  }
+
+  // 4) crea canon + mappa
+  $ins = $pdo->prepare("INSERT INTO admin_team_canon (league_id, display_name) VALUES (?, ?)");
+  $ins->execute([$league_id, $name ?: ('Team '.$team_id)]);
+  $canon = (int)$pdo->lastInsertId();
+
+  $mk = $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)");
+  $mk->execute([$league_id, $team_id, $canon]);
+
+  return $canon;
+}
+
 /* ---- SUGGERIMENTI PER NOME ----
    GET /admin/api/resolve_team_id.php?action=suggest&tournament_id=..&league_id=..&q=...
    Ritorna: { ok:true, suggestions:[{team_id,name}, ...] }
@@ -26,7 +75,7 @@ if (($_GET['action'] ?? '') === 'suggest') {
 
   $sug = [];
 
-  // 1) dai nomi già presenti nel torneo corrente
+  // 1) dai nomi già presenti nel torneo corrente (canonizzati per evitare duplicati)
   $sqlEv = "
     SELECT DISTINCT home_team_id AS team_id, home_team_name AS name
     FROM tournament_events
@@ -39,16 +88,18 @@ if (($_GET['action'] ?? '') === 'suggest') {
   $st = $pdo->prepare($sqlEv);
   $st->execute([$tid, $like, $tid, $like]);
   foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-    $id = (int)$r['team_id']; $nm = (string)$r['name'];
-    if ($id>0 && $nm!=='') $sug[$id] = $nm;
+    $rawId = (int)$r['team_id']; $nm = (string)$r['name'];
+    if ($rawId>0 && $nm!=='') {
+      $canonId = canonize_team_id($pdo, $lg, $rawId, $nm);
+      $sug[$canonId] = $nm; // dedup su canon id
+    }
   }
 
   // 2) se esiste il catalogo canon per la lega, aggiungo anche quelli
   try {
     $check = $pdo->query("SELECT 1 FROM admin_team_canon LIMIT 1");
     if ($check) {
-      // NB: niente norm_name; facciamo matching su display_name con LIKE
-      //     + confronto normalizzato (spazi tolti, tutto lowercase)
+      // NB: niente norm_name; matching su display_name con LIKE + confronto normalizzato
       $sc = $pdo->prepare("
         SELECT canon_team_id, display_name
         FROM admin_team_canon
@@ -95,6 +146,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $chk = $pdo->prepare("SELECT id FROM tournament_events WHERE id=? AND tournament_id=? LIMIT 1");
   $chk->execute([$eid, $tid]);
   if (!$chk->fetch(PDO::FETCH_ASSOC)) { out(['ok'=>false,'error'=>'event_not_found'],404); }
+
+  // Recupero league_id e nome lato evento per canonizzare l'ID inserito
+  $lgq = $pdo->prepare("SELECT t.league_id, CASE WHEN ?='home' THEN e.home_team_name ELSE e.away_team_name END AS nm
+                        FROM tournament_events e JOIN tournaments t ON t.id=e.tournament_id
+                        WHERE e.id=? AND e.tournament_id=? LIMIT 1");
+  $lgq->execute([$side, $eid, $tid]);
+  $lgrow = $lgq->fetch(PDO::FETCH_ASSOC);
+  $league_id = (int)($lgrow['league_id'] ?? 0);
+  $team_name = (string)($lgrow['nm'] ?? '');
+
+  // Normalizza al canon (se passi un ID provider lo traduce al canon)
+  $team = canonize_team_id($pdo, $league_id, $team, $team_name);
 
   // Aggiorna il campo corretto
   if ($side === 'home') {
