@@ -250,7 +250,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Gestione torneo (in corso) #<?php echo htmlspecialchars($torneo['tournament_code] ?? sprintf('%05d',$id)); ?></title>
+  <title>Gestione torneo (in corso) #<?php echo htmlspecialchars($torneo['tournament_code'] ?? sprintf('%05d',$id)); ?></title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
   <style>
