@@ -30,8 +30,8 @@
       <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
     </a>
     <div class="mRight">
- ${isUser
-  ? `<a class="btn-primary" href="/ricarica.php">Ricarica</a><span class="mUser">${userName || ''}</span>`
+${isUser
+  ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
   : `<a class="mLogin" href="/login.php">Accedi</a>`
 }
       <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
