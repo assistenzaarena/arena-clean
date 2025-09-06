@@ -34,6 +34,8 @@ if (!empty($_SESSION['user_id'])) {
 }
 ?>
 <link rel="stylesheet" href="/assets/header_user.css">
+<link rel="stylesheet" href="/assets/mobile.css?v=1">
+<script defer src="/assets/mobile_boot.js?v=1"></script>
 
 <header class="hdr" role="banner">
   <div class="hdr__inner">
