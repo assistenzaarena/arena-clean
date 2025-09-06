@@ -90,20 +90,9 @@ function safeCode(array $t){
   <link rel="stylesheet" href="/assets/header_user.css"><!-- se esiste -->
   <link rel="stylesheet" href="/assets/lobby.css?v=2">
   <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
-  <style>
-    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
-    @media (max-width: 900px){
-      header, .header, #header { display:none !important; }
-    }
-  </style>
 </head>
 <body>
 <?php
-  // ===== MOBILE ONLY: header + drawer UTENTE (logo+ARENA, saldo+username, menu)
-  // Richiede i file creati prima:
-  // /partials/user_mobile_header.php e /partials/user_mobile_drawer.php
-  require_once $ROOT . '/../partials/user_mobile_header.php';
-  require_once $ROOT . '/../partials/user_mobile_drawer.php';
 ?>
 
 <?php
