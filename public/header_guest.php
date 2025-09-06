@@ -1,5 +1,7 @@
 <!-- Header guest: sfondo nero, logo a sinistra, azioni a destra -->
 <link rel="stylesheet" href="/assets/header_guest.css">
+<link rel="stylesheet" href="/assets/mobile.css?v=1">
+<script defer src="/assets/mobile_boot.js?v=1"></script>
 
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
