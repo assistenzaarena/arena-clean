@@ -237,9 +237,22 @@ $flash = $POP();
     .modal-actions{display:flex;gap:8px;justify-content:flex-end}
     .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:8px;padding:6px 12px;font-weight:800}
     .btn-danger{background:#00c074;border:1px solid #00c074;color:#fff;border-radius:8px;padding:6px 12px;font-weight:800}
+
+    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
+    @media (max-width: 900px){
+      header, .header, #header { display:none !important; }
+    }
   </style>
 </head>
 <body>
+
+<?php
+  // ===== MOBILE ONLY: header + drawer UTENTE (logo+ARENA, saldo+username, menu)
+  // Richiede i file creati prima:
+  // /partials/user_mobile_header.php e /partials/user_mobile_drawer.php
+  require_once $ROOT . '/../partials/user_mobile_header.php';
+  require_once $ROOT . '/../partials/user_mobile_drawer.php';
+?>
 
 <?php require $ROOT . '/header_user.php'; ?>
 
