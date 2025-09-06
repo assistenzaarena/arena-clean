@@ -51,8 +51,24 @@ $matchday  = $torneo['matchday'] ? (int)$torneo['matchday'] : null;
 $round_lbl = $torneo['round_label'] ?? null;
 $current_round_no = (int)($torneo['current_round_no'] ?? 1);
 
-/* === AGGIUNTA: league_id per pulsante “Risolvi ID” === */
+/* === AGGIUNTA: league_id per pulsante “Risolvi ID” + canon list per autocomplete === */
 $league_id_for_map = (int)($torneo['league_id'] ?? 0);
+$canonList = [];
+$canonById = [];
+try {
+  $st = $pdo->prepare("SELECT canon_team_id, display_name FROM admin_team_canon WHERE league_id=? ORDER BY display_name ASC");
+  $st->execute([$league_id_for_map]);
+  $canonList = $st->fetchAll(PDO::FETCH_ASSOC);
+  foreach ($canonList as $c) { $canonById[(int)$c['canon_team_id']] = (string)$c['display_name']; }
+} catch (Throwable $e) { $canonList = []; }
+
+/* mappature esistenti (alias -> canon) per questa lega */
+$aliasMap = [];
+try {
+  $st = $pdo->prepare("SELECT team_id, canon_team_id FROM admin_team_canon_map WHERE league_id=?");
+  $st->execute([$league_id_for_map]);
+  foreach ($st as $r) { $aliasMap[(int)$r['team_id']] = (int)$r['canon_team_id']; }
+} catch (Throwable $e) {}
 
 // =============== POST HANDLER ===============
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -75,73 +91,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // aggiungi fixture da API
-if ($action === 'add_fixture_api') {
-  $fxid = (int)($_POST['fixture_id'] ?? 0);
-  if ($fxid <= 0) { $_SESSION['flash']='Fixture ID non valido.'; header('Location: /admin/torneo_open.php?id='.$id); exit; }
+  if ($action === 'add_fixture_api') {
+    $fxid = (int)($_POST['fixture_id'] ?? 0);
+    if ($fxid <= 0) { $_SESSION['flash']='Fixture ID non valido.'; header('Location: /admin/torneo_open.php?id='.$id); exit; }
 
-  $resp = fb_fixture_by_id($fxid);
-  if (!$resp['ok']) {
-    $_SESSION['flash'] = 'Errore API: '.$resp['error'].' (HTTP '.$resp['status'].')';
+    $resp = fb_fixture_by_id($fxid);
+    if (!$resp['ok']) {
+      $_SESSION['flash'] = 'Errore API: '.$resp['error'].' (HTTP '.$resp['status'].')';
+      header('Location: /admin/torneo_open.php?id='.$id); exit;
+    }
+    $one = fb_extract_one_fixture_minimal($resp['data']);
+    if (!$one || !$one['fixture_id']) {
+      $_SESSION['flash'] = 'Fixture non trovato in API.';
+      header('Location: /admin/torneo_open.php?id='.$id); exit;
+    }
+
+    // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
+    $eventCode = gen_event_code($pdo);
+
+    $pdo->prepare("
+      INSERT IGNORE INTO tournament_events
+        (tournament_id, round_no, fixture_id,
+         home_team_id, home_team_name, away_team_id, away_team_name,
+         kickoff, is_active, pick_locked, result_status, result_at, event_code)
+      VALUES (:tid, :rnd, :fid,
+              :hid, :hname, :aid, :aname,
+              NULL, 1, 0, 'pending', NULL, :ecode)
+    ")->execute([
+      ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
+      ':fid'=>(int)$one['fixture_id'],
+      ':hid'=>$one['home_id'], ':hname'=>$one['home_name'],
+      ':aid'=>$one['away_id'], ':aname'=>$one['away_name'],
+      ':ecode'=>$eventCode,
+    ]);
+
+    $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
-  $one = fb_extract_one_fixture_minimal($resp['data']);
-  if (!$one || !$one['fixture_id']) {
-    $_SESSION['flash'] = 'Fixture non trovato in API.';
-    header('Location: /admin/torneo_open.php?id='.$id); exit;
-  }
-
-  // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
-  $eventCode = gen_event_code($pdo);
-
-  $pdo->prepare("
-    INSERT IGNORE INTO tournament_events
-      (tournament_id, round_no, fixture_id,
-       home_team_id, home_team_name, away_team_id, away_team_name,
-       kickoff, is_active, pick_locked, result_status, result_at, event_code)
-    VALUES (:tid, :rnd, :fid,
-            :hid, :hname, :aid, :aname,
-            NULL, 1, 0, 'pending', NULL, :ecode)
-  ")->execute([
-    ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
-    ':fid'=>(int)$one['fixture_id'],
-    ':hid'=>$one['home_id'], ':hname'=>$one['home_name'],
-    ':aid'=>$one['away_id'], ':aname'=>$one['away_name'],
-    ':ecode'=>$eventCode,
-  ]);
-
-  $_SESSION['flash'] = 'Fixture '.$one['fixture_id'].' aggiunto (API).';
-  header('Location: /admin/torneo_open.php?id='.$id); exit;
-}
 
   // aggiungi evento manuale
-if ($action === 'add_fixture_manual') {
-  $hname = trim($_POST['home_team_name'] ?? '');
-  $aname = trim($_POST['away_team_name'] ?? '');
-  if ($hname === '' || $aname === '') {
-    $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
+  if ($action === 'add_fixture_manual') {
+    $hname = trim($_POST['home_team_name'] ?? '');
+    $aname = trim($_POST['away_team_name'] ?? '');
+    if ($hname === '' || $aname === '') {
+      $_SESSION['flash'] = 'Inserisci nomi squadra casa e trasferta.';
+      header('Location: /admin/torneo_open.php?id='.$id); exit;
+    }
+
+    // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
+    $eventCode = gen_event_code($pdo);
+
+    $pdo->prepare("
+      INSERT INTO tournament_events
+        (tournament_id, round_no, fixture_id,
+         home_team_id, home_team_name, away_team_id, away_team_name,
+         kickoff, is_active, pick_locked, result_status, result_at, event_code)
+      VALUES (:tid, :rnd, NULL,
+              NULL, :hname, NULL, :aname,
+              NULL, 1, 0, 'pending', NULL, :ecode)
+    ")->execute([
+      ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
+      ':hname'=>$hname, ':aname'=>$aname,
+      ':ecode'=>$eventCode,
+    ]);
+
+    $_SESSION['flash'] = 'Evento manuale aggiunto.';
     header('Location: /admin/torneo_open.php?id='.$id); exit;
   }
-
-  // NEW: genera un event_code univoco (tronca alla lunghezza colonna)
-  $eventCode = gen_event_code($pdo);
-
-  $pdo->prepare("
-    INSERT INTO tournament_events
-      (tournament_id, round_no, fixture_id,
-       home_team_id, home_team_name, away_team_id, away_team_name,
-       kickoff, is_active, pick_locked, result_status, result_at, event_code)
-    VALUES (:tid, :rnd, NULL,
-            NULL, :hname, NULL, :aname,
-            NULL, 1, 0, 'pending', NULL, :ecode)
-  ")->execute([
-    ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
-    ':hname'=>$hname, ':aname'=>$aname,
-    ':ecode'=>$eventCode,
-  ]);
-
-  $_SESSION['flash'] = 'Evento manuale aggiunto.';
-  header('Location: /admin/torneo_open.php?id='.$id); exit;
-}
 
   // toggle attivo/disattivo
   if ($action === 'toggle_event_active') {
@@ -244,6 +260,16 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     .muted{color:#aaa}
     .row-actions{display:flex; gap:8px}
     .banner-admin{background:#6a0000;color:#fff;padding:10px;border-radius:8px;margin-bottom:12px}
+    /* Badge/avvisi canon */
+    .badge { display:inline-block; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:800; }
+    .badge--warn { background:#332400; color:#ffc400; border:1px solid rgba(255,196,0,.45); }
+    .cell-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .cell-actions form { margin:0; display:inline-flex; gap:6px; align-items:center; }
+    select.canon-quick, input.canon-quick { height:32px; border:1px solid rgba(255,255,255,.25); border-radius:8px; background:#0a0a0b; color:#fff; padding:0 8px; }
+    /* Toast */
+    #toast { position:fixed; right:16px; bottom:16px; background:#111; color:#fff; border:1px solid rgba(255,255,255,.16); border-radius:10px; padding:10px 12px; display:none; z-index:9999; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+    #toast.ok { border-color:#00c074; }
+    #toast.err { border-color:#e62329; }
   </style>
   <!-- ESPONGO CSRF PER L'ESEMPIO AJAX -->
   <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
@@ -296,21 +322,31 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
             <th>ID</th>
             <th>Fixture ID</th>
             <th>Partita</th>
+            <th>Canon</th>
             <th>Scelte abilitate</th>
             <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($events as $e): ?>
+            <?php
+              $homeRaw = (int)($e['home_team_id'] ?? 0);
+              $awayRaw = (int)($e['away_team_id'] ?? 0);
+              $homeCanon = $homeRaw ? ($aliasMap[$homeRaw] ?? null) : null;
+              $awayCanon = $awayRaw ? ($aliasMap[$awayRaw] ?? null) : null;
+              $homeName = (string)($e['home_team_name'] ?? '??');
+              $awayName = (string)($e['away_team_name'] ?? '??');
+              $hasCanonIssue = (!$homeCanon && $homeRaw>0) || (!$awayCanon && $awayRaw>0);
+            ?>
             <tr>
               <td><?php echo (int)$e['id']; ?></td>
               <td><?php echo $e['fixture_id'] ? (int)$e['fixture_id'] : '-'; ?></td>
               <td>
                 <div style="display:flex;flex-direction:column;gap:2px">
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span><?php echo htmlspecialchars($e['home_team_name'] ?? '??'); ?></span>
+                    <span><?php echo htmlspecialchars($homeName); ?></span>
                     <?php if ((int)($e['home_team_id'] ?? 0) <= 0): ?>
-                      <span style="background:#ffba00;color:#111;font-weight:900;border-radius:999px;padding:2px 8px;font-size:11px;">ID mancante</span>
+                      <span class="badge badge--warn" title="ID team mancante">ID mancante</span>
                       <button
                         type="button"
                         class="btn js-resolve-id"
@@ -318,15 +354,15 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
                         data-side="home"
                         data-tid="<?php echo (int)$torneo['id']; ?>"
                         data-league="<?php echo (int)$league_id_for_map; ?>"
-                        data-name="<?php echo htmlspecialchars($e['home_team_name'] ?? '', ENT_QUOTES); ?>"
+                        data-name="<?php echo htmlspecialchars($homeName, ENT_QUOTES); ?>"
                         style="height:26px;padding:0 10px;border-radius:6px;"
                       >Risolvi ID</button>
                     <?php endif; ?>
                   </div>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span><?php echo htmlspecialchars($e['away_team_name'] ?? '??'); ?></span>
+                    <span><?php echo htmlspecialchars($awayName); ?></span>
                     <?php if ((int)($e['away_team_id'] ?? 0) <= 0): ?>
-                      <span style="background:#ffba00;color:#111;font-weight:900;border-radius:999px;padding:2px 8px;font-size:11px;">ID mancante</span>
+                      <span class="badge badge--warn" title="ID team mancante">ID mancante</span>
                       <button
                         type="button"
                         class="btn js-resolve-id"
@@ -334,15 +370,67 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
                         data-side="away"
                         data-tid="<?php echo (int)$torneo['id']; ?>"
                         data-league="<?php echo (int)$league_id_for_map; ?>"
-                        data-name="<?php echo htmlspecialchars($e['away_team_name'] ?? '', ENT_QUOTES); ?>"
+                        data-name="<?php echo htmlspecialchars($awayName, ENT_QUOTES); ?>"
                         style="height:26px;padding:0 10px;border-radius:6px;"
                       >Risolvi ID</button>
                     <?php endif; ?>
                   </div>
                 </div>
               </td>
+
+              <td>
+                <!-- vista canon sintetica + quick map per ciascun lato che manca -->
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <!-- HOME -->
+                  <div>
+                    <div class="muted" style="font-size:11px;">Casa</div>
+                    <?php if ($homeRaw>0): ?>
+                      <?php if ($homeCanon): ?>
+                        #<?php echo (int)$homeCanon; ?> — <?php echo htmlspecialchars($canonById[$homeCanon] ?? $homeName); ?>
+                      <?php else: ?>
+                        <form method="post" action="/admin/map_alias_quick.php" class="cell-map">
+                          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                          <input type="hidden" name="league_id" value="<?php echo (int)$league_id_for_map; ?>">
+                          <input type="hidden" name="team_id" value="<?php echo (int)$homeRaw; ?>">
+                          <!-- input con datalist: value = canon_id -->
+                          <input class="canon-quick" list="canonListDL" name="canon_team_id" placeholder="ID canon" style="width:160px;">
+                          <button class="btn" type="submit">Mappa</button>
+                        </form>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <span class="muted">—</span>
+                    <?php endif; ?>
+                  </div>
+
+                  <!-- AWAY -->
+                  <div>
+                    <div class="muted" style="font-size:11px;">Trasferta</div>
+                    <?php if ($awayRaw>0): ?>
+                      <?php if ($awayCanon): ?>
+                        #<?php echo (int)$awayCanon; ?> — <?php echo htmlspecialchars($canonById[$awayCanon] ?? $awayName); ?>
+                      <?php else: ?>
+                        <form method="post" action="/admin/map_alias_quick.php" class="cell-map">
+                          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+                          <input type="hidden" name="league_id" value="<?php echo (int)$league_id_for_map; ?>">
+                          <input type="hidden" name="team_id" value="<?php echo (int)$awayRaw; ?>">
+                          <input class="canon-quick" list="canonListDL" name="canon_team_id" placeholder="ID canon" style="width:160px;">
+                          <button class="btn" type="submit">Mappa</button>
+                        </form>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <span class="muted">—</span>
+                    <?php endif; ?>
+                  </div>
+
+                  <?php if ($hasCanonIssue): ?>
+                    <a class="btn" href="/admin/squadre_lega.php?league_id=<?php echo (int)$league_id_for_map; ?>">Risolvi ID</a>
+                  <?php endif; ?>
+                </div>
+              </td>
+
               <td><?php echo ((int)$e['is_active']===1) ? 'Sì' : 'No'; ?></td>
-              <td class="row-actions">
+
+              <td class="row-actions cell-actions">
                 <form method="post" action="" style="display:inline">
                   <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
                   <input type="hidden" name="action" value="toggle_event_active">
@@ -423,23 +511,23 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     </form>
   </div>
 
-    <div class="card">
+  <div class="card">
     <h3 style="margin:0 0 10px;">Chiusura torneo</h3>
     <p class="muted" style="margin:0 0 10px;">
       Usa questo pulsante solo quando il torneo deve terminare:
       - se resta 1 solo sopravvissuto → 100% del montepremi a lui;<br>
       - se non resta nessuno → distribuzione proporzionale.
     </p>
-<form method="POST" action="/admin/close_tournament.php"
-      onsubmit="return confirm('Confermi chiusura e payout (split automatico se più sopravvissuti)?');"
-      style="margin-top:12px;">
-  <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
-  <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
-  <input type="hidden" name="force" value="1"> <!-- <<< AGGIUNTA: forza split automatico -->
-  <button class="btn" type="submit" style="background:#0a7;border:1px solid #0a7;color:#fff;">
-    Chiudi torneo &amp; paga (forza split)
-  </button>
-</form>
+    <form method="POST" action="/admin/close_tournament.php"
+          onsubmit="return confirm('Confermi chiusura e payout (split automatico se più sopravvissuti)?');"
+          style="margin-top:12px;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($_SESSION['csrf'] ?? ''); ?>">
+      <input type="hidden" name="tournament_id" value="<?php echo (int)$id; ?>">
+      <input type="hidden" name="force" value="1"> <!-- <<< AGGIUNTA: forza split automatico -->
+      <button class="btn" type="submit" style="background:#0a7;border:1px solid #0a7;color:#fff;">
+        Chiudi torneo &amp; paga (forza split)
+      </button>
+    </form>
   </div>
 
   <div>
@@ -447,10 +535,26 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
   </div>
 </div>
 
+<!-- Datalist canon per l’autocomplete nei quick-map -->
+<datalist id="canonListDL">
+  <?php foreach ($canonList as $c): ?>
+    <option value="<?php echo (int)$c['canon_team_id']; ?>"><?php echo htmlspecialchars($c['display_name']); ?></option>
+  <?php endforeach; ?>
+</datalist>
+
 <!-- =========================
-     (AGGIUNTA 2) Helper AJAX: calcolo round + popup + redirect
+     Helper AJAX: calcolo round + toast + redirect
      ========================= -->
+<div id="toast"></div>
 <script>
+  function showToast(msg, kind){
+    var t = document.getElementById('toast'); if(!t) return;
+    t.className = ''; t.classList.add(kind==='err'?'err':'ok');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function(){ t.style.display='none'; }, 3500);
+  }
+
   (function(){
     const form = document.getElementById('calc-round-form');
     if(!form) return;
@@ -461,41 +565,132 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
         const resp = await fetch('/admin/calc_round.php', { method:'POST', body: fd, credentials:'same-origin' });
         const js = await resp.json();
         if(!js || js.ok !== true){
-          alert(js && js.msg ? js.msg : 'Errore nel calcolo round');
+          showToast(js && js.msg ? js.msg : 'Errore nel calcolo round','err');
           return;
         }
         const nextMsg = (js.closed ? 'Torneo chiuso.' : ('Si passa al round ' + (js.round + 1) + (js.next_round_loaded===false ? ' (attenzione: eventi non caricati)' : '')));
-        alert(`Calcolo round ${js.round} effettuato. ${nextMsg}`);
-        // redirect alla stessa pagina (ora dovrebbe mostrare round incrementato e, se preload fallito, banner admin)
-        window.location.href = '/admin/torneo_open.php?id=<?php echo (int)$id; ?>';
+        showToast('Calcolo round '+js.round+' effettuato. '+nextMsg,'ok');
+        setTimeout(function(){
+          window.location.href = '/admin/torneo_open.php?id=<?php echo (int)$id; ?>';
+        }, 1200);
       }catch(err){
-        alert('Errore di rete durante il calcolo round');
+        showToast('Errore di rete durante il calcolo round','err');
       }
     });
   })();
 
-  // Esempio opzionale: aggiorna risultato via fetch senza ricaricare (lasciato invariato)
-  function aggiornaRisultato(tid, evId, outcome) {
-    fetch('/admin/set_event_result.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'csrf='+encodeURIComponent(window.CSRF)
-          +'&tournament_id='+encodeURIComponent(tid)
-          +'&event_id='+encodeURIComponent(evId)
-          +'&result_status='+encodeURIComponent(outcome)
-    })
-    .then(r=>r.json())
-    .then(js=>{
-      if(js && js.ok){ alert('Risultato aggiornato'); }
-      else{ alert('Errore: '+(js && js.error ? js.error : 'sconosciuto')); }
-    })
-    .catch(()=>alert('Errore di rete'));
-  }
+  // Modal “Risolvi ID” (richiede /admin/api/resolve_team_id.php come nei passi precedenti)
+  (function(){
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]; }); }
+
+    var modal  = document.getElementById('resolveModal');
+    var info   = document.getElementById('rvInfo');
+    var inId   = document.getElementById('rvManualId');
+    var inQ    = document.getElementById('rvSearch');
+    var btnAsk = document.getElementById('rvAsk');
+    var btnApply = document.getElementById('rvApplyManual');
+    var btnClose = document.getElementById('rvClose');
+    var boxSug = document.getElementById('rvSuggest');
+
+    if(!modal) return; // se non hai ancora creato resolve_team_id.php puoi ignorare
+
+    var ctx = { tid:0, ev:0, side:'home', league:0, name:'' };
+
+    function openModal(data){
+      ctx = data || ctx;
+      info.textContent = 'Torneo #'+ctx.tid+' — Evento #'+ctx.ev+' — Lato: '+ctx.side.toUpperCase()+' — Nome: "'+ctx.name+'"';
+      inId.value = '';
+      inQ.value = ctx.name || '';
+      boxSug.innerHTML = ''; boxSug.style.display = 'none';
+      modal.style.display = 'flex';
+    }
+    function closeModal(){ modal.style.display = 'none'; }
+
+    Array.prototype.slice.call(document.querySelectorAll('.js-resolve-id')).forEach(function(b){
+      b.addEventListener('click', function(){
+        openModal({
+          tid:    parseInt(b.getAttribute('data-tid'),10),
+          ev:     parseInt(b.getAttribute('data-ev'),10),
+          side:   (b.getAttribute('data-side')||'home'),
+          league: parseInt(b.getAttribute('data-league'),10),
+          name:   b.getAttribute('data-name')||''
+        });
+      });
+    });
+
+    btnAsk && btnAsk.addEventListener('click', function(){
+      var q = (inQ.value||'').trim();
+      if (!q) return;
+      boxSug.innerHTML = 'Carico...'; boxSug.style.display='block';
+
+      fetch('/admin/api/resolve_team_id.php?action=suggest'
+        + '&tournament_id='+encodeURIComponent(ctx.tid)
+        + '&league_id='+encodeURIComponent(ctx.league)
+        + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(js => {
+        if (!js || !js.ok) { boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>'; return; }
+        if (!js.suggestions || !js.suggestions.length) { boxSug.innerHTML = '<div style="color:#aaa;">Nessun suggerimento.</div>'; return; }
+        boxSug.innerHTML = js.suggestions.map(function(s){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);">'
+            + '<div><b>'+escapeHtml(s.name)+'</b> <span style="color:#aaa;">(ID '+s.team_id+')</span></div>'
+            + '<button class="btn btn-apply-sug" data-id="'+s.team_id+'" style="height:28px;">Usa ID</button>'
+          + '</div>';
+        }).join('');
+        Array.prototype.slice.call(boxSug.querySelectorAll('.btn-apply-sug')).forEach(function(x){
+          x.addEventListener('click', function(){
+            applyId(parseInt(x.getAttribute('data-id'),10));
+          });
+        });
+      }).catch(function(){ boxSug.innerHTML = '<div style="color:#ff7076;">Errore richiesta.</div>'; });
+    });
+
+    btnApply && btnApply.addEventListener('click', function(){
+      var val = parseInt(inId.value, 10);
+      if (!val || val<=0) { inId.focus(); return; }
+      applyId(val);
+    });
+
+    function applyId(teamId){
+      var fd = new FormData();
+      fd.append('tournament_id', String(ctx.tid));
+      fd.append('event_id', String(ctx.ev));
+      fd.append('side', ctx.side);
+      fd.append('team_id', String(teamId));
+      fetch('/admin/api/resolve_team_id.php', { method:'POST', body:fd, credentials:'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .then(js => {
+          if (!js || !js.ok) { showToast('Errore salvataggio ID', 'err'); return; }
+          window.location.reload();
+        })
+        .catch(function(){ showToast('Errore di rete', 'err'); });
+    }
+
+    btnClose && btnClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+  })();
+
+  // Preselezione/suggerimento automatico nel quick-select: normalizza nome e prova a trovare match
+  (function(){
+    function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim(); }
+    var dict = {};
+    <?php foreach ($canonList as $c): ?>
+      dict["<?php echo (int)$c['canon_team_id']; ?>"] = "<?php echo htmlspecialchars($c['display_name']); ?>";
+    <?php endforeach; ?>
+
+    // per ogni cella con ID mancante, prova ad impostare il valore del datalist se il nome matcha esattamente
+    Array.prototype.slice.call(document.querySelectorAll('form.cell-map')).forEach(function(f){
+      var input = f.querySelector('input[list="canonListDL"]');
+      if(!input) return;
+      // il nome è nel bottone “Risolvi ID” vicino — usato solo come fallback
+      var wrap = f.closest('td');
+      // niente pre-fill invadente qui; lasciamo l’admin libero. (Se vuoi: cerca matching in dict con norm)
+    });
+  })();
 </script>
 
 <!-- =========================
-     (AGGIUNTA 3) Modal “Risolvi ID” + JS
+     Modal “Risolvi ID” (re-usable)
      ========================= -->
 <div id="resolveModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; padding:16px;">
   <div style="background:#0f1114; border:1px solid rgba(255,255,255,.15); border-radius:12px; color:#fff; width:560px; max-width:calc(100vw - 32px); padding:16px;">
@@ -521,100 +716,6 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
     </div>
   </div>
 </div>
-
-<script>
-(function(){
-  var modal  = document.getElementById('resolveModal');
-  var info   = document.getElementById('rvInfo');
-  var inId   = document.getElementById('rvManualId');
-  var inQ    = document.getElementById('rvSearch');
-  var btnAsk = document.getElementById('rvAsk');
-  var btnApply = document.getElementById('rvApplyManual');
-  var btnClose = document.getElementById('rvClose');
-  var boxSug = document.getElementById('rvSuggest');
-
-  var ctx = { tid:0, ev:0, side:'home', league:0, name:'' };
-
-  function openModal(data){
-    ctx = data || ctx;
-    info.textContent = 'Torneo #'+ctx.tid+' — Evento #'+ctx.ev+' — Lato: '+ctx.side.toUpperCase()+' — Nome: "'+ctx.name+'"';
-    inId.value = '';
-    inQ.value = ctx.name || '';
-    boxSug.innerHTML = ''; boxSug.style.display = 'none';
-    modal.style.display = 'flex';
-  }
-  function closeModal(){ modal.style.display = 'none'; }
-
-  // Click su "Risolvi ID"
-  Array.prototype.slice.call(document.querySelectorAll('.js-resolve-id')).forEach(function(b){
-    b.addEventListener('click', function(){
-      openModal({
-        tid:    parseInt(b.getAttribute('data-tid'),10),
-        ev:     parseInt(b.getAttribute('data-ev'),10),
-        side:   (b.getAttribute('data-side')||'home'),
-        league: parseInt(b.getAttribute('data-league'),10),
-        name:   b.getAttribute('data-name')||''
-      });
-    });
-  });
-
-  // Chiede suggerimenti (match sui nomi già visti nel torneo)
-  btnAsk.addEventListener('click', function(){
-    var q = (inQ.value||'').trim();
-    if (!q) return;
-    boxSug.innerHTML = 'Carico...'; boxSug.style.display='block';
-
-    fetch('/admin/api/resolve_team_id.php?action=suggest'
-      + '&tournament_id='+encodeURIComponent(ctx.tid)
-      + '&league_id='+encodeURIComponent(ctx.league)
-      + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
-    .then(r => r.ok ? r.json() : null)
-    .then(js => {
-      if (!js || !js.ok) { boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>'; return; }
-      if (!js.suggestions || !js.suggestions.length) { boxSug.innerHTML = '<div style="color:#aaa;">Nessun suggerimento.</div>'; return; }
-      boxSug.innerHTML = js.suggestions.map(function(s){
-        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);">'
-          + '<div><b>'+escapeHtml(s.name)+'</b> <span style="color:#aaa;">(ID '+s.team_id+')</span></div>'
-          + '<button class="btn btn-apply-sug" data-id="'+s.team_id+'" style="height:28px;">Usa ID</button>'
-        + '</div>';
-      }).join('');
-      Array.prototype.slice.call(boxSug.querySelectorAll('.btn-apply-sug')).forEach(function(x){
-        x.addEventListener('click', function(){
-          applyId(parseInt(x.getAttribute('data-id'),10));
-        });
-      });
-    }).catch(function(){ boxSug.innerHTML = '<div style="color:#ff7076;">Errore richiesta.</div>'; });
-  });
-
-  // Applica ID manuale
-  btnApply.addEventListener('click', function(){
-    var val = parseInt(inId.value, 10);
-    if (!val || val<=0) { inId.focus(); return; }
-    applyId(val);
-  });
-
-  // Salva su server
-  function applyId(teamId){
-    var fd = new FormData();
-    fd.append('tournament_id', String(ctx.tid));
-    fd.append('event_id', String(ctx.ev));
-    fd.append('side', ctx.side);
-    fd.append('team_id', String(teamId));
-    fetch('/admin/api/resolve_team_id.php', { method:'POST', body:fd, credentials:'same-origin' })
-      .then(r => r.ok ? r.json() : null)
-      .then(js => {
-        if (!js || !js.ok) { alert('Errore: '+(js && js.error ? js.error : 'generico')); return; }
-        window.location.reload();
-      })
-      .catch(function(){ alert('Errore di rete.'); });
-  }
-
-  btnClose.addEventListener('click', closeModal);
-  modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
-
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]; }); }
-})();
-</script>
 
 </body>
 </html>
