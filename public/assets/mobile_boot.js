@@ -108,7 +108,7 @@ bar.querySelector('.mExit')?.addEventListener('click', (e) => {
             <div class="mdr-section">
               <h4>Account</h4>
               <div class="mdr-list">
-                <div class="mdr-muted">Saldo: <strong id="mobileCredits2">${userCredits || '0'}</strong> crediti</div>
+                <div class="mdr-muted saldo-label">Saldo: <strong id="mobileCredits2">${userCredits || '0'}</strong> crediti</div>
                 <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
                 <form method="post" action="/logout.php" class="mdr-actions">
                   <button type="submit" class="btn-ghost">Logout</button>
