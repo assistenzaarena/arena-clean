@@ -2,7 +2,7 @@
 // /partials/guest_mobile_header.php
 // Dati base per i link login/registrazione
 $LOGIN_URL = '/login.php';
-$REGISTER_URL = '/register.php';
+$REGISTER_URL = '/registrazione.php';
 ?>
 <link rel="stylesheet" href="/assets/guest_mobile.css">
 <meta name="viewport" content="width=device-width, initial-scale=1">
