@@ -22,37 +22,37 @@
   const userName    = isUser ? (document.querySelector('.user-display__name')?.textContent || '').trim() : '';
   const userCredits = isUser ? (document.getElementById('headerCrediti')?.textContent || '').trim() : '';
 
-// AppBar
-const bar = document.createElement('div');
-bar.id = 'mobileAppBar';
+  // AppBar
+  const bar = document.createElement('div');
+  bar.id = 'mobileAppBar';
 
-const exitHref = '/'; // se preferisci: '/home_guest.php' (metti qui il path reale valido su guest)
-bar.innerHTML = `
-  <a class="mBrand" href="/">
-    <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
-  </a>
-  <div class="mRight">
-    ${
-      isAuth
-        // Pagine auth (login/registrazione): usa la testata login → link Esci che torna alla home guest
-        ? `<a href="${exitHref}" class="mExit">Esci</a>`
-        : (isUser
-            // Utente loggato: Ricarica + username (logout è nel drawer come POST)
-            ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
-            // Guest: Registrati + Accedi
-            : `<a class="mRegister" href="/registrazione.php">Registrati</a>
-               <a class="mLogin" href="/login.php">Accedi</a>`
-          )
-    }
-    <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
-  </div>
-`;
-document.body.prepend(bar);
+  const exitHref = '/'; // se preferisci: '/home_guest.php' (metti qui il path reale valido su guest)
+  bar.innerHTML = `
+    <a class="mBrand" href="/">
+      <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
+    </a>
+    <div class="mRight">
+      ${
+        isAuth
+          // Pagine auth (login/registrazione): usa la testata login → link Esci che torna alla home guest
+          ? `<a href="${exitHref}" class="mExit">Esci</a>`
+          : (isUser
+              // Utente loggato: Ricarica + username (logout è nel drawer come POST)
+              ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
+              // Guest: Registrati + Accedi
+              : `<a class="mRegister" href="/registrazione.php">Registrati</a>
+                 <a class="mLogin" href="/login.php">Accedi</a>`
+            )
+      }
+      <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
+    </div>
+  `;
+  document.body.prepend(bar);
 
-// Evita che qualcosa “mangi” il click su Esci (es. overlay)
-bar.querySelector('.mExit')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-}, { passive: true });
+  // Evita che qualcosa “mangi” il click su Esci (es. overlay)
+  bar.querySelector('.mExit')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  }, { passive: true });
 
   // Drawer + backdrop
   const backdrop = document.createElement('div');
@@ -108,7 +108,11 @@ bar.querySelector('.mExit')?.addEventListener('click', (e) => {
             <div class="mdr-section">
               <h4>Account</h4>
               <div class="mdr-list">
-                <div class="mdr-muted saldo-label">Saldo: <strong id="mobileCredits2">${userCredits || '0'}</strong> crediti</div>
+                <div class="mdr-muted">
+                  <span class="saldo-label">Saldo:</span>
+                  <strong id="mobileCredits2">${userCredits || '0'}</strong>
+                  <span class="saldo-unit">crediti</span>
+                </div>
                 <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
                 <form method="post" action="/logout.php" class="mdr-actions">
                   <button type="submit" class="btn-ghost">Logout</button>
