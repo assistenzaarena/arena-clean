@@ -1,7 +1,7 @@
 <?php
 /**
  * public/torneo.php
- * Pagina singolo torneo (con pulsante Disiscriviti e popup conferma).
+ * Pagina singolo torneo (con pulsante Disiscrivi e popup conferma).
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
@@ -91,6 +91,16 @@ try {
 } catch (Throwable $e) {
   $events = [];
 }
+
+// === SOLO PER CANON ID (minimo indispensabile) ===
+$leagueIdForCanon = (int)($torneo['league_id'] ?? 0);
+// preparo uno statement riutilizzabile: (league_id, team_id) -> canon_team_id
+$canonMapStmt = $pdo->prepare("
+  SELECT canon_team_id
+  FROM admin_team_canon_map
+  WHERE league_id = ? AND team_id = ?
+  LIMIT 1
+");
 
 /* Helpers per logo/iniziali ——— (MODIFICA) mappa alias → slug file presenti in /assets/logos/ */
 function team_slug(string $name): string {
@@ -397,11 +407,6 @@ section{
         <div class="muted">Qui mostreremo le partite/round (Step successivi).</div>
       <?php else: ?>
         <div class="events-grid">
-          <?php
-            // === SOLO PER CANON ID (minimo indispensabile) ===
-            $leagueIdForCanon = (int)($torneo['league_id'] ?? 0);
-            $canonMapStmt = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id = ? AND team_id = ? LIMIT 1");
-          ?>
           <?php foreach ($events as $ev): ?>
             <?php
               $hn = trim($ev['home_team_name'] ?? 'Casa');
@@ -427,43 +432,41 @@ section{
                 if ($c !== false && $c !== null) { $awayCanonId = (int)$c; }
               }
             ?>
-            <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
-  <!-- (MODIFICA RICHIESTA) aggiunto data-event-id -->
-<div class="event-card"
-     data-event-id="<?php echo (int)$ev['id']; ?>"
-     data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
-     data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
+  <div class="event-card"
+       data-event-id="<?php echo (int)$ev['id']; ?>"
+       data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
+       data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
 
-  <div class="ec-team team-side"
-       data-side="home"
-       data-team-id="<?php echo $homeCanonId; ?>"
-       title="Seleziona casa">
-    <span class="logo-wrap">
-      <img class="team-logo"
-           src="<?php echo htmlspecialchars($hLogo); ?>"
-           alt="<?php echo htmlspecialchars($hn); ?>"
-           onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
-      <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
-    </span>
-    <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+    <div class="ec-team team-side"
+         data-side="home"
+         data-team-id="<?php echo $homeCanonId; ?>"
+         title="Seleziona casa">
+      <span class="logo-wrap">
+        <img class="team-logo"
+             src="<?php echo htmlspecialchars($hLogo); ?>"
+             alt="<?php echo htmlspecialchars($hn); ?>"
+             onerror="this.style.display='none'; this.parentNode.querySelector('.initials-home').style.display='inline-flex';">
+        <span class="team-initials initials-home"><?php echo htmlspecialchars($hIni); ?></span>
+      </span>
+      <span class="team-name"><?php echo htmlspecialchars($hn); ?></span>
+    </div>
+
+    <div class="ec-vs">VS</div>
+
+    <div class="ec-team team-side"
+         data-side="away"
+         data-team-id="<?php echo $awayCanonId; ?>"
+         title="Seleziona trasferta">
+      <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
+      <span class="logo-wrap">
+        <img class="team-logo"
+             src="<?php echo htmlspecialchars($aLogo); ?>"
+             alt="<?php echo htmlspecialchars($an); ?>"
+             onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
+        <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
+      </span>
+    </div>
   </div>
-
-  <div class="ec-vs">VS</div>
-
-  <div class="ec-team team-side"
-       data-side="away"
-       data-team-id="<?php echo $awayCanonId; ?>"
-       title="Seleziona trasferta">
-    <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
-    <span class="logo-wrap">
-      <img class="team-logo"
-           src="<?php echo htmlspecialchars($aLogo); ?>"
-           alt="<?php echo htmlspecialchars($an); ?>"
-           onerror="this.style.display='none'; this.parentNode.querySelector('.initials-away').style.display='inline-flex';">
-      <span class="team-initials initials-away"><?php echo htmlspecialchars($aIni); ?></span>
-    </span>
-  </div>
-</div>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
