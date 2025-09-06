@@ -32,9 +32,10 @@
     <div class="mRight">
 ${isUser
   ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
-  : `<a class="mLogin" href="/login.php">Accedi</a>`
+  : `<a class="mRegister" href="/registrazione.php">Registrati</a>
+     <a class="mLogin" href="/login.php">Accedi</a>`
 }
-      <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
+<button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
     </div>
   `;
   document.body.prepend(bar);
