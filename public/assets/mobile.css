@@ -153,4 +153,18 @@
     background:#00c074; border:1px solid #00c074; color:#04140c;
     border-radius:9999px; padding:6px 12px; font-weight:900; text-decoration:none;
   }
+/* Bottone Esci (topbar auth): ovale, bordo e testo bianco */
+.mExit{
+  display:inline-block;
+  padding:6px 16px;
+  font-size:14px;
+  font-weight:700;
+  border-radius:9999px;
+  border:1px solid #fff;
+  background:transparent;
+  color:#fff !important;
+  text-decoration:none;
+}
+.mExit:hover{ background:rgba(255,255,255,.12); }
+
 }
