@@ -32,29 +32,36 @@ require_once $ROOT . '/header_guest.php';
 </head>
 <body>
 <?php
-// == DIAGNOSTICA & INCLUDE ROBUSTO ==
-function _inc_partial($fname){
+// == INCLUDE MOBILE GUEST con ricerca automatica ==
+function include_guest_partial($fname){
+  // 1) tentativi diretti più comuni
   $tries = [
-    __DIR__ . '/arena-clean/partials/' . $fname,   // se partial sta in /var/www/html/arena-clean/partials
-    __DIR__ . '/partials/' . $fname,               // se sta direttamente in /var/www/html/partials
-    __DIR__ . '/public/arena-clean/partials/' . $fname,
+    __DIR__ . '/partials/' . $fname,                 // /var/www/html/partials/...
+    __DIR__ . '/arena-clean/partials/' . $fname,     // /var/www/html/arena-clean/partials/...
+    __DIR__ . '/../partials/' . $fname,              // se il file fosse in /public
     __DIR__ . '/../arena-clean/partials/' . $fname,
-    (__DIR__ . '/../partials/' . $fname),
   ];
+
+  // 2) glob per cartelle tipo "arena-clean-main", "arena-clean-main (22)", ecc.
+  foreach (glob(__DIR__.'/*/partials/'.$fname) as $p) { $tries[] = $p; }
+  foreach (glob(__DIR__.'/../*/partials/'.$fname) as $p) { $tries[] = $p; }
+
+  // 3) include il primo che esiste
   foreach ($tries as $p) {
     if (is_file($p)) { require_once $p; return true; }
   }
-  // stampa diagnostica (temporanea)
+
+  // 4) fallback: messaggio non fatale (così la pagina non crasha)
   echo '<pre style="color:#ff7076;background:#200;padding:8px;border-radius:6px">';
   echo "Partial NON trovato: {$fname}\n";
-  echo "Sto eseguendo da __DIR__ = " . __DIR__ . "\n";
-  echo "Ho provato:\n - " . implode("\n - ", $tries) . "</pre>";
+  echo "Eseguito da: " . __DIR__ . "\n";
+  echo "Tentativi:\n - " . implode("\n - ", $tries) . "</pre>";
   return false;
 }
 
-// header + drawer (guest)
-_inc_partial('guest_mobile_header.php');
-_inc_partial('guest_mobile_drawer.php');
+// Usa la funzione per header + drawer
+include_guest_partial('guest_mobile_header.php');
+include_guest_partial('guest_mobile_drawer.php');
 ?>
 
   <div class="hero">
