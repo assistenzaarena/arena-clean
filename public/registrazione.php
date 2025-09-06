@@ -214,11 +214,31 @@ $ins->execute([
     /* [RIGA] Micro differenza: titolo e bottone "Registrati" */
     .auth__submit { background:#00c074; }       /* verde */
 .auth__submit:hover { background:#00a862; }
+
+    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
+    @media (max-width: 900px){
+      header, .header, #header { display:none !important; }
+    }
   </style>
 </head>
 <body>
 
 <?php require __DIR__ . '/header_login.php'; ?><!-- [RIGA] Header minimal login -->
+
+<?php
+  // ===== MOBILE ONLY: header + drawer guest (logo+ARENA, Accedi, menu)
+  // Richiede i file creati prima:
+  // /partials/guest_mobile_header.php e /partials/guest_mobile_drawer.php
+  require __DIR__ . '/../partials/guest_mobile_header.php';
+
+  // (opzionale) Subheader guest per il drawer; se hai un file di config centrale, sostituisci con require.
+  $GUEST_SUBNAV = [
+    ['label'=>'Home',   'href'=>'/'],
+    ['label'=>'Tornei', 'href'=>'/tornei.php'],
+    ['label'=>'Promo',  'href'=>'/promo.php'],
+  ];
+  require __DIR__ . '/../partials/guest_mobile_drawer.php';
+?>
 
 <main class="auth"><!-- [RIGA] Wrapper layout verticale già usato dalla login -->
 
