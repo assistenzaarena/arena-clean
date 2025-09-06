@@ -1,5 +1,6 @@
 <!-- Header guest: sfondo nero, logo a sinistra, azioni a destra -->
 <link rel="stylesheet" href="/assets/header_guest.css">
+<link rel="stylesheet" href="/assets/mobile_guest_global.css">
 
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
@@ -26,3 +27,11 @@
     </ul>
   </div>
 </nav>
+<?php
+// Include una sola volta i componenti mobile per TUTTE le pagine guest
+if (!defined('ARENA_MOBILE_GUEST_INCLUDED')) {
+  define('ARENA_MOBILE_GUEST_INCLUDED', 1);
+  require __DIR__ . '/public/partials/guest_mobile_header.php';
+  require __DIR__ . '/public/partials/guest_mobile_drawer.php';
+}
+?>
