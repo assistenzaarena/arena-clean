@@ -92,7 +92,13 @@ function safeCode(array $t){
   <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>
 </head>
 <body>
+<?php
+  // Se hai una definizione condivisa della subheader guest, importala qui:
+  // $GUEST_SUBNAV = require $_SERVER['DOCUMENT_ROOT'].'/src/config/nav_guest.php'; // opzionale
 
+  require $_SERVER['DOCUMENT_ROOT'].'/partials/guest_mobile_header.php';
+  require $_SERVER['DOCUMENT_ROOT'].'/partials/guest_mobile_drawer.php';
+?>
 <?php
 $headerPath = $ROOT . '/header_user.php';
 if (file_exists($headerPath)) { require $headerPath; }
