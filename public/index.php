@@ -3,9 +3,9 @@
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-$ROOT = dirname(__DIR__); // /var/www/html
+$ROOT = __DIR__; // <-- punta a /var/www/html
 
-// Header guest
+// Header guest (assicurati che il file esista in /var/www/html/header_guest.php)
 require_once $ROOT . '/header_guest.php';
 ?>
 <!doctype html>
@@ -16,9 +16,8 @@ require_once $ROOT . '/header_guest.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/base.css">
   <style>
-    /* Hero minimale (centra il contenuto) */
     .hero{
-      min-height: calc(100vh - 160px); /* lascia spazio al footer */
+      min-height: calc(100vh - 160px);
       display:flex; align-items:center; justify-content:center;
       text-align:center; padding: 24px;
     }
@@ -36,12 +35,12 @@ require_once $ROOT . '/header_guest.php';
   </div>
 
 <?php
-// Footer (sceglie quello che hai)
-$footerPath = file_exists($ROOT . '/footer_public.php')
-  ? $ROOT . '/footer_public.php'
-  : (file_exists($ROOT . '/footer.php') ? $ROOT . '/footer.php' : null);
-
-if ($footerPath) { require_once $footerPath; }
+// Footer
+if (file_exists($ROOT . '/footer_public.php')) {
+  require_once $ROOT . '/footer_public.php';
+} elseif (file_exists($ROOT . '/footer.php')) {
+  require_once $ROOT . '/footer.php';
+}
 ?>
 </body>
 </html>
