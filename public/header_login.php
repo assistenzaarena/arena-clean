@@ -3,6 +3,8 @@
 //         Logo a sinistra, a destra un solo tasto "Esci" che riporta alla home guest.
 ?>
 <link rel="stylesheet" href="/assets/header_login.css">
+<link rel="stylesheet" href="/assets/mobile.css?v=1">
+<script defer src="/assets/mobile_boot.js?v=1"></script>
 
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
