@@ -32,11 +32,29 @@ require_once $ROOT . '/header_guest.php';
 </head>
 <body>
 <?php
-  // ===== MOBILE ONLY: header + drawer guest (logo+ARENA, Accedi, menu)
-  // Richiede i file creati prima:
-  // /partials/guest_mobile_header.php e /partials/guest_mobile_drawer.php
-require_once '/var/www/html/arena-clean/partials/guest_mobile_header.php';
-require_once '/var/www/html/arena-clean/partials/guest_mobile_drawer.php';
+// == DIAGNOSTICA & INCLUDE ROBUSTO ==
+function _inc_partial($fname){
+  $tries = [
+    __DIR__ . '/arena-clean/partials/' . $fname,   // se partial sta in /var/www/html/arena-clean/partials
+    __DIR__ . '/partials/' . $fname,               // se sta direttamente in /var/www/html/partials
+    __DIR__ . '/public/arena-clean/partials/' . $fname,
+    __DIR__ . '/../arena-clean/partials/' . $fname,
+    (__DIR__ . '/../partials/' . $fname),
+  ];
+  foreach ($tries as $p) {
+    if (is_file($p)) { require_once $p; return true; }
+  }
+  // stampa diagnostica (temporanea)
+  echo '<pre style="color:#ff7076;background:#200;padding:8px;border-radius:6px">';
+  echo "Partial NON trovato: {$fname}\n";
+  echo "Sto eseguendo da __DIR__ = " . __DIR__ . "\n";
+  echo "Ho provato:\n - " . implode("\n - ", $tries) . "</pre>";
+  return false;
+}
+
+// header + drawer (guest)
+_inc_partial('guest_mobile_header.php');
+_inc_partial('guest_mobile_drawer.php');
 ?>
 
   <div class="hero">
