@@ -22,12 +22,6 @@ $ROOT = __DIR__;
   </style>
 </head>
 <body>
-<?php
-// ← adesso gli include stanno DOPO <body>
-require_once $ROOT . '/header_guest.php';
-require_once __DIR__ . '/partials/guest_mobile_header.php';
-require_once __DIR__ . '/partials/guest_mobile_drawer.php';
-?>
 
   <div class="hero">
     <div>
