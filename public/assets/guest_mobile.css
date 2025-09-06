@@ -1,0 +1,43 @@
+/* ====== MOBILE GUEST UI (stile PokerStars-like) ====== */
+:root{
+  --bg:#0a0b0f; --panel:#0c0e12; --card:#14161c; --muted:#98a2b3; --line:rgba(255,255,255,.08);
+  --accent:#00c074; --txt:#fff; --black:#000;
+}
+@media (max-width: 900px){
+  body{background:var(--bg); color:var(--txt);}
+  /* Header bar */
+  .g-head{position:sticky;top:0;z-index:1000;background:var(--black);
+    padding:10px 12px; display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);}
+  .g-logo{display:flex;align-items:center;gap:8px}
+  .g-logo img{height:20px;width:auto;display:block}
+  .g-brand{font-weight:900;letter-spacing:.5px}
+  .g-spacer{flex:1}
+  .g-btn{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;
+    border-radius:999px;border:1px solid var(--line);font-weight:900;background:#0f1114;color:#fff;text-decoration:none}
+  .g-btn--primary{background:var(--accent);border-color:var(--accent);color:#000}
+  .g-burger{height:36px;width:36px;border:1px solid var(--line);border-radius:8px;background:#0f1114;color:#fff;display:flex;align-items:center;justify-content:center}
+
+  /* Drawer */
+  .g-drawer{position:fixed;inset:0;z-index:2000;display:none}
+  .g-drawer.on{display:block}
+  .g-dim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+  .g-panel{position:absolute;right:0;top:0;height:100%;width:min(92vw,520px);background:var(--panel);
+    border-left:1px solid var(--line);display:flex;flex-direction:column}
+  .g-ph{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--line)}
+  .g-pc{padding:14px;overflow:auto}
+  .g-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .g-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .g-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .g-list{display:flex;flex-direction:column;gap:10px}
+  .g-item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between}
+  .g-link{color:#fff;text-decoration:none}
+  .g-muted{color:var(--muted)}
+  .g-tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 0}
+  .g-tab{flex:0 0 auto;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-weight:800;text-decoration:none;color:#fff}
+  .g-tab--on{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .g-sep{height:1px;background:var(--line);margin:12px 0}
+
+  /* Footer nel drawer */
+  .g-footer{padding:12px 0;color:var(--muted);font-size:12px}
+  .g-footer a{color:var(--muted);text-decoration:none}
+}
