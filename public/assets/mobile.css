@@ -166,5 +166,35 @@
   text-decoration:none;
 }
 .mExit:hover{ background:rgba(255,255,255,.12); }
+/* --- Bottoni nel drawer (guest) --- */
+.mdr-actions .btn-primary {
+  display:inline-block;
+  padding:8px 18px;
+  border-radius:9999px;
+  font-size:14px;
+  font-weight:800;
+  background:#00c074;      /* verde brand */
+  border:1px solid #00c074;
+  color:#fff !important;   /* <-- testo bianco */
+  text-decoration:none;
+}
+.mdr-actions .btn-primary:hover {
+  background:#00a862;
+  border-color:#00a862;
+}
 
+.mdr-actions .btn-ghost {
+  display:inline-block;
+  padding:8px 18px;
+  border-radius:9999px;
+  font-size:14px;
+  font-weight:800;
+  background:transparent;
+  border:1px solid #fff;
+  color:#fff !important;   /* anche il ghost deve avere testo bianco */
+  text-decoration:none;
+}
+.mdr-actions .btn-ghost:hover {
+  background:rgba(255,255,255,.12);
+}
 }
