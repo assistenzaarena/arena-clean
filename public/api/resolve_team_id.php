@@ -1,119 +1,100 @@
 <?php
-// public/admin/api/resolve_team_id.php
-// - GET  action=suggest  -> suggerisce canon_team_id per una lega, dato q (nome da cercare)
-// - POST (senza action)  -> salva team_id su un evento (home/away)
-
+// admin/api/resolve_team_id.php
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
+$ROOT = dirname(__DIR__, 2); // .../public
+require_once $ROOT.'/src/guards.php';  require_admin();
+require_once $ROOT.'/src/config.php';
+require_once $ROOT.'/src/db.php';
+
 header('Content-Type: application/json; charset=utf-8');
 
-$ROOT = dirname(__DIR__, 2); // /var/www/html
-require_once $ROOT . '/src/guards.php';  require_admin();
-require_once $ROOT . '/src/config.php';
-require_once $ROOT . '/src/db.php';
+function out($js, $code=200){ http_response_code($code); echo json_encode($js); exit; }
 
-function out($arr, $code=200){ http_response_code($code); echo json_encode($arr); exit; }
+/* ---- SUGGERIMENTI PER NOME ----
+   GET /admin/api/resolve_team_id.php?action=suggest&tournament_id=..&league_id=..&q=...
+   Ritorna: { ok:true, suggestions:[{team_id,name}, ...] }
+*/
+if (($_GET['action'] ?? '') === 'suggest') {
+  $tid = (int)($_GET['tournament_id'] ?? 0);
+  $lg  = (int)($_GET['league_id'] ?? 0);
+  $q   = trim((string)($_GET['q'] ?? ''));
 
-// Normalizzazione semplice dei nomi
-function norm_name($s){
-  $s = iconv('UTF-8','ASCII//TRANSLIT//IGNORE', $s);
-  $s = strtolower(preg_replace('/[^a-z0-9]+/','', $s));
-  return $s ?: '';
+  if ($tid<=0 || $q==='') out(['ok'=>false, 'error'=>'bad_params'], 400);
+
+  $like = '%'.$q.'%';
+
+  $sug = [];
+
+  // 1) dai nomi già presenti nel torneo corrente
+  $sqlEv = "
+    SELECT DISTINCT home_team_id AS team_id, home_team_name AS name
+    FROM tournament_events
+    WHERE tournament_id=? AND home_team_name LIKE ? AND home_team_id IS NOT NULL AND home_team_id > 0
+    UNION
+    SELECT DISTINCT away_team_id AS team_id, away_team_name AS name
+    FROM tournament_events
+    WHERE tournament_id=? AND away_team_name LIKE ? AND away_team_id IS NOT NULL AND away_team_id > 0
+  ";
+  $st = $pdo->prepare($sqlEv);
+  $st->execute([$tid, $like, $tid, $like]);
+  foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $id = (int)$r['team_id']; $nm = (string)$r['name'];
+    if ($id>0 && $nm!=='') $sug[$id] = $nm;
+  }
+
+  // 2) se esiste il catalogo canon per la lega, aggiungo anche quelli
+  try {
+    $check = $pdo->query("SELECT 1 FROM admin_team_canon LIMIT 1");
+    if ($check) {
+      $sc = $pdo->prepare("SELECT canon_team_id, display_name FROM admin_team_canon
+                           WHERE league_id=? AND (display_name LIKE ? OR norm_name LIKE LOWER(REPLACE(?, ' ', '')) )
+                           ORDER BY display_name ASC LIMIT 50");
+      $sc->execute([$lg, $like, $q]);
+      foreach ($sc->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $id = (int)$r['canon_team_id']; $nm = (string)$r['display_name'];
+        if ($id>0 && $nm!=='') $sug[$id] = $nm;
+      }
+    }
+  } catch (Throwable $e) {
+    // tabelle canon non presenti -> ignoro
+  }
+
+  $out = [];
+  foreach ($sug as $id=>$nm) { $out[] = ['team_id'=>$id, 'name'=>$nm]; }
+  if (empty($out)) out(['ok'=>false, 'suggestions'=>[]], 200);
+
+  out(['ok'=>true, 'suggestions'=>$out], 200);
 }
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+/* ---- APPLICA ID LATO EVENTO ----
+   POST tournament_id, event_id, side ('home'|'away'), team_id (numero)
+   Ritorna: { ok:true }
+*/
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $tid  = (int)($_POST['tournament_id'] ?? 0);
+  $eid  = (int)($_POST['event_id'] ?? 0);
+  $side = strtolower((string)($_POST['side'] ?? ''));
+  $team = (int)($_POST['team_id'] ?? 0);
 
-/* ========== SUGGERIMENTI ========== */
-if ($method === 'GET' && ($_GET['action'] ?? '') === 'suggest') {
-  $tid  = (int)($_GET['tournament_id'] ?? 0);
-  $lg   = (int)($_GET['league_id'] ?? 0);
-  $qraw = trim($_GET['q'] ?? '');
-  if ($tid <= 0 || $lg <= 0 || $qraw === '') {
+  if ($tid<=0 || $eid<=0 || !in_array($side, ['home','away'], true) || $team<=0) {
     out(['ok'=>false, 'error'=>'bad_params'], 400);
   }
 
-  $qnorm = norm_name($qraw);
+  // Verifica che l'evento appartenga al torneo
+  $chk = $pdo->prepare("SELECT id FROM tournament_events WHERE id=? AND tournament_id=? LIMIT 1");
+  $chk->execute([$eid, $tid]);
+  if (!$chk->fetch(PDO::FETCH_ASSOC)) { out(['ok'=>false,'error'=>'event_not_found'],404); }
 
-  try {
-    $sug = [];
-    // 1) canon ufficiali della lega
-    $st = $pdo->prepare("
-      SELECT canon_team_id AS team_id, display_name AS name
-      FROM admin_team_canon
-      WHERE league_id = ?
-    ");
-    $st->execute([$lg]);
-    foreach ($st as $r) {
-      $name = (string)$r['name'];
-      if (strpos(norm_name($name), $qnorm) !== false) {
-        $sug[] = ['team_id'=>(int)$r['team_id'], 'name'=>$name];
-      }
-    }
-
-    // 2) fallback: nomi visti negli eventi del torneo (se non hai popolato canon)
-    if (count($sug) === 0) {
-      $fb = $pdo->prepare("
-        SELECT DISTINCT home_team_name AS name FROM tournament_events WHERE tournament_id=? AND home_team_name IS NOT NULL
-        UNION
-        SELECT DISTINCT away_team_name AS name FROM tournament_events WHERE tournament_id=? AND away_team_name IS NOT NULL
-      ");
-      $fb->execute([$tid, $tid]);
-      foreach ($fb as $r) {
-        $name = (string)$r['name'];
-        if ($name !== '' && strpos(norm_name($name), $qnorm) !== false) {
-          // non abbiamo team_id canon qui → lo proponiamo come semplice nome, l’admin userà l’ID manuale
-          $sug[] = ['team_id'=>null, 'name'=>$name];
-        }
-      }
-    }
-
-    // 3) ordina per qualità (match più corti prima)
-    usort($sug, function($a,$b){
-      return strlen($a['name']) <=> strlen($b['name']);
-    });
-
-    out(['ok'=>true, 'suggestions'=>$sug]);
-  } catch (Throwable $e) {
-    error_log('[resolve_team_id suggest] '.$e->getMessage());
-    out(['ok'=>false, 'error'=>'exception'], 500);
+  // Aggiorna il campo corretto
+  if ($side === 'home') {
+    $up = $pdo->prepare("UPDATE tournament_events SET home_team_id=? WHERE id=? AND tournament_id=?");
+  } else {
+    $up = $pdo->prepare("UPDATE tournament_events SET away_team_id=? WHERE id=? AND tournament_id=?");
   }
+  $up->execute([$team, $eid, $tid]);
+
+  out(['ok'=>true, 'applied'=>['event_id'=>$eid,'side'=>$side,'team_id'=>$team]]);
 }
 
-/* ========== APPLICA ID A UN EVENTO ========== */
-if ($method === 'POST') {
-  // CSRF opzionale (se vuoi passarlo anche qui): se lo usi, decommenta sotto
-  // $csrf = $_POST['csrf'] ?? '';
-  // if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) { out(['ok'=>false,'error'=>'bad_csrf'], 403); }
-
-  $tid   = (int)($_POST['tournament_id'] ?? 0);
-  $evId  = (int)($_POST['event_id'] ?? 0);
-  $side  = strtolower((string)($_POST['side'] ?? ''));
-  $team  = (int)($_POST['team_id'] ?? 0);
-
-  if ($tid<=0 || $evId<=0 || !in_array($side, ['home','away'], true) || $team<=0) {
-    out(['ok'=>false, 'error'=>'bad_params'], 400);
-  }
-
-  try {
-    // Verifica esistenza evento
-    $chk = $pdo->prepare("SELECT id FROM tournament_events WHERE id=? AND tournament_id=? LIMIT 1");
-    $chk->execute([$evId, $tid]);
-    if (!$chk->fetchColumn()) out(['ok'=>false,'error'=>'event_not_found'], 404);
-
-    // Aggiorna id lato richiesto
-    if ($side === 'home') {
-      $up = $pdo->prepare("UPDATE tournament_events SET home_team_id=? WHERE id=? LIMIT 1");
-      $up->execute([$team, $evId]);
-    } else {
-      $up = $pdo->prepare("UPDATE tournament_events SET away_team_id=? WHERE id=? LIMIT 1");
-      $up->execute([$team, $evId]);
-    }
-
-    out(['ok'=>true]);
-  } catch (Throwable $e) {
-    error_log('[resolve_team_id apply] '.$e->getMessage());
-    out(['ok'=>false, 'error'=>'exception'], 500);
-  }
-}
-
-/* metodo non supportato */
-out(['ok'=>false,'error'=>'bad_method'], 405);
+out(['ok'=>false,'error'=>'bad_request'], 400);
