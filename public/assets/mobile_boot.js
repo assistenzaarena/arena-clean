@@ -5,24 +5,24 @@
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
   if (!isMobile) return;
 
-  // 1) Smonta qualsiasi appbar/drawer precedente (perché lo stato può essere cambiato tra guest/user)
+  // Smonta eventuali mount precedenti (cambio pagina guest → user e viceversa)
   (function unmountPrev() {
-    const oldBar = document.getElementById('mobileAppBar');
-    const oldBackdrop = document.getElementById('mobileDrawerBackdrop');
-    if (oldBar && oldBar.parentNode) oldBar.parentNode.removeChild(oldBar);
-    if (oldBackdrop && oldBackdrop.parentNode) oldBackdrop.parentNode.removeChild(oldBackdrop);
+    document.getElementById('mobileAppBar')?.remove();
+    document.getElementById('mobileDrawerBackdrop')?.remove();
   })();
 
-  // 2) Capisco se sei USER o GUEST dalla pagina corrente (header_user ha questi elementi)
+  // Stato pagina
+  const path = location.pathname.replace(/\/+$/, '');
+  const isAuth = /\/(login\.php|registrazione\.php)$/.test(path);   // pagine auth
   const isUser =
     !!document.getElementById('headerCrediti') ||
     !!document.querySelector('.logout-form') ||
     !!document.querySelector('.user-display__name');
 
-  const userName = isUser ? (document.querySelector('.user-display__name')?.textContent || '').trim() : '';
+  const userName    = isUser ? (document.querySelector('.user-display__name')?.textContent || '').trim() : '';
   const userCredits = isUser ? (document.getElementById('headerCrediti')?.textContent || '').trim() : '';
 
-  // 3) Crea AppBar mobile coerente
+  // AppBar
   const bar = document.createElement('div');
   bar.id = 'mobileAppBar';
   bar.innerHTML = `
@@ -30,28 +30,52 @@
       <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
     </a>
     <div class="mRight">
-${isUser
-  ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
-  : `<a class="mRegister" href="/registrazione.php">Registrati</a>
-     <a class="mLogin" href="/login.php">Accedi</a>`
-}
-<button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
+      ${
+        isAuth
+          // Sulle pagine di login/registrazione: header minimale con "Esci"
+          ? `<a href="/home_guest.php" class="mExit">Esci</a>`
+          : (isUser
+              // Utente loggato: Ricarica + username
+              ? `<a href="/ricarica.php" class="mRecharge">Ricarica</a><span class="mUser">${userName || ''}</span>`
+              // Guest: Registrati + Accedi
+              : `<a class="mRegister" href="/registrazione.php">Registrati</a>
+                 <a class="mLogin" href="/login.php">Accedi</a>`
+            )
+      }
+      <button class="mBurger" id="mBurger" aria-label="Apri menu">☰</button>
     </div>
   `;
   document.body.prepend(bar);
 
-  // 4) Costruisci Drawer + Backdrop
+  // Drawer + backdrop
   const backdrop = document.createElement('div');
   backdrop.id = 'mobileDrawerBackdrop';
   const drawer = document.createElement('aside');
   drawer.id = 'mobileDrawer';
 
-  // Voci subheader (se presenti)
-  const subLinks = Array.from(document.querySelectorAll('.subhdr__menu a'))
+  // Link subheader presenti nel DOM (se non è pagina auth)
+  const subLinksDOM = Array.from(document.querySelectorAll('.subhdr__menu a'))
     .map(a => ({ href: a.getAttribute('href') || '#', label: (a.textContent || '').trim() }))
     .filter((v, i, arr) => v.label && arr.findIndex(x => x.href === v.href) === i);
 
-  // Voci footer (se presenti), altrimenti fallback
+  // Voci NAV da usare:
+  // - se AUTH → usa la subheader GUEST (Home/Il Gioco/Contatti)
+  // - altrimenti usa quelle trovate o un fallback user
+  const guestNav = [
+    { href: '/',          label: 'Home' },
+    { href: '/il-gioco',  label: 'Il Gioco' },
+    { href: '/contatti',  label: 'Contatti' }
+  ];
+  const userNavFallback = [
+    { href: '/',                 label: 'Home' },
+    { href: '/lobby.php',        label: 'Tornei' },
+    { href: '/storico_tornei.php', label: 'Storico tornei' },
+    { href: '/dati_utente.php',  label: 'Dati utente' },
+    { href: '/premi.php',        label: 'Premi' }
+  ];
+  const navLinks = isAuth ? guestNav : (subLinksDOM.length ? subLinksDOM : userNavFallback);
+
+  // Link footer (se esistono nel DOM), altrimenti fallback
   const footerLinks = (function () {
     const f = document.querySelector('footer, .footer, #footer');
     if (!f) {
@@ -66,40 +90,39 @@ ${isUser
       .filter(x => x.label);
   })();
 
-  const accountSection = isUser
-    ? `
-      <div class="mdr-section">
-        <h4>Account</h4>
-        <div class="mdr-list">
-          <div class="mdr-muted">Saldo: <strong id="mobileCredits2">${userCredits || '0'}</strong> crediti</div>
-          <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
-          <form method="post" action="/logout.php" class="mdr-actions">
-            <button type="submit" class="btn-ghost">Logout</button>
-          </form>
-        </div>
-      </div>`
-    : `
-      <div class="mdr-section">
-        <h4>Benvenuto</h4>
-        <div class="mdr-actions">
-          <a class="btn-primary" href="/registrazione.php">Registrati</a>
-          <a class="btn-ghost" href="/login.php">Accedi</a>
-        </div>
-      </div>`;
+  // Sezione account:
+  // - auth pages → nessuna sezione "Benvenuto/Registrati"
+  // - guest → Registrati/Accedi
+  // - user → saldo, utente, logout
+  const accountSection =
+    isAuth ? ''
+      : (isUser
+          ? `
+            <div class="mdr-section">
+              <h4>Account</h4>
+              <div class="mdr-list">
+                <div class="mdr-muted">Saldo: <strong id="mobileCredits2">${userCredits || '0'}</strong> crediti</div>
+                <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
+                <form method="post" action="/logout.php" class="mdr-actions">
+                  <button type="submit" class="btn-ghost">Logout</button>
+                </form>
+              </div>
+            </div>`
+          : `
+            <div class="mdr-section">
+              <h4>Benvenuto</h4>
+              <div class="mdr-actions">
+                <a class="btn-primary" href="/registrazione.php">Registrati</a>
+                <a class="btn-ghost" href="/login.php">Accedi</a>
+              </div>
+            </div>`
+        );
 
   const navSection = `
     <div class="mdr-section">
       <h4>Navigazione</h4>
       <div class="mdr-list">
-        ${
-          (subLinks.length ? subLinks : [
-            { href: '/',                label: 'Home' },
-            { href: '/lobby.php',       label: 'Tornei' },
-            { href: '/storico_tornei.php', label: 'Storico tornei' },
-            { href: '/dati_utente.php', label: 'Dati utente' },
-            { href: '/premi.php',       label: 'Premi' }
-          ]).map(l => `<a class="mdr-link" href="${l.href}">${l.label}</a>`).join('')
-        }
+        ${navLinks.map(l => `<a class="mdr-link" href="${l.href}">${l.label}</a>`).join('')}
       </div>
     </div>`;
 
@@ -131,7 +154,7 @@ ${isUser
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
-  // 5) Sincronizza saldo se l'header desktop lo aggiorna (#headerCrediti)
+  // Sincronizza saldo quando c’è header desktop che aggiorna #headerCrediti
   const creditsEl = document.getElementById('headerCrediti');
   if (creditsEl) {
     const sync = () => {
@@ -141,8 +164,7 @@ ${isUser
       if (a) a.textContent = (val ? val + ' cr' : '0 cr');
       if (b) b.textContent = (val || '0');
     };
-    const obs = new MutationObserver(sync);
-    obs.observe(creditsEl, { childList:true, subtree:true, characterData:true });
+    new MutationObserver(sync).observe(creditsEl, { childList:true, subtree:true, characterData:true });
     sync();
   }
 })();
