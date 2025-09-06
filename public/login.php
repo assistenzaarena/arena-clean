@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {             // esegui solo a submit
         ':u2' => $username    // e per il match su email
     ]); // esecuzione
 
-    $user = $stmt->fetch();   // riga utente (o false)
+    $user = $stmt->fetch();   // riga utente (or false)
 
     if ($user && password_verify($password, $user['password_hash'])) {   // [RIGA] credenziali ok
 
@@ -89,6 +89,7 @@ exit;                // vai subito in lobby tornei
 <head>
   <meta charset="utf-8">
   <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- AGGIUNTA -->
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_login.css">
   <link rel="stylesheet" href="/assets/login.css?v=7">
