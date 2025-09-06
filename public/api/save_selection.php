@@ -97,6 +97,19 @@ try {
     $HAS_FALLBACK = !empty($cols['is_fallback']);
     $HAS_CYCLE_NO = !empty($cols['cycle_no']);
 
+    // ========= INIZIO MODIFICHE STEP B: canon_team_id =========
+    // league_id del torneo per usare la mappa canon
+    $stL = $pdo->prepare("SELECT league_id FROM tournaments WHERE id=? LIMIT 1");
+    $stL->execute([$tournament_id]);
+    $lg = (int)$stL->fetchColumn();
+
+    // Risolvo l'ID squadra scelto su canon_team_id (se mappato)
+    $team_raw_id = $team_chosen_id;
+    $stCanon = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id=? AND team_id=? LIMIT 1");
+    $stCanon->execute([$lg, $team_raw_id]);
+    $team_chosen_id = (int)($stCanon->fetchColumn() ?: $team_raw_id);
+    // ========= FINE MODIFICHE STEP B =========
+
     // set di TUTTE le squadre del torneo (home/away) — solo ID > 0
     $stTeams = $pdo->prepare("
       SELECT DISTINCT x.team_id FROM (
@@ -133,6 +146,26 @@ try {
 
     // PERCORSO "PIENO": con cycle_no + team_id + is_fallback
     if ($HAS_CYCLE_NO && $HAS_TEAM_ID && $HAS_FALLBACK) {
+        // ========= MODIFICHE STEP B: uso CANON anche nel percorso pieno =========
+
+        // (ri)calcolo set squadre CANON del torneo
+        $stTeamsCanon = $pdo->prepare("
+          SELECT DISTINCT COALESCE(mh.canon_team_id, te.home_team_id) AS canon_id
+          FROM tournament_events te
+          LEFT JOIN admin_team_canon_map mh
+                 ON mh.league_id = :lg AND mh.team_id = te.home_team_id
+          WHERE te.tournament_id = :tid AND te.home_team_id IS NOT NULL AND te.home_team_id > 0
+          UNION
+          SELECT DISTINCT COALESCE(ma.canon_team_id, te.away_team_id) AS canon_id
+          FROM tournament_events te
+          LEFT JOIN admin_team_canon_map ma
+                 ON ma.league_id = :lg AND ma.team_id = te.away_team_id
+          WHERE te.tournament_id = :tid AND te.away_team_id IS NOT NULL AND te.away_team_id > 0
+        ");
+        $stTeamsCanon->execute([':lg'=>$lg, ':tid'=>$tournament_id]);
+        $teamsAllCanon = array_map('intval', $stTeamsCanon->fetchAll(PDO::FETCH_COLUMN));
+        $allCount = count($teamsAllCanon);
+
         // ciclo corrente (se assente, parti da 1)
         $stC = $pdo->prepare("
           SELECT COALESCE(MAX(cycle_no), 0)
@@ -143,18 +176,29 @@ try {
         $curCycle = (int)$stC->fetchColumn();
         if ($curCycle <= 0) $curCycle = 1;
 
-        // usate nel ciclo corrente (solo scelte "normali", non fallback), SOLO finalizzate e in round precedenti
+        // usate nel ciclo corrente (solo scelte "normali"), SOLO finalizzate e in round precedenti — su CANON
+        $roundNow = (int)$ev['round_no'];
         $stU = $pdo->prepare("
-          SELECT DISTINCT team_id
-          FROM tournament_selections
-          WHERE tournament_id=? AND user_id=? AND life_index=? AND cycle_no=? 
-            AND COALESCE(is_fallback,0)=0 
-            AND team_id IS NOT NULL
-            AND finalized_at IS NOT NULL
-            AND (round_no IS NULL OR round_no < ?)
+          SELECT DISTINCT
+            COALESCE(m.canon_team_id,
+                     ts.team_id) AS team_id
+          FROM tournament_selections ts
+          LEFT JOIN admin_team_canon_map m
+                 ON m.league_id = :lg
+                AND m.team_id  = ts.team_id
+          WHERE ts.tournament_id = :tid
+            AND ts.user_id = :uid
+            AND ts.life_index = :life
+            AND ts.cycle_no = :cy
+            AND COALESCE(ts.is_fallback,0)=0
+            AND ts.team_id IS NOT NULL
+            AND ts.finalized_at IS NOT NULL
+            AND (ts.round_no IS NULL OR ts.round_no < :rnow)
         ");
-        $roundNow = (int)$ev['round_no']; // round dell'evento corrente
-        $stU->execute([$tournament_id, $user_id, $life_index, $curCycle, $roundNow]);
+        $stU->execute([
+          ':lg'=>$lg, ':tid'=>$tournament_id, ':uid'=>$user_id,
+          ':life'=>$life_index, ':cy'=>$curCycle, ':rnow'=>$roundNow
+        ]);
         $usedNow   = array_map('intval', $stU->fetchAll(PDO::FETCH_COLUMN));
         $usedCount = count($usedNow);
 
@@ -163,16 +207,41 @@ try {
         // se giro completo → il prossimo salvataggio appartiene al ciclo successivo
         $cycleToUse = $startNewCycle ? ($curCycle + 1) : $curCycle;
 
-        // rimanenti nell'attuale ciclo (se resetto, rimanenti = tutte)
-        $remaining = $startNewCycle ? $teamsAll : array_values(array_diff($teamsAll, $usedNow));
+        // rimanenti nell'attuale ciclo (se resetto, rimanenti = tutte) — su CANON
+        $remaining = $startNewCycle ? $teamsAllCanon : array_values(array_diff($teamsAllCanon, $usedNow));
 
-        // esistono rimanenti selezionabili nel round corrente?
-        $hasSelectableRemaining = $checkSelectable($remaining);
+        // esistono rimanenti selezionabili nel round corrente? — su CANON
+        $checkSelectableCanon = function(array $remaining) use ($pdo, $tournament_id, $ev, $lg) : bool {
+          if (empty($remaining)) return false;
+          $place = implode(',', array_fill(0, count($remaining), '?'));
+          $sql = "
+            SELECT COUNT(*)
+            FROM tournament_events te
+            LEFT JOIN admin_team_canon_map mh
+                   ON mh.league_id = ? AND mh.team_id = te.home_team_id
+            LEFT JOIN admin_team_canon_map ma
+                   ON ma.league_id = ? AND ma.team_id = te.away_team_id
+            WHERE te.tournament_id = ?
+              AND te.round_no = ?
+              AND te.is_active = 1
+              AND te.pick_locked = 0
+              AND (
+                COALESCE(mh.canon_team_id, te.home_team_id) IN ($place)
+                OR
+                COALESCE(ma.canon_team_id, te.away_team_id) IN ($place)
+              )
+          ";
+          $params = array_merge([$lg, $lg, $tournament_id, (int)$ev['round_no']], $remaining, $remaining);
+          $st = $pdo->prepare($sql);
+          $st->execute($params);
+          return ((int)$st->fetchColumn() > 0);
+        };
+        $hasSelectableRemaining = $checkSelectableCanon($remaining);
 
         // logica di ammissibilità
         $isFallbackNow = 0;
         if ($hasSelectableRemaining) {
-            // devo scegliere tra le rimanenti
+            // devo scegliere tra le rimanenti (CANON)
             if (!in_array($team_chosen_id, $remaining, true)) {
                 respond([
                     'ok'=>false,
@@ -182,18 +251,21 @@ try {
             }
             $isFallbackNow = 0; // scelta "normale"
         } else {
-            // BLOCCO TOTALE → fallback consentito ma non ripetere l'ultima squadra scelta in fallback per questa vita
+            // BLOCCO TOTALE → fallback consentito ma non ripetere l'ultima squadra scelta in fallback per questa vita (su CANON)
             $isFallbackNow = 1;
 
-            // ultima fallback storica di questa vita (non necessariamente il round precedente)
+            // ultima fallback storica di questa vita (canon)
             $stLastFb = $pdo->prepare("
-              SELECT team_id
-              FROM tournament_selections
-              WHERE tournament_id=? AND user_id=? AND life_index=? AND COALESCE(is_fallback,0)=1
-              ORDER BY id DESC
+              SELECT COALESCE(m.canon_team_id, ts.team_id) AS canon_id
+              FROM tournament_selections ts
+              LEFT JOIN admin_team_canon_map m
+                     ON m.league_id = :lg
+                    AND m.team_id  = ts.team_id
+              WHERE ts.tournament_id = :tid AND ts.user_id = :uid AND ts.life_index = :life AND COALESCE(ts.is_fallback,0)=1
+              ORDER BY ts.id DESC
               LIMIT 1
             ");
-            $stLastFb->execute([$tournament_id, $user_id, $life_index]);
+            $stLastFb->execute([':lg'=>$lg, ':tid'=>$tournament_id, ':uid'=>$user_id, ':life'=>$life_index]);
             $lastFbTeam = (int)($stLastFb->fetchColumn() ?: 0);
 
             if ($lastFbTeam > 0 && $team_chosen_id === $lastFbTeam) {
@@ -248,66 +320,83 @@ try {
 
     } else {
         // ========== COMPAT MODE (schema minimale): regola base + eccezioni A/B senza tracking completo ==========
-        // squadre già usate da QUESTA vita in round precedenti (finalizzate)
+        // ========= MODIFICHE STEP B: usiamo CANON anche nel compat =========
+
+        // squadre già usate da QUESTA vita in round precedenti (finalizzate) — su CANON
         $round_now = (int)($ev['round_no'] ?? $current_round_no);
         $stUsed = $pdo->prepare("
           SELECT DISTINCT
-            CASE ts.side
-              WHEN 'home' THEN te.home_team_id
-              ELSE te.away_team_id
-            END AS team_id
+            COALESCE(m.canon_team_id,
+              CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END
+            ) AS team_id
           FROM tournament_selections ts
-          JOIN tournament_events te ON te.id = ts.event_id
-          WHERE ts.tournament_id = ?
-            AND ts.user_id = ?
-            AND ts.life_index = ?
-            AND te.round_no < ?
+          JOIN tournament_events te
+            ON te.id = ts.event_id
+           AND te.tournament_id = ts.tournament_id
+          LEFT JOIN admin_team_canon_map m
+            ON m.league_id = :lg
+           AND m.team_id = (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END)
+          WHERE ts.tournament_id = :tid
+            AND ts.user_id = :uid
+            AND ts.life_index = :life
+            AND te.round_no < :round_now
             AND ts.finalized_at IS NOT NULL
             AND (CASE ts.side WHEN 'home' THEN te.home_team_id ELSE te.away_team_id END) IS NOT NULL
         ");
-        $stUsed->execute([$tournament_id, $user_id, $life_index, $round_now]);
+        $stUsed->execute([':lg'=>$lg, ':tid'=>$tournament_id, ':uid'=>$user_id, ':life'=>$life_index, ':round_now'=>$round_now]);
         $usedByLife = array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN));
 
-        // set di TUTTE le squadre (ID > 0)
-        $stTeams = $pdo->prepare("
-          SELECT DISTINCT x.team_id FROM (
-            SELECT home_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND home_team_id IS NOT NULL AND home_team_id > 0
-            UNION
-            SELECT away_team_id AS team_id FROM tournament_events WHERE tournament_id=? AND away_team_id IS NOT NULL AND away_team_id > 0
-          ) x
+        // set di TUTTE le squadre (CANON)
+        $stTeamsCanon = $pdo->prepare("
+          SELECT DISTINCT COALESCE(mh.canon_team_id, te.home_team_id) AS canon_id
+          FROM tournament_events te
+          LEFT JOIN admin_team_canon_map mh
+                 ON mh.league_id = :lg AND mh.team_id = te.home_team_id
+          WHERE te.tournament_id = :tid AND te.home_team_id IS NOT NULL AND te.home_team_id > 0
+          UNION
+          SELECT DISTINCT COALESCE(ma.canon_team_id, te.away_team_id) AS canon_id
+          FROM tournament_events te
+          LEFT JOIN admin_team_canon_map ma
+                 ON ma.league_id = :lg AND ma.team_id = te.away_team_id
+          WHERE te.tournament_id = :tid AND te.away_team_id IS NOT NULL AND te.away_team_id > 0
         ");
-        $stTeams->execute([$tournament_id, $tournament_id]);
-        $teamsAll = array_map('intval', $stTeams->fetchAll(PDO::FETCH_COLUMN));
+        $stTeamsCanon->execute([':lg'=>$lg, ':tid'=>$tournament_id]);
+        $teamsAll = array_map('intval', $stTeamsCanon->fetchAll(PDO::FETCH_COLUMN));
         $allCount = count($teamsAll);
 
         // eccezione A: giro completo (approssimata all'intera storia)
         $usedAll = ($allCount > 0 && count(array_unique($usedByLife)) >= $allCount);
 
-        // rimanenti
+        // rimanenti (CANON)
         $remaining = $usedAll ? $teamsAll : array_values(array_diff($teamsAll, $usedByLife));
 
-        // rimanenti selezionabili nel round corrente
-        $checkSelectable = function(array $remaining) use ($pdo, $tournament_id, $ev) : bool {
+        // rimanenti selezionabili nel round corrente — su CANON
+        $checkSelectableCanon = function(array $remaining) use ($pdo, $tournament_id, $ev, $lg) : bool {
           if (empty($remaining)) return false;
           $place = implode(',', array_fill(0, count($remaining), '?'));
           $sql = "
-            SELECT COUNT(*) FROM tournament_events
-            WHERE tournament_id = ?
-              AND round_no = ?
-              AND is_active = 1
-              AND pick_locked = 0
+            SELECT COUNT(*)
+            FROM tournament_events te
+            LEFT JOIN admin_team_canon_map mh
+                   ON mh.league_id = ? AND mh.team_id = te.home_team_id
+            LEFT JOIN admin_team_canon_map ma
+                   ON ma.league_id = ? AND ma.team_id = te.away_team_id
+            WHERE te.tournament_id = ?
+              AND te.round_no = ?
+              AND te.is_active = 1
+              AND te.pick_locked = 0
               AND (
-                home_team_id IN ($place)
+                COALESCE(mh.canon_team_id, te.home_team_id) IN ($place)
                 OR
-                away_team_id IN ($place)
+                COALESCE(ma.canon_team_id, te.away_team_id) IN ($place)
               )
           ";
-          $params = array_merge([$tournament_id, (int)$ev['round_no']], $remaining, $remaining);
+          $params = array_merge([$lg, $lg, $tournament_id, (int)$ev['round_no']], $remaining, $remaining);
           $st = $pdo->prepare($sql);
           $st->execute($params);
           return ((int)$st->fetchColumn() > 0);
         };
-        $hasSelectableRemaining = $checkSelectable($remaining);
+        $hasSelectableRemaining = $checkSelectableCanon($remaining);
 
         $alreadyUsed = in_array($team_chosen_id, $usedByLife, true);
 
