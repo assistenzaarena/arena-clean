@@ -250,7 +250,7 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Gestione torneo (in corso) #<?php echo htmlspecialchars($torneo['tournament_code'] ?? sprintf('%05d',$id)); ?></title>
+  <title>Gestione torneo (in corso) #<?php echo htmlspecialchars($torneo['tournament_code] ?? sprintf('%05d',$id)); ?></title>
   <link rel="stylesheet" href="/assets/base.css">
   <link rel="stylesheet" href="/assets/header_admin.css">
   <style>
@@ -654,19 +654,24 @@ $events = $ev->fetchAll(PDO::FETCH_ASSOC);
       });
     });
 
-    // Cerca suggerimenti
+    // Cerca suggerimenti (parse JSON tollerante)
     btnAsk.addEventListener('click', function(){
       var q = (inQ.value||'').trim();
       if (!q) return;
       boxSug.innerHTML = 'Carico...'; boxSug.style.display='block';
 
-fetch('/api/resolve_team_id.php?action=suggest'
-  + '&tournament_id='+encodeURIComponent(ctx.tid)
-  + '&league_id='+encodeURIComponent(ctx.league)
-  + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
-      .then(r => r.ok ? r.json() : null)
-      .then(js => {
-        // ✅ aggiunto controllo per errore/suggerimenti mancanti
+      fetch('/api/resolve_team_id.php?action=suggest'
+        + '&tournament_id='+encodeURIComponent(ctx.tid)
+        + '&league_id='+encodeURIComponent(ctx.league)
+        + '&q='+encodeURIComponent(q), { credentials:'same-origin' })
+      .then(async function(r){
+        // evita eccezioni se il server risponde HTML (redirect/login/notice)
+        var ct = r.headers.get('content-type') || '';
+        var txt = await r.text();
+        if (!r.ok || !ct.includes('application/json')) return null;
+        try { return JSON.parse(txt); } catch(e){ return null; }
+      })
+      .then(function(js){
         if(!js || js.ok !== true){
           boxSug.innerHTML = '<div style="color:#ff7076;">Errore o nessun suggerimento.</div>';
           return;
