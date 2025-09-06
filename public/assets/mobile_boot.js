@@ -101,33 +101,33 @@
   // - auth pages → nessuna sezione "Benvenuto/Registrati"
   // - guest → Registrati/Accedi
   // - user → saldo, utente, logout
-  const accountSection =
-    isAuth ? ''
-      : (isUser
-          ? `
-            <div class="mdr-section">
-              <h4>Account</h4>
-              <div class="mdr-list">
-                <div class="mdr-muted">
-                  <span class="saldo-label">Saldo:</span>
-                  <strong id="mobileCredits2">${userCredits || '0'}</strong>
-                  <span class="saldo-unit">crediti</span>
-                </div>
-                <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
-                <form method="post" action="/logout.php" class="mdr-actions">
-                  <button type="submit" class="btn-ghost">Logout</button>
-                </form>
+const accountSection =
+  isAuth ? ''
+    : (isUser
+        ? `
+          <div class="mdr-section">
+            <h4>Account</h4>
+            <div class="mdr-list">
+              <div class="mdr-muted">
+                <span class="saldo-label">Saldo:</span>
+                <strong id="mobileCredits2">${userCredits || '0'}</strong>
+                <span class="saldo-unit">crediti</span>
               </div>
-            </div>`
-          : `
-            <div class="mdr-section">
-              <h4>Benvenuto</h4>
-              <div class="mdr-actions">
-                <a class="btn-primary" href="/registrazione.php">Registrati</a>
-                <a class="btn-ghost" href="/login.php">Accedi</a>
-              </div>
-            </div>`
-        );
+              <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
+              <form method="post" action="/logout.php" class="mdr-actions">
+                <button type="submit" class="btn-ghost">Logout</button>
+              </form>
+            </div>
+          </div>`
+        : `
+          <div class="mdr-section">
+            <h4>Benvenuto</h4>
+            <div class="mdr-actions">
+              <a class="btn-primary" href="/registrazione.php">Registrati</a>
+              <a class="btn-ghost" href="/login.php">Accedi</a>
+            </div>
+          </div>`
+      );
 
   const navSection = `
     <div class="mdr-section">
