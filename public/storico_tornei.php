@@ -101,23 +101,9 @@ function esito_label(array $payout): string {
     .tag-fb{font-size:10px;font-weight:900;background:#2b2b2b;color:#ffc76b;border-radius:6px;padding:2px 6px;margin-left:8px;letter-spacing:.5px}
     .pill-win{color:#00d07e;font-weight:900}
     .pill-lose{color:#ff6b6b;font-weight:900}
-
-    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
-    @media (max-width: 900px){
-      header, .header, #header { display:none !important; }
-    }
   </style>
 </head>
 <body>
-
-<?php
-  // ===== MOBILE ONLY: header + drawer UTENTE (logo+ARENA, saldo+username, menu)
-  // Richiede i file creati prima:
-  // /partials/user_mobile_header.php e /partials/user_mobile_drawer.php
-  require_once $ROOT . '/../partials/user_mobile_header.php';
-  require_once $ROOT . '/../partials/user_mobile_drawer.php';
-?>
-
 <?php require $ROOT . '/header_user.php'; ?>
 
 <div class="wrap">
