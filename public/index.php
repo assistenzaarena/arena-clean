@@ -1,8 +1,12 @@
 <?php
 // public/index.php — Home (Guest)
-// ATTENZIONE: questo file è in /var/www/html/public/
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
-$ROOT = __DIR__; // /var/www/html/public
+
+$ROOT = __DIR__; // <-- punta a /var/www/html
+
+// Header guest (assicurati che il file esista in /var/www/html/header_guest.php)
+require_once $ROOT . '/header_guest.php';
 ?>
 <!doctype html>
 <html lang="it">
@@ -10,9 +14,7 @@ $ROOT = __DIR__; // /var/www/html/public
   <meta charset="utf-8">
   <title>ARENA — Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <link rel="stylesheet" href="/assets/base.css">
-
   <style>
     .hero{
       min-height: calc(100vh - 160px);
@@ -21,28 +23,12 @@ $ROOT = __DIR__; // /var/www/html/public
     }
     .hero h1{ font-size: clamp(28px, 4vw, 56px); margin: 0 0 12px; font-weight: 900; }
     .hero p{ font-size: clamp(14px, 2vw, 18px); color:#aaa; margin:0; }
-
-    /* ===== SOLO MOBILE: nascondo header/subheader desktop, mostro i componenti mobile */
-    .mobile-only{ display:none; }
-    @media (max-width: 900px){
-      .hdr{ display:none !important; }     /* header desktop (classe nel tuo header_guest.php) */
-      .subhdr{ display:none !important; }  /* subheader desktop */
-      .mobile-only{ display:block !important; }
-      /* (per ora NON tocco il footer per evitare pagina “vuota”) */
-    }
   </style>
 </head>
 <body>
-
 <?php
-/* 1) Header desktop (si trova in /var/www/html) */
-require_once $ROOT . '/../header_guest.php';
-
-/* 2) Header mobile + drawer: partials sono in /var/www/html/public/partials/ */
-require_once $ROOT . '/partials/guest_mobile_header.php';
-require_once $ROOT . '/partials/guest_mobile_drawer.php';
+  
 ?>
-
   <div class="hero">
     <div>
       <h1>Benvenuti in ARENA</h1>
@@ -51,7 +37,7 @@ require_once $ROOT . '/partials/guest_mobile_drawer.php';
   </div>
 
 <?php
-// Footer (lasciamolo visibile anche su mobile per ora, poi lo sposteremo nel drawer)
+// Footer
 if (file_exists($ROOT . '/footer_public.php')) {
   require_once $ROOT . '/footer_public.php';
 } elseif (file_exists($ROOT . '/footer.php')) {
