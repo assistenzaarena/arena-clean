@@ -1,6 +1,3 @@
-<<?php
-// partials/guest_mobile_header.php
-?>
 <style>
 /* Mostra questo header SOLO su mobile */
 .mobile-only { display: none; }
