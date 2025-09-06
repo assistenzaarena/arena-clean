@@ -1,6 +1,5 @@
 <!-- Header guest: sfondo nero, logo a sinistra, azioni a destra -->
 <link rel="stylesheet" href="/assets/header_guest.css">
-<link rel="stylesheet" href="/assets/mobile_guest_global.css">
 
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
@@ -27,16 +26,3 @@
     </ul>
   </div>
 </nav>
-<?php
-if (!defined('ARENA_MOBILE_GUEST_INCLUDED')) {
-  define('ARENA_MOBILE_GUEST_INCLUDED', 1);
-
-  // Percorsi: header_guest.php sta in /var/www/html
-  // i partial sono in /var/www/html/public/partials
-  $p1 = __DIR__ . '/public/partials/guest_mobile_header.php';
-  $p2 = __DIR__ . '/public/partials/guest_mobile_drawer.php';
-
-  if (is_file($p1)) require $p1;
-  if (is_file($p2)) require $p2;
-}
-?>
