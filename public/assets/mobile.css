@@ -197,19 +197,22 @@
 .mdr-actions .btn-ghost:hover {
   background:rgba(255,255,255,.12);
 }
-   /* Stile saldo e utente dentro il drawer */
-.mdr-list .mdr-muted {
+/* === Account section nel drawer === */
+.mdr-section .mdr-list .mdr-muted {
   font-size:14px;
   margin-bottom:6px;
+  color:#fff;             /* testo base bianco */
 }
 
-.mdr-list .mdr-muted strong {
-  color:#fff;                /* testo bianco per valori e username */
-  font-weight:800;
-}
-
-.mdr-list .mdr-muted:first-child {
-  color:#00c074;             /* "Saldo:" in verde brand */
+/* Solo la label "Saldo:" → verde */
+.mdr-section .mdr-list .mdr-muted.saldo-label {
+  color:#00c074;          /* verde brand */
   font-weight:700;
+}
+
+/* I valori (crediti, username) sempre bianchi */
+.mdr-section .mdr-list .mdr-muted strong {
+  color:#fff;
+  font-weight:800;
 }
 }
