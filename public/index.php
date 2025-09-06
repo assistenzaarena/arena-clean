@@ -1,5 +1,6 @@
 <?php
 // public/index.php — Home (Guest)
+// ATTENZIONE: questo file è in /var/www/html/public/
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $ROOT = __DIR__; // /var/www/html/public
 ?>
@@ -34,12 +35,12 @@ $ROOT = __DIR__; // /var/www/html/public
 <body>
 
 <?php
-/* 1) Header desktop (come l’avevi già) — DEVE stare dopo <body> */
+/* 1) Header desktop (si trova in /var/www/html) */
 require_once $ROOT . '/../header_guest.php';
 
-/* 2) Header mobile + drawer: partials in /public/partials */
-require_once __DIR__ . '/partials/guest_mobile_header.php';
-require_once __DIR__ . '/partials/guest_mobile_drawer.php';
+/* 2) Header mobile + drawer: partials sono in /var/www/html/public/partials/ */
+require_once $ROOT . '/partials/guest_mobile_header.php';
+require_once $ROOT . '/partials/guest_mobile_drawer.php';
 ?>
 
   <div class="hero">
