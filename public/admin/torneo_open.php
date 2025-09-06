@@ -27,6 +27,48 @@ function gen_event_code(PDO $pdo): string {
   return substr($raw, 0, max(1, $len));
 }
 
+/* === FUNZIONE: normalizza ID squadra verso canon (AGGIUNTA) === */
+function canonize_team_id(PDO $pdo, int $league_id, int $team_id, string $name): int {
+  if ($league_id <= 0 || $team_id <= 0) return $team_id;
+
+  // già canon?
+  $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon WHERE league_id=? AND canon_team_id=? LIMIT 1");
+  $st->execute([$league_id, $team_id]);
+  if ($st->fetchColumn()) return $team_id;
+
+  // alias mappato?
+  $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id=? AND team_id=? LIMIT 1");
+  $st->execute([$league_id, $team_id]);
+  $canon = (int)($st->fetchColumn() ?: 0);
+  if ($canon > 0) return $canon;
+
+  // match per nome normalizzato
+  $norm = mb_strtolower(str_replace(' ', '', (string)$name));
+  if ($norm !== '') {
+    $st = $pdo->prepare("
+      SELECT canon_team_id FROM admin_team_canon
+      WHERE league_id=? AND LOWER(REPLACE(display_name,' ',''))=?
+      LIMIT 1
+    ");
+    $st->execute([$league_id, $norm]);
+    $canon = (int)($st->fetchColumn() ?: 0);
+    if ($canon > 0) {
+      $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)")
+          ->execute([$league_id, $team_id, $canon]);
+      return $canon;
+    }
+  }
+
+  // crea canon + mappa
+  $pdo->prepare("INSERT INTO admin_team_canon (league_id, display_name) VALUES (?, ?)")
+      ->execute([$league_id, $name ?: ('Team '.$team_id)]);
+  $canon = (int)$pdo->lastInsertId();
+  $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)")
+      ->execute([$league_id, $team_id, $canon]);
+
+  return $canon;
+}
+
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $csrf = $_SESSION['csrf'];
 $flash = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
@@ -216,11 +258,14 @@ if (!$hasRows) {
           VALUES (:tid, :rnd, :fid, :hid, :hname, :aid, :aname, NULL, 1, 0)
         ");
         foreach ($list as $fx) {
+          $home_canon = canonize_team_id($pdo, (int)$league_id, (int)($fx['home_id'] ?? 0), (string)($fx['home_name'] ?? ''));
+          $away_canon = canonize_team_id($pdo, (int)$league_id, (int)($fx['away_id'] ?? 0), (string)($fx['away_name'] ?? ''));
+
           $ins->execute([
             ':tid'=>$id, ':rnd'=>$current_round_no ?: 1,
             ':fid'=> ($fx['fixture_id'] ? (int)$fx['fixture_id'] : null),
-            ':hid'=> $fx['home_id'], ':hname'=> $fx['home_name'],
-            ':aid'=> $fx['away_id'], ':aname'=> $fx['away_name'],
+            ':hid'=> $home_canon, ':hname'=> $fx['home_name'],
+            ':aid'=> $away_canon, ':aname'=> $fx['away_name'],
           ]);
         }
       }
