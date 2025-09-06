@@ -24,6 +24,7 @@ try {
   $tq = $pdo->prepare("SELECT current_round_no, league_id FROM tournaments WHERE id=? LIMIT 1");
   $tq->execute([$tournament_id]);
   $rowT = $tq->fetch(PDO::FETCH_ASSOC);
+  if (!$rowT) { echo json_encode(['ok'=>false,'error'=>'not_found']); exit; } // <— robustezza
   $round_now = (int)($rowT['current_round_no'] ?? 1);
   $league_id = (int)($rowT['league_id'] ?? 0);
 
@@ -55,7 +56,7 @@ try {
     ':life'=>$life_index,
     ':round_now'=>$round_now
   ]);
-  $used = array_values(array_unique(array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN))));
+  $used = array_values(array_unique(array_map('intval', $stUsed->fetchAll(PDO::FETCH_COLUMN)))); // <— cast int
 
   // 2) Squadre BLOCCATE per il round corrente (pick_locked=1 o is_active=0) — su CANON
   $stBlk = $pdo->prepare("
@@ -74,8 +75,8 @@ try {
   $stBlk->execute([':lg'=>$league_id, ':tid'=>$tournament_id, ':r'=>$round_now]);
   $blocked = [];
   foreach ($stBlk as $r) {
-    if (!empty($r['home_canon'])) $blocked[] = (int)$r['home_canon'];
-    if (!empty($r['away_canon'])) $blocked[] = (int)$r['away_canon'];
+    if (!empty($r['home_canon'])) $blocked[] = (int)$r['home_canon']; // <— cast int
+    if (!empty($r['away_canon'])) $blocked[] = (int)$r['away_canon']; // <— cast int
   }
   $blocked = array_values(array_unique($blocked));
 
