@@ -1,0 +1,13 @@
+/* Di default i componenti mobile restano nascosti */
+.mobile-only { display: none; }
+
+/* Regole globali SOLO per mobile */
+@media (max-width: 900px){
+  /* nascondi header/subheader/footer desktop ovunque */
+  header, .header, #header { display: none !important; }  /* header top */
+  .subhdr { display: none !important; }                    /* tua subheader */
+  footer, .site-footer, #footer { display: none !important; } /* footer */
+
+  /* mostra i componenti mobile */
+  .mobile-only { display: block !important; }
+}
