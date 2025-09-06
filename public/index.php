@@ -23,12 +23,22 @@ require_once $ROOT . '/header_guest.php';
     }
     .hero h1{ font-size: clamp(28px, 4vw, 56px); margin: 0 0 12px; font-weight: 900; }
     .hero p{ font-size: clamp(14px, 2vw, 18px); color:#aaa; margin:0; }
+
+    /* ===== MOBILE ONLY: nascondi header desktop sotto 900px ===== */
+    @media (max-width: 900px){
+      header, .header, #header { display:none !important; }
+    }
   </style>
 </head>
 <body>
 <?php
-  
+  // ===== MOBILE ONLY: header + drawer guest (logo+ARENA, Accedi, menu)
+  // Richiede i file creati prima:
+  // /partials/guest_mobile_header.php e /partials/guest_mobile_drawer.php
+  require_once $ROOT . '/../partials/guest_mobile_header.php';
+  require_once $ROOT . '/../partials/guest_mobile_drawer.php';
 ?>
+
   <div class="hero">
     <div>
       <h1>Benvenuti in ARENA</h1>
