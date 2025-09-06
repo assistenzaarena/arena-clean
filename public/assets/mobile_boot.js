@@ -101,33 +101,33 @@
   // - auth pages → nessuna sezione "Benvenuto/Registrati"
   // - guest → Registrati/Accedi
   // - user → saldo, utente, logout
-const accountSection =
-  isAuth ? ''
-    : (isUser
-        ? `
-          <div class="mdr-section">
-            <h4>Account</h4>
-            <div class="mdr-list">
-              <div class="mdr-muted">
-                <span class="saldo-label">Saldo:</span>
-                <strong id="mobileCredits2">${userCredits || '0'}</strong>
-                <span class="saldo-unit">crediti</span>
+  const accountSection =
+    isAuth ? ''
+      : (isUser
+          ? `
+            <div class="mdr-section">
+              <h4>Account</h4>
+              <div class="mdr-list">
+                <div class="mdr-muted">
+                  <span class="saldo-label">Saldo:</span>
+                  <strong id="mobileCredits2">${userCredits || '0'}</strong>
+                  <span class="saldo-unit">crediti</span>
+                </div>
+                <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
+                <form method="post" action="/logout.php" class="mdr-actions">
+                  <button type="submit" class="btn-ghost">Logout</button>
+                </form>
               </div>
-              <div class="mdr-muted">Utente: <strong>${userName || ''}</strong></div>
-              <form method="post" action="/logout.php" class="mdr-actions">
-                <button type="submit" class="btn-ghost">Logout</button>
-              </form>
-            </div>
-          </div>`
-        : `
-          <div class="mdr-section">
-            <h4>Benvenuto</h4>
-            <div class="mdr-actions">
-              <a class="btn-primary" href="/registrazione.php">Registrati</a>
-              <a class="btn-ghost" href="/login.php">Accedi</a>
-            </div>
-          </div>`
-      );
+            </div>`
+          : `
+            <div class="mdr-section">
+              <h4>Benvenuto</h4>
+              <div class="mdr-actions">
+                <a class="btn-primary" href="/registrazione.php">Registrati</a>
+                <a class="btn-ghost" href="/login.php">Accedi</a>
+              </div>
+            </div>`
+        );
 
   const navSection = `
     <div class="mdr-section">
@@ -156,6 +156,48 @@ const accountSection =
   `;
   backdrop.appendChild(drawer);
   document.body.appendChild(backdrop);
+
+  /* === [ADD] Intercetta "Lista movimenti" nel drawer e apri il popup (come desktop) === */
+  function ensureMovementsJS(cb){
+    if (window.MOVEMENTS_POPUP_OPEN || window.openMovementsPopup) { cb(); return; }
+    var s = document.createElement('script');
+    // usa la versione che già includi in lobby, se cambi versione aggiorna anche qui
+    s.src = '/assets/movements_popup.js?v=1';
+    s.onload = cb;
+    s.onerror = function(){ alert('Impossibile caricare il modulo movimenti.'); };
+    document.head.appendChild(s);
+  }
+
+  drawer.addEventListener('click', function(e){
+    const a = e.target.closest('a');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    // normalizza (senza querystring/anchor)
+    const path = href.split('#')[0].split('?')[0];
+
+    if (path === '/lista_movimenti.php') {
+      e.preventDefault();
+      // chiudi il drawer
+      close();
+      // assicura lo script, poi apri popup
+      ensureMovementsJS(function(){
+        if (typeof window.MOVEMENTS_POPUP_OPEN === 'function') {
+          window.MOVEMENTS_POPUP_OPEN();   // naming tipico personalizzato
+        } else if (typeof window.openMovementsPopup === 'function') {
+          window.openMovementsPopup();     // alternativa
+        } else {
+          // fallback finale: prova a simulare il click sul link della subheader desktop (se presente)
+          const orig = document.querySelector('.subhdr__menu a[href="/lista_movimenti.php"]');
+          if (orig) {
+            orig.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+          } else {
+            alert('Funzione popup movimenti non trovata.');
+          }
+        }
+      });
+    }
+  });
+  /* === [END ADD] === */
 
   // Toggle drawer
   const open = () => { backdrop.classList.add('open'); drawer.classList.add('open'); };
