@@ -35,8 +35,8 @@ require_once $ROOT . '/header_guest.php';
   // ===== MOBILE ONLY: header + drawer guest (logo+ARENA, Accedi, menu)
   // Richiede i file creati prima:
   // /partials/guest_mobile_header.php e /partials/guest_mobile_drawer.php
-require_once $_SERVER['DOCUMENT_ROOT'].'/partials/guest_mobile_header.php';
-require_once $_SERVER['DOCUMENT_ROOT'].'/partials/guest_mobile_drawer.php';
+require_once __DIR__ . '/../partials/guest_mobile_header.php';
+require_once __DIR__ . '/../partials/guest_mobile_drawer.php';
 ?>
 
   <div class="hero">
