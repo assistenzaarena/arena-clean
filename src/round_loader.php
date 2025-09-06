@@ -8,6 +8,48 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/services/football_api.php';
 
+/* === FUNZIONE AGGIUNTA: normalizza ID squadra verso canon === */
+function canonize_team_id(PDO $pdo, int $league_id, int $team_id, string $name): int {
+    if ($league_id <= 0 || $team_id <= 0) return $team_id;
+
+    // già canon?
+    $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon WHERE league_id=? AND canon_team_id=? LIMIT 1");
+    $st->execute([$league_id, $team_id]);
+    if ($st->fetchColumn()) return $team_id;
+
+    // alias mappato?
+    $st = $pdo->prepare("SELECT canon_team_id FROM admin_team_canon_map WHERE league_id=? AND team_id=? LIMIT 1");
+    $st->execute([$league_id, $team_id]);
+    $canon = (int)($st->fetchColumn() ?: 0);
+    if ($canon > 0) return $canon;
+
+    // match per nome normalizzato
+    $norm = mb_strtolower(str_replace(' ', '', (string)$name));
+    if ($norm !== '') {
+        $st = $pdo->prepare("
+            SELECT canon_team_id FROM admin_team_canon
+            WHERE league_id=? AND LOWER(REPLACE(display_name,' ',''))=?
+            LIMIT 1
+        ");
+        $st->execute([$league_id, $norm]);
+        $canon = (int)($st->fetchColumn() ?: 0);
+        if ($canon > 0) {
+            $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)")
+                ->execute([$league_id, $team_id, $canon]);
+            return $canon;
+        }
+    }
+
+    // crea canon + mappa
+    $pdo->prepare("INSERT INTO admin_team_canon (league_id, display_name) VALUES (?, ?)")
+        ->execute([$league_id, $name ?: ('Team '.$team_id)]);
+    $canon = (int)$pdo->lastInsertId();
+    $pdo->prepare("INSERT IGNORE INTO admin_team_canon_map (league_id, team_id, canon_team_id) VALUES (?,?,?)")
+        ->execute([$league_id, $team_id, $canon]);
+
+    return $canon;
+}
+
 /**
  * Prova a caricare gli eventi del "matchday N+1" nel round $new_round del torneo.
  * - Supportato: tornei con round_type='matchday' e campo tournaments.matchday valorizzato.
@@ -70,13 +112,17 @@ function attempt_preload_next_round(PDO $pdo, int $tournament_id, int $old_round
             if ($ts !== false) $kick = date('Y-m-d H:i:s', $ts);
         }
 
+        // === AGGIUNTA: canonizza gli ID provenienti dall'API prima dell'inserimento
+        $home_canon = isset($fx['home_id']) ? canonize_team_id($pdo, $league_id, (int)$fx['home_id'], (string)($fx['home_name'] ?? '')) : null;
+        $away_canon = isset($fx['away_id']) ? canonize_team_id($pdo, $league_id, (int)$fx['away_id'], (string)($fx['away_name'] ?? '')) : null;
+
         $ins->execute([
             ':tid'   => $tournament_id,
             ':rnd'   => $new_round,
             ':fid'   => $fx['fixture_id'] ? (int)$fx['fixture_id'] : null,
-            ':hid'   => $fx['home_id'] ?? null,
+            ':hid'   => $home_canon,
             ':hname' => $fx['home_name'] ?? null,
-            ':aid'   => $fx['away_id'] ?? null,
+            ':aid'   => $away_canon,
             ':aname' => $fx['away_name'] ?? null,
             ':kick'  => $kick
         ]);
