@@ -74,7 +74,9 @@
 
       var eventId = evCard.getAttribute('data-event-id');
       var side    = sideEl.getAttribute('data-side');
-      if (!eventId || !side) {
+      var teamId  = sideEl.getAttribute('data-team-id-raw') || sideEl.getAttribute('data-team-id'); // << preferisci RAW
+
+      if (!eventId || !side || !teamId) {
         if (window.showMsg) window.showMsg('Salvataggio non riuscito', 'Parametri non validi.', 'error');
         return;
       }
@@ -92,6 +94,7 @@
               '&event_id=' + encodeURIComponent(eventId) +
               '&life_index=' + encodeURIComponent(String(selectedLife)) +
               '&side=' + encodeURIComponent(side) +
+              '&team_id=' + encodeURIComponent(teamId) +          // << AGGIUNTO
               '&_ts=' + Date.now()
       })
       .then(function (r) { return r.text(); })
