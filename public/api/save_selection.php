@@ -235,42 +235,53 @@ try {
               respond(['ok'=>false,'error'=>'fallback_same_twice','msg'=>'Blocco totale: non puoi ripetere la stessa fallback della scorsa volta.'], 400);
             }
         }
-
-        // UPSERT (+ metadati ciclo/fallback)
+        // UPSERT (+ metadati ciclo/fallback) — versione con placeholder nominati (evita HY093)
         $pdo->beginTransaction();
 
         $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
 
-        // colonne extra dinamiche
-        $colsExtra   = [];
-        $placeExtra  = [];
-        $valuesExtra = [];
-        if ($HAS_ROUND_NO) { $colsExtra[]='round_no';    $placeExtra[]='?'; $valuesExtra[]=(int)$ev['round_no']; }
-        if ($HAS_TEAM_ID)  { $colsExtra[]='team_id';     $placeExtra[]='?'; $valuesExtra[]=$team_chosen_canon; }
-        if ($HAS_FALLBACK) { $colsExtra[]='is_fallback'; $placeExtra[]='?'; $valuesExtra[]=$isFallbackNow ? 1 : 0; }
-        if ($HAS_CYCLE_NO) { $colsExtra[]='cycle_no';    $placeExtra[]='?'; $valuesExtra[]=$cycleToUse; }
+        // base colonne/valori
+        $cols = [
+          'tournament_id','user_id','life_index','event_id','side','selection_code',
+          'created_at','locked_at','finalized_at'
+        ];
+        $vals = [
+          ':tid', ':uid', ':life', ':eid', ':side', ':scode',
+          'NOW()', 'NULL', 'NULL'
+        ];
+        $bind = [
+          ':tid'   => $tournament_id,
+          ':uid'   => $user_id,
+          ':life'  => $life_index,
+          ':eid'   => $event_id,
+          ':side'  => $side,
+          ':scode' => $selCode,
+        ];
+
+        $update = [
+          'event_id = VALUES(event_id)',
+          'side     = VALUES(side)',
+          'locked_at = NULL',
+          'finalized_at = NULL',
+          'selection_code = IFNULL(selection_code, VALUES(selection_code))'
+        ];
+
+        // colonne opzionali
+        if ($HAS_ROUND_NO) { $cols[]='round_no';    $vals[]=':round_no';    $bind[':round_no']    = (int)$ev['round_no']; }
+        if ($HAS_TEAM_ID)  { $cols[]='team_id';     $vals[]=':team_id';     $bind[':team_id']     = $team_chosen_canon;  $update[]='team_id = VALUES(team_id)'; }
+        if ($HAS_FALLBACK) { $cols[]='is_fallback'; $vals[]=':is_fallback'; $bind[':is_fallback'] = $isFallbackNow ? 1 : 0; $update[]='is_fallback = VALUES(is_fallback)'; }
+        if ($HAS_CYCLE_NO) { $cols[]='cycle_no';    $vals[]=':cycle_no';    $bind[':cycle_no']    = $cycleToUse; $update[]='cycle_no = VALUES(cycle_no)'; }
 
         $sql = "
           INSERT INTO tournament_selections
-            (tournament_id, user_id, life_index, event_id, side, selection_code, created_at, locked_at, finalized_at"
-            . (empty($colsExtra) ? "" : ", " . implode(',', $colsExtra)) .
-            ")
-          VALUES (?,?,?,?,?,?, NOW(), NULL, NULL"
-            . (empty($placeExtra) ? "" : ", " . implode(',', $placeExtra)) .
-            ")
+            (".implode(',', $cols).")
+          VALUES (".implode(',', $vals).")
           ON DUPLICATE KEY UPDATE
-            event_id = VALUES(event_id),
-            side     = VALUES(side),"
-            .($HAS_TEAM_ID  ? " team_id    = VALUES(team_id),"     : "")
-            .($HAS_FALLBACK ? " is_fallback= VALUES(is_fallback)," : "")
-            .($HAS_CYCLE_NO ? " cycle_no   = VALUES(cycle_no),"    : "")
-          ." locked_at = NULL,
-            finalized_at = NULL,
-            selection_code = IFNULL(selection_code, VALUES(selection_code))
+            ".implode(', ', $update)."
         ";
+
         $ins = $pdo->prepare($sql);
-        $params = [$tournament_id, $user_id, $life_index, $event_id, $side, $selCode];
-        $ins->execute(array_merge($params, $valuesExtra));
+        $ins->execute($bind);
 
         $pdo->commit();
 
