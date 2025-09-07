@@ -13,16 +13,16 @@
 
     <nav class="site-footer__nav" aria-label="Link utili e legali">
       <ul class="footer-menu">
-        <li><a href="/chi-siamo">Chi siamo</a></li>
-        <li><a href="/contatti">Contatti</a></li>
-        <li><a href="/regolamento">Regolamento</a></li>
-        <li><a href="/termini-e-condizioni">Termini e condizioni</a></li>
-        <li><a href="/condizioni-generali">Condizioni generali</a></li>
-        <li><a href="/privacy-e-sicurezza">Privacy e sicurezza</a></li>
-        <li><a href="/cookie-policy">Cookie policy</a></li>
-        <li><a href="/faq">FAQ</a></li>
-        <li><a href="/assistenza">Assistenza</a></li>
-        <li><a href="mailto:abusi@arena.example">Segnalazione abusi</a></li>
+<li><a href="/chi-siamo.php">Chi siamo</a></li>
+<li><a href="/contatti.php">Contatti</a></li>
+<li><a href="/regolamento.php">Regolamento</a></li>
+<li><a href="/termini.php">Termini e condizioni</a></li>
+<li><a href="/condizioni-generali.php">Condizioni generali</a></li>
+<li><a href="/privacy.php">Privacy e sicurezza</a></li>
+<li><a href="/cookie-policy.php">Cookie policy</a></li>
+<li><a href="/faq.php">FAQ</a></li>
+<li><a href="/assistenza.php">Assistenza</a></li>
+<li><a href="mailto:abusi@arena.example">Segnalazione abusi</a></li>
       </ul>
     </nav>
 
