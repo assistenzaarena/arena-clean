@@ -219,25 +219,24 @@ try {
       gap:14px;
       margin-top:10px;
     }
-/* Card evento – sfondo più chiaro */
+/* Card evento – versione ovale */
 .event-card{
-  /* sfondo più chiaro con un gradiente molto soft */
   background: linear-gradient(180deg, #1a1f26 0%, #11161c 100%);
-  border: 1px solid rgba(255,255,255,.20);            /* bordo un filo più presente */
-  border-radius: 14px;
-  padding: 16px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 28px;           /* ← più ovale */
+  padding: 18px 20px;            /* ← un filo più ariosa */
+  overflow: hidden;              /* ← rifila gli angoli per un ovale pulito */
 
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  column-gap: 12px;
+  column-gap: 16px;
 
-  /* un minimo di “corpo” in più */
   box-shadow:
     0 10px 26px rgba(0,0,0,.22),
     inset 0 0 0 1px rgba(255,255,255,.04);
 }
-  .event-card:hover{
+.event-card:hover{
   background: linear-gradient(180deg, #202734 0%, #151b22 100%);
 }
     .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
