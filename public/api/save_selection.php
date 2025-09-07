@@ -235,7 +235,7 @@ try {
               respond(['ok'=>false,'error'=>'fallback_same_twice','msg'=>'Blocco totale: non puoi ripetere la stessa fallback della scorsa volta.'], 400);
             }
         }
-        // UPSERT (+ metadati ciclo/fallback) — versione con placeholder nominati (evita HY093)
+            // UPSERT (+ metadati ciclo/fallback) — versione con placeholder nominati e bind filtrato
         $pdo->beginTransaction();
 
         $selCode = generate_unique_code8($pdo, 'tournament_selections','selection_code', 8);
@@ -259,14 +259,14 @@ try {
         ];
 
         $update = [
-          'event_id = VALUES(event_id)',
-          'side     = VALUES(side)',
-          'locked_at = NULL',
+          'event_id   = VALUES(event_id)',
+          'side       = VALUES(side)',
+          'locked_at  = NULL',
           'finalized_at = NULL',
           'selection_code = IFNULL(selection_code, VALUES(selection_code))'
         ];
 
-        // colonne opzionali
+        // colonne opzionali presenti nella tabella
         if ($HAS_ROUND_NO) { $cols[]='round_no';    $vals[]=':round_no';    $bind[':round_no']    = (int)$ev['round_no']; }
         if ($HAS_TEAM_ID)  { $cols[]='team_id';     $vals[]=':team_id';     $bind[':team_id']     = $team_chosen_canon;  $update[]='team_id = VALUES(team_id)'; }
         if ($HAS_FALLBACK) { $cols[]='is_fallback'; $vals[]=':is_fallback'; $bind[':is_fallback'] = $isFallbackNow ? 1 : 0; $update[]='is_fallback = VALUES(is_fallback)'; }
@@ -280,8 +280,15 @@ try {
             ".implode(', ', $update)."
         ";
 
+        // 🔒 Filtra i bind in base ai placeholder effettivamente presenti nella query (evita HY093)
+        $placeholders = [];
+        if (preg_match_all('/:([a-z_]+)/i', $sql, $m)) {
+          $placeholders = array_unique($m[0]); // es. [':tid',':uid',...]
+        }
+        $bindFiltered = array_intersect_key($bind, array_flip($placeholders));
+
         $ins = $pdo->prepare($sql);
-        $ins->execute($bind);
+        $ins->execute($bindFiltered);
 
         $pdo->commit();
 
