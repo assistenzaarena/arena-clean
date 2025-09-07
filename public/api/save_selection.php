@@ -130,16 +130,16 @@ try {
       SELECT DISTINCT COALESCE(mh.canon_team_id, te.home_team_id) AS canon_id
       FROM tournament_events te
       LEFT JOIN admin_team_canon_map mh
-             ON mh.league_id = :lg AND mh.team_id = te.home_team_id
-      WHERE te.tournament_id = :tid AND te.home_team_id IS NOT NULL AND te.home_team_id > 0
+             ON mh.league_id = ? AND mh.team_id = te.home_team_id
+      WHERE te.tournament_id = ? AND te.home_team_id IS NOT NULL AND te.home_team_id > 0
       UNION
       SELECT DISTINCT COALESCE(ma.canon_team_id, te.away_team_id) AS canon_id
       FROM tournament_events te
       LEFT JOIN admin_team_canon_map ma
-             ON ma.league_id = :lg AND ma.team_id = te.away_team_id
-      WHERE te.tournament_id = :tid AND te.away_team_id IS NOT NULL AND te.away_team_id > 0
+             ON ma.league_id = ? AND ma.team_id = te.away_team_id
+      WHERE te.tournament_id = ? AND te.away_team_id IS NOT NULL AND te.away_team_id > 0
     ");
-    $stTeamsCanon->execute([':lg'=>$league_id, ':tid'=>$tournament_id]);
+    $stTeamsCanon->execute([$league_id, $tournament_id, $league_id, $tournament_id]);
     $teamsAllCanon = array_map('intval', $stTeamsCanon->fetchAll(PDO::FETCH_COLUMN));
     $allCount = count($teamsAllCanon);
 
