@@ -437,9 +437,10 @@ section{
        data-home-logo="<?php echo htmlspecialchars($hLogo); ?>"
        data-away-logo="<?php echo htmlspecialchars($aLogo); ?>">
 
-    <div class="ec-team team-side"
+<div class="ec-team team-side"
          data-side="home"
-         data-team-id="<?php echo $homeCanonId; ?>"
+         data-team-id="<?php echo $homeCanonId; ?>"                <!-- canon per UI -->
+         data-team-id-raw="<?php echo (int)($ev['home_team_id'] ?? 0); ?>" <!-- RAW per API -->
          title="Seleziona casa">
       <span class="logo-wrap">
         <img class="team-logo"
@@ -453,9 +454,10 @@ section{
 
     <div class="ec-vs">VS</div>
 
-    <div class="ec-team team-side"
+ <div class="ec-team team-side"
          data-side="away"
-         data-team-id="<?php echo $awayCanonId; ?>"
+         data-team-id="<?php echo $awayCanonId; ?>"                 <!-- canon per UI -->
+         data-team-id-raw="<?php echo (int)($ev['away_team_id'] ?? 0); ?>"  <!-- RAW per API -->
          title="Seleziona trasferta">
       <span class="team-name" style="text-align:right;"><?php echo htmlspecialchars($an); ?></span>
       <span class="logo-wrap">
