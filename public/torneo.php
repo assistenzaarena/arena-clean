@@ -223,7 +223,7 @@ try {
 .event-card{
   background: linear-gradient(180deg, #1a1f26 0%, #11161c 100%);
   border: 1px solid rgba(255,255,255,.18);
-  border-radius: 28px;           /* ← più ovale */
+  border-radius: 36px;           /* ← più ovale */
   padding: 18px 20px;            /* ← un filo più ariosa */
   overflow: hidden;              /* ← rifila gli angoli per un ovale pulito */
 
