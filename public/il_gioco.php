@@ -58,12 +58,13 @@ require_once $ROOT . '/header_guest.php';
     .cta{
       text-align:center; margin:36px 0 16px;
     }
-    .btn{
-      display:inline-block; padding:12px 18px; border-radius:10px; font-weight:800;
-      background:linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
-      color:#fff; text-decoration:none; border:0; box-shadow:0 8px 24px rgba(226,27,44,.35);
-    }
-    .btn:hover{ filter:brightness(1.08); transform: translateY(-1px); }
+/* DOPO (scopata solo alla CTA) */
+.cta .btn{
+  display:inline-block; padding:12px 18px; border-radius:10px; font-weight:800;
+  background:linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
+  color:#fff; text-decoration:none; border:0; box-shadow:0 8px 24px rgba(226,27,44,.35);
+}
+.cta .btn:hover{ filter:brightness(1.08); transform: translateY(-1px); }
     .muted{ color:var(--c-muted); font-size:13px; }
 
     .badge{ font-size:12px; padding:2px 8px; border-radius: 6px; background:#1e1f22; border:1px solid #2a2b2e; }
