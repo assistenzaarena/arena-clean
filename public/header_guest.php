@@ -23,7 +23,7 @@
   <div class="subhdr__inner">
     <ul class="subhdr__menu">
       <li class="subhdr__item"><a class="subhdr__link" href="/">Home</a></li>
-      <li class="subhdr__item"><a class="subhdr__link" href="//il-gioco.php">Il Gioco</a></li>
+      <li class="subhdr__item"><a class="subhdr__link" href="//il_gioco.php">Il Gioco</a></li>
       <li class="subhdr__item"><a class="subhdr__link" href="/assistenza.php">Contatti</a></li>
     </ul>
   </div>
