@@ -289,7 +289,11 @@ try {
 
 /* Cuori vite */
 .life-heart{ cursor:pointer; }
-.life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
+.life-heart--active {
+  outline: 2px solid #00c074;
+  border-radius: 9999px;   /* ← pienamente ovale */
+  padding: 4px 10px;       /* ← più respiro interno, così non resta un quadratino */
+}
 .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
 
 /* Disabilitazioni */
