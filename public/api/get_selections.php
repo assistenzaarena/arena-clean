@@ -76,9 +76,9 @@ try {
     $items[] = [
       'life_index' => $life,
       'logo_url'   => $logo,
-      // opzionale per debug:
-      // 'side'       => $side,
-      // 'event_id'   => (int)$r['event_id'],
+      // === AGGIUNTA per persistenza flag ===
+      'event_id'   => (int)$r['event_id'],
+      'side'       => $side,
     ];
   }
 
