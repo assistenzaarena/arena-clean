@@ -562,33 +562,6 @@ section{
       });
     });
 
-    // Click su un lato (home/away) → se c’è vita selezionata, aggancia logo accanto al cuore
-    document.querySelectorAll('.event-card .team-side').forEach(function(side){
-      side.addEventListener('click', function(){
-        var card = side.closest('.event-card');
-        if (!card) return;
-        var sideName = side.getAttribute('data-side'); // 'home' | 'away'
-        var logoUrl = (sideName === 'home') ? card.getAttribute('data-home-logo') : card.getAttribute('data-away-logo');
-
-        if (selectedLife === null){
-          showMsg('Seleziona una vita', 'Per favore seleziona prima un cuore (vita) e poi la squadra.', 'error');
-          return;
-        }
-
-        var heart = document.querySelector('.life-heart[data-life="'+selectedLife+'"]');
-        if (!heart) return;
-
-        var old = heart.querySelector('.pick-logo'); if (old) old.remove();
-
-        var img = document.createElement('img');
-        img.className = 'pick-logo';
-        img.src = logoUrl;
-        img.alt = 'Pick';
-        img.onerror = function(){ this.remove(); };
-        heart.appendChild(img);
-      });
-    });
-
     function renderHearts(n){
       var w = document.getElementById('livesWrap');
       if (!w) return;
@@ -662,6 +635,11 @@ section{
         }
         renderHearts(js.lives);
         selectedLife = null;
+
+        // rebind + reload dei loghi usando il JS "buono"
+if (window.rebindHeartsForSelections) window.rebindHeartsForSelections();
+if (window.reloadSelectionsForHearts) window.reloadSelectionsForHearts();
+        
         if (typeof js.header_credits !== 'undefined') {
           var el = document.getElementById('headerCrediti');
           if (el) el.textContent = js.header_credits;
@@ -786,54 +764,6 @@ section{
     try { localStorage.setItem(key, String(roundNow)); } catch(_) {}
     // reset variabile globale se esiste
     if (window.selectedLife !== undefined) window.selectedLife = null;
-  }
-})();
-</script>
-
-  <script>
-(function(){
-  var selectedLife = null;
-
-  // evidenzia la vita selezionata e chiama refresh delle squadre
-  document.querySelectorAll('.life-heart').forEach(function(h){
-    h.addEventListener('click', function(){
-      document.querySelectorAll('.life-heart').forEach(function(x){ x.classList.remove('life-heart--active'); });
-      h.classList.add('life-heart--active');
-      selectedLife = parseInt(h.getAttribute('data-life')||'0',10);
-
-      refreshDisabledTeams(selectedLife);
-    });
-  });
-
-  // funzione che colora grigio le squadre già usate o bloccate
-  function refreshDisabledTeams(lifeIndex){
-    if (lifeIndex === null) return;
-    fetch('/api/used_teams.php?tournament_id=<?php echo (int)$id; ?>&life_index='+lifeIndex,
-          {credentials:'same-origin'})
-      .then(r => r.ok ? r.json() : null)
-      .then(js => {
-        if (!js || !js.ok) return;
-
-        // reset: tolgo tutti i disabled
-        document.querySelectorAll('.team-side').forEach(function(el){
-          el.classList.remove('disabled');
-        });
-
-        // disabilita squadre già usate
-        (js.used || []).forEach(function(teamId){
-          document.querySelectorAll('.team-side[data-team-id="'+teamId+'"]').forEach(function(el){
-            el.classList.add('disabled');
-          });
-        });
-
-        // disabilita squadre non disponibili (eventi bloccati)
-        (js.blocked || []).forEach(function(teamId){
-          document.querySelectorAll('.team-side[data-team-id="'+teamId+'"]').forEach(function(el){
-            el.classList.add('disabled');
-          });
-        });
-
-      }).catch(()=>{});
   }
 })();
 </script>
