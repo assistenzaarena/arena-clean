@@ -58,13 +58,37 @@ require_once $ROOT . '/header_guest.php';
     .cta{
       text-align:center; margin:36px 0 16px;
     }
-/* DOPO (scopata solo alla CTA) */
-.cta .btn{
-  display:inline-block; padding:12px 18px; border-radius:10px; font-weight:800;
-  background:linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
-  color:#fff; text-decoration:none; border:0; box-shadow:0 8px 24px rgba(226,27,44,.35);
+/* CTA verde ovale stile "Registrati" */
+.btn-enter{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:44px;
+  padding:0 18px;
+  border:1px solid #00c074;
+  border-radius:9999px;
+  background:#00c074;
+  color:#fff;
+  font-weight:800;
+  font-size:16px;
+  text-decoration:none;
+  box-shadow:0 2px 12px rgba(0,192,116,.22);
+  transition:background .2s, border-color .2s, transform .15s ease;
 }
-.cta .btn:hover{ filter:brightness(1.08); transform: translateY(-1px); }
+.btn-enter:hover{
+  background:#00a862;
+  border-color:#00a862;
+  transform: translateY(-1px);
+}
+
+/* Mobile */
+@media (max-width: 900px){
+  .btn-enter{
+    height:40px;
+    padding:0 16px;
+    font-size:14px;
+  }
+}
     .muted{ color:var(--c-muted); font-size:13px; }
 
     .badge{ font-size:12px; padding:2px 8px; border-radius: 6px; background:#1e1f22; border:1px solid #2a2b2e; }
@@ -261,11 +285,11 @@ require_once $ROOT . '/header_guest.php';
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="cta">
-      <a class="btn" href="/registrati.php">Entra nell’Arena</a>
-      <div class="muted">Pronto a giocarti la gloria? Iscriviti al prossimo torneo ufficiale.</div>
-    </div>
+<!-- CTA -->
+<div class="cta">
+  <a class="btn-enter" href="/registrazione.php">Entra nell’Arena</a>
+  <div class="muted">Pronto a giocarti la gloria? Iscriviti al prossimo torneo ufficiale.</div>
+</div>
 
     <!-- Note legali -->
     <section id="note" class="section">
