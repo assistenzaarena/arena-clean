@@ -122,8 +122,15 @@
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
         }
-        // OK -> UI
+               // OK -> UI
         attachLogoToHeart(selectedLife, js.team_logo || logoUrl);
+
+        // flash elegante sulla squadra selezionata
+        try {
+          sideEl.classList.add('team-side--flash');
+          setTimeout(function(){ sideEl.classList.remove('team-side--flash'); }, 1200);
+        } catch(_) {}
+
         if (window.showMsg) window.showMsg('Scelta salvata', 'Selezione registrata.', 'success');
       })
       .catch(function () {
