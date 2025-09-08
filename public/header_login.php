@@ -9,13 +9,13 @@
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
     
-    <!-- Logo -->
-    <div class="hdr__left">
-      <a class="logo" href="/" aria-label="Vai alla home">
-        <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
-        <span class="logo__text">ARENA</span>
-      </a>
-    </div>
+<!-- Logo a sinistra -->
+<div class="hdr__left">
+  <div class="logo" aria-label="Logo Arena">
+    <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
+    <span class="logo__text">ARENA</span>
+  </div>
+</div>
 
     <!-- Pulsante "Esci" -->
     <div class="hdr__right" aria-label="Azioni account">
