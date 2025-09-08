@@ -17,38 +17,33 @@ require_once $ROOT . '/header_guest.php';
   <link rel="stylesheet" href="/assets/base.css">
   <style>
     .hero {
-      min-height: calc(100vh - 160px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
+      position: relative;
+      width: 100%;
+      height: 400px; /* altezza fascia gialla */
+      background: url("/assets/home_arena.jpg") no-repeat center center;
+      background-size: cover;
+    }
+    .hero-text {
       text-align: center;
-      padding: 32px 16px;
+      padding: 48px 16px;
     }
-    .hero img {
-      width: 280px; /* molto più piccola e centrata */
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-      margin-bottom: 24px;
-    }
-    .hero h1 {
-      font-size: clamp(28px, 4vw, 48px);
+    .hero-text h1 {
+      font-size: clamp(28px, 4vw, 56px);
       margin: 0 0 16px;
       font-weight: 900;
       color: #fff;
     }
-    .hero p {
+    .hero-text p {
       font-size: clamp(16px, 2vw, 20px);
       color: #ddd;
       margin: 0 0 12px;
       line-height: 1.5;
     }
-    .hero small {
+    .hero-text small {
       display: block;
       font-size: 14px;
       color: #aaa;
-      max-width: 600px;
+      max-width: 700px;
       margin: 16px auto 0;
       line-height: 1.6;
     }
@@ -56,8 +51,9 @@ require_once $ROOT . '/header_guest.php';
 </head>
 <body>
 
-  <div class="hero">
-    <img src="/assets/home_arena.jpg" alt="Arena Home">
+  <div class="hero"></div>
+
+  <div class="hero-text">
     <h1>Sarai tu il campione dell’Arena?</h1>
     <p>Unisciti alla sfida, scegli la tua squadra e sopravvivi turno dopo turno.</p>
     <small>
