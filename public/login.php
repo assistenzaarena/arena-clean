@@ -120,7 +120,7 @@ require __DIR__ . '/header_login.php';
         <input class="auth__input" type="password" name="password" autocomplete="current-password">
       </div>
 
-      <a class="auth__forgot" href="/recupero-password">Hai dimenticato la password?</a>
+      <a class="auth__forgot" href="/recupero-password.php">Hai dimenticato la password?</a>
 
       <button class="auth__submit" type="submit">Accedi</button>
     </form>
