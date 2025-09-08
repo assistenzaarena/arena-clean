@@ -23,22 +23,21 @@ require_once $ROOT . '/header_guest.php';
       padding: var(--gap) 16px;
     }
 
-    /* wrapper per staccare e limitare la larghezza su desktop */
-    .hero__imgWrap{
+    .hero__imgWrap {
       margin: var(--gap) auto;
-      max-width: 1200px;            /* desktop */
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 8px 24px rgba(0,0,0,.6);
+      width: 710px;
+      height: 380px;
     }
 
-    /* l'immagine si adatta: 100% su mobile, non si deforma */
-    .hero__img{
-      display:block;
-      width:100%;
-      height:auto;                  /* mantiene proporzioni */
-      object-fit: cover;            /* nel caso venga usata un'altra immagine più alta */
-      background:#0f0f0f;           /* placeholder scuro */
+    .hero__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background:#0f0f0f;
     }
 
     .hero h1 {
@@ -62,9 +61,19 @@ require_once $ROOT . '/header_guest.php';
       line-height:1.6;
     }
 
+    /* Mobile: immagine full width */
     @media (max-width: 768px){
       :root { --gap: 24px; }
-      .hero__imgWrap{ max-width: 100%; border-radius: 8px; }
+      .hero__imgWrap {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
+      .hero__img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
     }
   </style>
 </head>
@@ -86,11 +95,10 @@ require_once $ROOT . '/header_guest.php';
       Rimani connesso: presto troverai tornei, premi, classifiche live e sfide esclusive.
     </small>
 
-    <h1>🔥 Sfida gli amici. Vinci la gloria. Conquista l’Arena.</h1>
-    <p>Non conta da dove parti, conta chi resta in piedi. L’Arena premia i coraggiosi.</p>
+    <h1>🔥 Partecipa. Vinci la gloria. Conquista l’Arena.</h1>
+    <p>Conta solo chi resta in piedi. L’Arena premia i coraggiosi.</p>
     <small>
-      Accedi o registrati per ricevere aggiornamenti sui prossimi lanci, regolamenti,
-      modalità di gioco e anteprime dei premi. La battaglia calcistica definitiva sta per iniziare.
+      
     </small>
   </div>
 
