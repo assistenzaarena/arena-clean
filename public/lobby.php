@@ -133,7 +133,7 @@ if (file_exists($headerPath)) { require $headerPath; }
 
             <dl class="grid">
               <div><dt>Buy-in</dt><dd><?php echo number_format((float)$t['cost_per_life'], 0, ',', '.'); ?> crediti</dd></div>
-              <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
+              <div><dt>Posti</dt><dd><?php echo empty($t['max_slots']) ? '∞' : (int)$t['max_slots']; ?></dd></div>
               <div><dt>Vite max/utente</dt><dd><?php echo (int)$t['max_lives_per_user']; ?></dd></div>
               <div>
                 <dt>Crediti in palio</dt>
@@ -195,7 +195,7 @@ if (file_exists($headerPath)) { require $headerPath; }
 
             <dl class="grid">
               <div><dt>Buy-in</dt><dd><?php echo number_format((float)$t['cost_per_life'], 0, ',', '.'); ?> crediti</dd></div>
-              <div><dt>Posti</dt><dd><?php echo (int)$t['max_slots']; ?></dd></div>
+              <div><dt>Posti</dt><dd><?php echo empty($t['max_slots']) ? '∞' : (int)$t['max_slots']; ?></dd></div>
               <div><dt>Vite max/utente</dt><dd><?php echo (int)$t['max_lives_per_user']; ?></dd></div>
               <div>
                 <dt>Crediti in palio</dt>
