@@ -11,9 +11,16 @@ require_admin();
 
 require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/db.php';
-// === REGISTRAZIONI: impostazioni globali (toggle via file) ===
-$settingsFile = __DIR__ . '/../src/config_settings.php';
-$settings = require $settingsFile;
+
+// === REGISTRAZIONI: impostazioni globali (toggle da DB) ===
+$regOpen = 1; // default: aperte
+try {
+    $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='registrations_open' LIMIT 1");
+    $st->execute();
+    $regOpen = (int)($st->fetchColumn() ?? 1);
+} catch (Throwable $e) {
+    $regOpen = 1;
+}
 
 // CSRF
 if (empty($_SESSION['csrf'])) {
@@ -46,13 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action  = $_POST['action']  ?? '';
     $user_id = (int)($_POST['user_id'] ?? 0);
 
-        // 0) TOGGLE REGISTRAZIONI (ON/OFF)
+    // 0) TOGGLE REGISTRAZIONI (ON/OFF) — salva su admin_settings (niente file system)
     if ($action === 'toggle_registrations') {
-        $newState = !empty($settings['registrations_open']) ? 'false' : 'true';
-        $newContent = "<?php\n// src/config_settings.php — generato da admin/dashboard\nreturn [\n    'registrations_open' => $newState,\n];\n";
-        file_put_contents($settingsFile, $newContent);
+        $newVal = ($regOpen === 1) ? 0 : 1;
+        $up = $pdo->prepare("
+          INSERT INTO admin_settings (setting_key, setting_value)
+          VALUES ('registrations_open', :v)
+          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ");
+        $up->execute([':v' => $newVal]);
 
-        $_SESSION['flash'] = ($newState === 'true') ? 'Registrazioni ATTIVATE.' : 'Registrazioni DISATTIVATE.';
+        $_SESSION['flash'] = ($newVal === 1) ? 'Registrazioni ATTIVATE.' : 'Registrazioni DISATTIVATE.';
         $query = http_build_query([
             'page' => (int)($_GET['page'] ?? 1),
             'sort' => $_GET['sort'] ?? 'cognome',
@@ -297,7 +308,7 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();
 
 <main class="admin-wrap">
       <!-- Toolbar: toggle registrazioni -->
-  <?php $isOpen = !empty($settings['registrations_open']); ?>
+  <?php $isOpen = ($regOpen === 1); ?>
   <div style="display:flex; justify-content:flex-end; margin:8px 0;">
     <form method="post" action="/admin/dashboard.php" style="margin:0;">
       <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
