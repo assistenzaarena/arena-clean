@@ -122,23 +122,24 @@
           if (window.showMsg) window.showMsg('Salvataggio non riuscito', msg, 'error');
           return;
         }
-               // OK -> UI
-        attachLogoToHeart(selectedLife, js.team_logo || logoUrl);
+    // OK -> UI
+attachLogoToHeart(selectedLife, js.team_logo || logoUrl);
 
-        // flash elegante sulla squadra selezionata
-        try {
-          sideEl.classList.add('team-side--flash');
-          setTimeout(function(){ sideEl.classList.remove('team-side--flash'); }, 1200);
-        } catch(_) {}
+// Evidenza grafica della squadra selezionata
+document.querySelectorAll('.team-side').forEach(el => el.classList.remove('team-side--selected'));
+sideEl.classList.add('team-side--selected', 'team-side--flash');
 
-        if (window.showMsg) window.showMsg('Scelta salvata', 'Selezione registrata.', 'success');
-      })
-      .catch(function () {
-        if (window.showMsg) window.showMsg('Errore di rete', 'Controlla la connessione e riprova.', 'error');
-      })
-      .finally(function () { inFlight = false; });
-    });
-  });
+// Rimuove il flash dopo l’animazione ma lascia il "selected"
+setTimeout(() => sideEl.classList.remove('team-side--flash'), 1200);
+
+if (window.showMsg) window.showMsg('Scelta salvata', 'Selezione registrata.', 'success');
+})
+.catch(function () {
+  if (window.showMsg) window.showMsg('Errore di rete', 'Controlla la connessione e riprova.', 'error');
+})
+.finally(function () { inFlight = false; });
+});
+});
 
   // ====== NUOVO: funzione che colora grigio le squadre in base a used/blocked + fallback ======
   function refreshDisabledTeams(lifeIndex){
