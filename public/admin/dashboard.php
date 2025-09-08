@@ -56,11 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 0) TOGGLE REGISTRAZIONI (ON/OFF) — salva su admin_settings (niente file system)
     if ($action === 'toggle_registrations') {
         $newVal = ($regOpen === 1) ? 0 : 1;
-        $up = $pdo->prepare("
-          INSERT INTO admin_settings (setting_key, setting_value)
-          VALUES ('registrations_open', :v)
-          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
-        ");
+   $up = $pdo->prepare("
+  INSERT INTO admin_settings (setting_key, setting_value)
+  VALUES ('registrations_open', :v) AS new
+  ON DUPLICATE KEY UPDATE setting_value = new.setting_value
+");
         $up->execute([':v' => $newVal]);
 
         $_SESSION['flash'] = ($newVal === 1) ? 'Registrazioni ATTIVATE.' : 'Registrazioni DISATTIVATE.';
