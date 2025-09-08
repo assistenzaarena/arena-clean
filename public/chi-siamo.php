@@ -60,9 +60,6 @@ if (file_exists($ROOT . '/header_user.php') && !empty($_SESSION['user_id'])) {
   <p><strong>Arena Survivor</strong> è una piattaforma digitale indipendente che offre
      un’esperienza di intrattenimento innovativa e interattiva per gli appassionati di sport e competizioni.</p>
 
-  <p>Il progetto è sviluppato e gestito da <strong>Valenzo Srls</strong>,
-     P.IVA <strong>17381361009</strong>.</p>
-
   <p>La nostra missione è garantire un ambiente sicuro, regolamentato e rispettoso delle regole,
      in cui ogni utente possa accedere a contenuti e funzionalità in modo trasparente.</p>
 
