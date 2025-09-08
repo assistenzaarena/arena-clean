@@ -8,8 +8,15 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 // [RIGA] Config + PDO
 require_once __DIR__ . '/src/config.php';
 require_once __DIR__ . '/src/db.php';
-$settings = require __DIR__ . '/src/config_settings.php';
-if (empty($settings['registrations_open'])) {
+// Verifica se le registrazioni sono aperte (da DB: admin_settings.registrations_open)
+$regOpen = 1;
+try {
+    $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='registrations_open' LIMIT 1");
+    $st->execute();
+    $regOpen = (int)($st->fetchColumn() ?? 1);
+} catch (Throwable $e) { $regOpen = 1; }
+
+if ($regOpen !== 1) {
     http_response_code(503);
     echo '<h1>Registrazioni sospese</h1><p>Le registrazioni sono momentaneamente disattivate per manutenzione. Riprova più tardi.</p>';
     exit;
