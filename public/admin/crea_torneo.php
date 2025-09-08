@@ -84,9 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($cost_per_life === '' || !is_numeric($cost_per_life) || $cost_per_life < 0) {
             $errors[] = 'Costo per vita non valido.';
         }
-        if ($max_slots === '' || !ctype_digit((string)$max_slots) || (int)$max_slots < 1) {
-            $errors[] = 'Posti disponibili non validi.';
+
+        // >>> MODIFICA: posti infiniti
+        $slots_infinite = !empty($_POST['slots_infinite']);
+        if (!$slots_infinite) {
+            if ($max_slots === '' || !ctype_digit((string)$max_slots) || (int)$max_slots < 1) {
+                $errors[] = 'Posti disponibili non validi.';
+            }
         }
+        // <<< FINE MODIFICA
+
         if ($max_lives_per_user === '' || !ctype_digit((string)$max_lives_per_user) || (int)$max_lives_per_user < 1) {
             $errors[] = 'Vite massime per utente non valide.';
         }
@@ -135,11 +142,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      :lid, :lname, :season, :rtype, :mday, :rlabel, 'draft',
                      NOW(), NOW())";
             $stmt = $pdo->prepare($sql);
+
+            // >>> MODIFICA: salva NULL se infiniti (se la colonna non accetta NULL, usa 0)
+            $slots_value = $slots_infinite ? null : (int)$max_slots;
+            // <<< FINE MODIFICA
+
             $stmt->execute([
                 ':tcode'  => $tournament_code,          // <-- [AGGIUNTA]
                 ':name'   => $name,
                 ':cpl'    => (float)$cost_per_life,
-                ':slots'  => (int)$max_slots,
+                ':slots'  => $slots_value,
                 ':mlu'    => (int)$max_lives_per_user,
                 ':gp'     => ($guaranteed_prize === '' ? null : (float)$guaranteed_prize),
                 ':pp'     => (int)$prize_percent,
@@ -337,10 +349,19 @@ $draft_list = $draft_stmt->fetchAll(PDO::FETCH_ASSOC);
           <label for="cpl">Costo per vita (€)</label>
           <input id="cpl" name="cost_per_life" type="number" step="0.01" min="0" required>
         </div>
+
+        <!-- MODIFICA: Posti disponibili + flag Infiniti -->
         <div class="field">
           <label for="slots">Posti disponibili</label>
-          <input id="slots" name="max_slots" type="number" min="1" required>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input id="slots" name="max_slots" type="number" min="1" placeholder="es. 100">
+            <label style="display:flex; gap:6px; align-items:center; font-weight:700;">
+              <input id="slots_inf" type="checkbox" name="slots_infinite" value="1"> Infiniti
+            </label>
+          </div>
+          <small class="hint">Spunta “Infiniti” per rimuovere il limite.</small>
         </div>
+
         <div class="field">
           <label for="mlu">Vite max per utente</label>
           <input id="mlu" name="max_lives_per_user" type="number" min="1" required>
@@ -506,18 +527,4 @@ $draft_list = $draft_stmt->fetchAll(PDO::FETCH_ASSOC);
       md.value = '';
       md.required = false;
       rl.required = true;
-    } else {
-      wrapMD.style.display = 'none';
-      wrapRL.style.display = 'none';
-      md.required = false;
-      rl.required = false;
-    }
-  }
-
-  sel.addEventListener('change', applyCompUI);
-  applyCompUI(); // init
-})();
-</script>
-
-</body>
-</html>
+    } else
