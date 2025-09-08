@@ -292,7 +292,7 @@ $ins->execute([
      <div class="auth__group" style="display:flex; align-items:center; gap:8px;">
   <input id="accept_tc" type="checkbox" name="accept_tc" <?php echo isset($_POST['accept_tc'])?'checked':''; ?>>
   <label for="accept_tc" class="auth__label" style="margin:0; font-size:13px;">
-    Accetto i <a href="/termini-e-condizioni" target="_blank">Termini e Condizioni</a>
+    Accetto i <a href="/termini.php" target="_blank">Termini e Condizioni</a>
   </label>
 </div>
 
