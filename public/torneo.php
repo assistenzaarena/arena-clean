@@ -279,6 +279,12 @@ try {
   background:#00c074; color:#04140c;
   font-weight:900; font-size:11px;
   box-shadow:0 4px 12px rgba(0,0,0,.35);
+  /* aggiunta: “brilla” in modo continuo */
+  animation: flagBlink 1.4s ease-in-out infinite alternate;
+}
+@keyframes flagBlink{
+  0%   { filter: drop-shadow(0 0 0px rgba(0,192,116,.0)); }
+  100% { filter: drop-shadow(0 0 7px rgba(0,192,116,.85)); }
 }
 
 /* Cuori vite */
