@@ -76,3 +76,26 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 </script>
+
+<!-- [AGGIUNTA FAVICON GLOBALE] -->
+<script>
+(function () {
+  try {
+    // Favicon (se non già presente)
+    if (!document.querySelector('link[rel="icon"]')) {
+      var l = document.createElement('link');
+      l.rel = 'icon';
+      l.type = 'image/png';
+      l.href = '/assets/logo_arena.png'; // favicon su sfondo nero
+      document.head.appendChild(l);
+    }
+    // Theme color per mobile (se non già presente)
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      var m = document.createElement('meta');
+      m.name = 'theme-color';
+      m.content = '#000000';
+      document.head.appendChild(m);
+    }
+  } catch(e) {}
+})();
+</script>
