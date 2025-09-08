@@ -278,6 +278,34 @@ try {
     .team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
     .team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
     .team-side{ cursor:pointer; }
+
+    /* --- Evidenza elegante quando salvo una squadra --- */
+    .event-card .team-side{ position: relative; transition: transform .12s ease, box-shadow .30s ease, border-color .30s ease; }
+
+    .team-side--flash {
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 2px rgba(0,192,116,.55),
+        0 0 18px rgba(0,192,116,.35);
+      transform: scale(0.98);
+      animation: pulseSel .9s ease-out;
+    }
+    .team-side--flash::after {
+      content: '✓';
+      position: absolute;
+      top: -6px; right: -6px;
+      width: 18px; height: 18px;
+      display: flex; align-items:center; justify-content:center;
+      border-radius: 9999px;
+      background:#00c074; color:#04140c;
+      font-weight:900; font-size:11px;
+      box-shadow:0 4px 12px rgba(0,0,0,.35);
+    }
+    @keyframes pulseSel{
+      0%   { box-shadow: 0 0 0 0 rgba(0,192,116,.50), 0 0 18px rgba(0,192,116,.35); }
+      100% { box-shadow: 0 0 0 12px rgba(0,192,116,0), 0 0 0 rgba(0,192,116,0); }
+    }
+
     .life-heart{ cursor:pointer; }
     .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
     .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
