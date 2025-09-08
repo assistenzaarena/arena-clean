@@ -1,139 +1,90 @@
-/* [SCOPO] Stile dell’header guest: sfondo nero, contenuto centrato,
-   logo a sinistra, azioni a destra (registrati, login, recupero). */
+/* [SCOPO] Stile dell’header guest: allineato 1:1 all’header user (dimensioni, paddings, bottoni). */
 
-/* ===== Variabili base per colori e spaziature ===== */
+/* ===== Variabili base ===== */
 :root{
-  --bg-900:#0a0a0b;         /* Nero principale header */
-  --text-100:#ffffff;       /* Testo chiaro (contrasto) */
-  --text-300:#e7e7e7;       /* Testo leggermente attenuato */
-  --text-600:#a7a7a7;       /* Testo per link piccoli */
-  --green:#00c074;          /* Colore bottone primario */
-  --green-700:#00a862;      /* Hover/active primario */
-  --line:rgba(255,255,255,.08); /* Linee sottili/separatori */
-  --container:1280px;       /* Larghezza massima contenuto */
-  --pad-x:clamp(16px,3vw,28px); /* Padding orizzontale fluido */
-  --radius-pill:9999px;     /* Bordi “pill” */
-  --h:64px;                 /* Altezza header desktop */
+  --bg-900:#0a0a0b;              /* Nero header */
+  --text-100:#ffffff;            /* Testo chiaro */
+  --text-300:#e7e7e7;            /* Testo attenuato */
+  --green:#00c074;               /* Primario */
+  --green-700:#00a862;           /* Hover primario */
+  --line:rgba(255,255,255,.08);  /* Separatori sottili */
+  --container:1280px;            /* Larghezza massima */
+  --h:45px;                      /* Altezza barra come header user */
 }
 
-/* ===== Reset mirato dell’header ===== */
-.hdr, .hdr * { box-sizing: border-box; } /* Box model prevedibile */
+/* Reset mirato */
+.hdr, .hdr * { box-sizing: border-box; }
 
-/* ===== Contenitore header ===== */
+/* Contenitore header — come header user */
 .hdr{
-  background:var(--bg-900);       /* Sfondo nero */
-  color:var(--text-100);          /* Testo bianco */
-  position:sticky; top:0; z-index:1000; /* Rimane in alto mentre scrolli */
-  min-height:var(--h);            /* Altezza minima */
-  border-bottom:1px solid var(--line); /* Sottilissima linea inferiore */
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* Font neutro */
+  background:var(--bg-900);
+  color:var(--text-100);
+  position:sticky; top:0; z-index:1000;
+  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  border-bottom:1px solid var(--line);
 }
-
-/* ===== Riga interna a 2 colonne ===== */
 .hdr__inner{
-  max-width:var(--container);     /* Larghezza massima */
-  margin:0 auto;                  /* Centra il contenitore */
-  padding:0 var(--pad-x);         /* Spazio laterale fluido */
-  display:flex;                   /* Attiva layout a fless */
-  align-items:center;             /* Allinea verticalmente al centro */
-  justify-content:space-between;  /* Sinistra vs destra */
-  min-height:var(--h);            /* Mantiene altezza riga */
+  max-width:var(--container);
+  margin:0 auto;
+  padding:0 20px;         /* come header user */
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:var(--h);        /* 45px come header user */
 }
 
-/* ===== Colonna sinistra (logo) ===== */
+/* Logo — come header user */
 .logo{
-  display:inline-flex;            /* Allinea immagine + testo */
-  align-items:center;             /* Centra verticalmente */
-  gap:12px;                       /* Spazio tra logo e wordmark */
-  text-decoration:none;           /* Niente sottolineatura */
-  color:var(--text-100);          /* Colore testo */
+  display:inline-flex; align-items:center; gap:8px;
+  text-decoration:none; color:var(--text-100);
 }
-.logo__img{ display:block; height:56px; width:auto; } /* Logo immagine */
+.logo__img{ height:40px; width:auto; display:block; }     /* 40px come header user */
 .logo__text{
-  font-weight:900;                /* Wordmark robusto */
-  letter-spacing:.02em;           /* Leggera spaziatura */
-  text-transform:uppercase;       /* Tutto maiuscolo */
+  font-weight:900; font-size:20px; text-transform:uppercase; letter-spacing:.05em;
 }
 
-/* ===== Colonna destra (azioni) ===== */
-.hdr__right{
-  display:flex;                   /* Allinea pulsanti e link */
-  align-items:center;             /* Centro verticale */
-  gap:10px;                       /* Spazio orizzontale tra elementi */
-  line-height:1;                  /* Compatta verticalmente */
-}
+/* Colonna destra (azioni) — come header user */
+.hdr__right{ display:flex; align-items:center; gap:14px; line-height:1; }
 
-/* ===== Bottoni ===== */
+/* Bottoni — come header user */
 .btn{
-  display:inline-flex; align-items:center; justify-content:center; /* Centra contenuto */
-  height:36px;                  /* Altezza pill */
-  padding:0 14px;               /* Spazio orizzontale */
-  border-radius:var(--radius-pill); /* Angoli “pill” */
-  font-size:13px; font-weight:800;  /* Tipografia decisa */
-  letter-spacing:.03em; text-decoration:none; /* Stile bottone */
-  border:1px solid transparent;       /* Bordo base invisibile */
-  cursor:pointer; transition:background-color .15s,border-color .15s; /* Transizioni morbide */
-  color:var(--text-100);              /* Testo chiaro */
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:6px 14px; border-radius:9999px;
+  font-size:10px; font-weight:800; text-decoration:none; cursor:pointer;
+  border:1px solid transparent; background:transparent; color:var(--text-100);
+  transition:background-color .15s, border-color .15s, color .15s;
 }
-.btn--primary{ background:var(--green); }              /* Registrati (primario) */
-.btn--primary:hover{ background:var(--green-700); }    /* Hover più scuro */
-.btn--outline{
-  background:transparent; border-color:var(--line);    /* Login (outline) */
-  color:var(--text-300);                                /* Testo meno acceso */
-}
-.btn--outline:hover{ border-color:var(--text-300); color:var(--text-100); } /* Hover outline */
+.btn--primary{ background:var(--green); color:#fff; }
+.btn--primary:hover{ background:var(--green-700); }
+.btn--outline{ border-color:rgba(255,255,255,.2); color:#ccc; }
+.btn--outline:hover{ border-color:#fff; color:#fff; }
 
-/* ===== Link “recupero password” sotto al Login ===== */
+/* Link “recupero password” (se usato sotto i bottoni) */
 .link--tiny{
-  display:block;                 /* Va su una riga sotto */
-  margin-left:auto;              /* Si allinea a destra sotto i bottoni */
-  font-size:12px;                /* Più piccolo dei bottoni */
-  color:var(--text-600);         /* Colore attenuato */
-  text-decoration:none;          /* Niente sottolineatura base */
-  margin-top:2px;                /* Distanza minima dai bottoni */
+  display:block; margin-left:auto; margin-top:2px;
+  font-size:12px; color:#a7a7a7; text-decoration:none;
 }
-.link--tiny:hover{ color:var(--text-100); } /* Hover più chiaro */
+.link--tiny:hover{ color:#fff; }
+
+/* ===== Sub-header (barra sotto) — allineata a header user ===== */
+.subhdr{
+  background:#0f1114;
+  border-top:0.5px solid rgba(255,255,255,.08);
+  border-bottom:0.5px solid rgba(255,255,255,.08);
+}
+.subhdr__inner{ max-width:var(--container); margin:0 auto; padding:0 20px; }
+.subhdr__menu{ display:flex; justify-content:center; gap:36px; list-style:none; margin:0; padding:4px 0; }
+.subhdr__link{
+  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  color:#c9c9c9; text-decoration:none;
+}
+.subhdr__link:hover, .subhdr__link:focus-visible{ color:#fff; outline:none; }
 
 /* ===== Responsive (mobile) ===== */
 @media (max-width:860px){
-  .hdr__inner{ gap:12px; }         /* Un po’ di respiro */
-  .logo__img{ height:44px; }       /* Logo più compatto */
-  .btn{ height:32px; padding:0 12px; font-size:12px; } /* Bottoni più piccoli */
-  .link--tiny{ font-size:11px; }   /* Recupero ancora più piccolo */
-}
-/* ===== Sub-header (barra sotto l'header) ===== */
-.subhdr {
-  background:#0f1114;              /* Sfondo uguale al resto della pagina */
-  border-top:0.3px solid var(--line);/* Linea di separazione sopra */
-  border-bottom:0.3px solid var(--line); /* Linea di separazione sotto */
-}
-
-.subhdr__inner {
-  max-width:var(--container);      /* Larghezza massima centrata */
-  margin:0 auto;
-  padding:0 var(--pad-x);
-}
-
-.subhdr__menu {
-  display:flex;                    /* Voci in linea */
-  justify-content:center;          /* Centrate */
-  gap:36px;                        /* Spazio tra i link */
-  list-style:none;                 /* Nessun bullet */
-  margin:0; padding:8px 0;         /* Altezza barra */
-}
-
-.subhdr__link {
-  font-family:"Montserrat",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; /* stesso font header */
-  font-size:14px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.03em;
-  color:var(--text-300);
-  text-decoration:none;
-}
-
-.subhdr__link:hover,
-.subhdr__link:focus-visible {
-  color:var(--text-100);           /* Hover bianco */
-  outline:none;
+  .hdr__inner{ gap:12px; }
+  .logo__img{ height:36px; }          /* leggermente più compatto su mobile */
+  .btn{ padding:6px 12px; font-size:10px; } /* conserva la scala dello user header */
+  .link--tiny{ font-size:11px; }
 }
