@@ -6,10 +6,10 @@
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
     <div class="hdr__left">
-      <a class="logo" href="/" aria-label="Vai alla home">
+      <div class="logo" aria-label="Logo Arena">
         <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
         <span class="logo__text">ARENA</span>
-      </a>
+      </div>
     </div>
 
     <div class="hdr__right" aria-label="Azioni account">
@@ -18,6 +18,7 @@
     </div>
   </div>
 </header>
+
 <!-- Sub-header di navigazione principale -->
 <nav class="subhdr" role="navigation" aria-label="Navigazione principale">
   <div class="subhdr__inner">
