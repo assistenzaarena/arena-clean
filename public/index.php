@@ -38,14 +38,16 @@ require_once $ROOT . '/header_guest.php';
     .title{font-size: clamp(34px, 6vw, 64px); font-weight: 900; line-height:1.05; margin:8px 0 8px;}
     .subtitle{color:#d8dbe0; font-size: clamp(15px, 2.6vw, 18px); margin:0 0 20px;}
     .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
-    .btn{
+
+    /* ⚠️ SCOPING: i bottoni della home NON toccano quelli dell’header */
+    .cta .btn{
       display:inline-flex; align-items:center; justify-content:center;
       height:46px; padding:0 18px; border-radius:9999px; font-weight:900; text-decoration:none;
     }
-    .btn--primary{ background:var(--accent); color:#fff; border:1px solid var(--accent); box-shadow:0 6px 22px rgba(0,192,116,.28); }
-    .btn--primary:hover{ background:var(--accent-2); border-color:var(--accent-2); transform:translateY(-1px); }
-    .btn--ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.32); }
-    .btn--ghost:hover{ border-color:#fff; transform:translateY(-1px); }
+    .cta .btn--primary{ background:var(--accent); color:#fff; border:1px solid var(--accent); box-shadow:0 6px 22px rgba(0,192,116,.28); }
+    .cta .btn--primary:hover{ background:var(--accent-2); border-color:var(--accent-2); transform:translateY(-1px); }
+    .cta .btn--ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.32); }
+    .cta .btn--ghost:hover{ border-color:#fff; transform:translateY(-1px); }
 
     /* VALUE PROPS ------------------------------------------- */
     .section{padding:36px 0;}
