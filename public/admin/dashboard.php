@@ -11,6 +11,9 @@ require_admin();
 
 require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/db.php';
+// === REGISTRAZIONI: impostazioni globali (toggle via file) ===
+$settingsFile = __DIR__ . '/../src/config_settings.php';
+$settings = require $settingsFile;
 
 // CSRF
 if (empty($_SESSION['csrf'])) {
@@ -42,6 +45,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action  = $_POST['action']  ?? '';
     $user_id = (int)($_POST['user_id'] ?? 0);
+
+        // 0) TOGGLE REGISTRAZIONI (ON/OFF)
+    if ($action === 'toggle_registrations') {
+        $newState = !empty($settings['registrations_open']) ? 'false' : 'true';
+        $newContent = "<?php\n// src/config_settings.php — generato da admin/dashboard\nreturn [\n    'registrations_open' => $newState,\n];\n";
+        file_put_contents($settingsFile, $newContent);
+
+        $_SESSION['flash'] = ($newState === 'true') ? 'Registrazioni ATTIVATE.' : 'Registrazioni DISATTIVATE.';
+        $query = http_build_query([
+            'page' => (int)($_GET['page'] ?? 1),
+            'sort' => $_GET['sort'] ?? 'cognome',
+            'dir'  => $_GET['dir']  ?? 'asc',
+            'q'    => $_GET['q']    ?? '',
+        ]);
+        header("Location: /admin/dashboard.php?$query");
+        exit;
+    }
 
     // 1) TOGGLE ATTIVO/DISATTIVO
     if ($action === 'toggle_active' && $user_id > 0) {
@@ -276,6 +296,18 @@ $tot_utenti = (int)$pdo->query("SELECT COUNT(*) FROM utenti")->fetchColumn();
 <?php require __DIR__ . '/../header_admin.php'; ?>
 
 <main class="admin-wrap">
+      <!-- Toolbar: toggle registrazioni -->
+  <?php $isOpen = !empty($settings['registrations_open']); ?>
+  <div style="display:flex; justify-content:flex-end; margin:8px 0;">
+    <form method="post" action="/admin/dashboard.php" style="margin:0;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
+      <button class="btn" type="submit" name="action" value="toggle_registrations"
+              style="padding:8px 14px; font-weight:800; border-radius:8px; border:0;
+                     background:<?php echo $isOpen ? '#e62329' : '#00c074'; ?>; color:#fff;">
+        <?php echo $isOpen ? 'Disattiva registrazioni' : 'Attiva registrazioni'; ?>
+      </button>
+    </form>
+  </div>
   <div class="kpi"><strong>Utenti totali:</strong> <?php echo $tot_utenti; ?></div>
 
   <?php if ($flash): ?><div class="flash"><?php echo htmlspecialchars($flash); ?></div><?php endif; ?>
