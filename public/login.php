@@ -115,10 +115,21 @@ require __DIR__ . '/header_login.php';
         <input class="auth__input" type="text" name="username" autocomplete="username">
       </div>
 
-      <div class="auth__group">
-        <label class="auth__label">Password</label>
-        <input class="auth__input" type="password" name="password" autocomplete="current-password">
-      </div>
+<div class="auth__group" style="position:relative;">
+  <label class="auth__label">Password</label>
+  <input id="passwordField"
+         class="auth__input"
+         type="password"
+         name="password"
+         autocomplete="current-password"
+         style="padding-right:40px;"> <!-- spazio per l’icona -->
+
+  <!-- icona occhio -->
+  <span id="togglePassword"
+        style="position:absolute; right:10px; top:34px; cursor:pointer; color:#aaa; font-size:16px;">
+    👁
+  </span>
+</div>
 
       <a class="auth__forgot" href="/recupero-password.php">Hai dimenticato la password?</a>
 
@@ -133,5 +144,19 @@ require __DIR__ . '/header_login.php';
 </main>
 
 <?php require __DIR__ . '/footer.php'; ?>
+
+    <script>
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordField = document.getElementById('passwordField');
+
+  if (togglePassword && passwordField) {
+    togglePassword.addEventListener('click', () => {
+      const isHidden = passwordField.type === 'password';
+      passwordField.type = isHidden ? 'text' : 'password';
+      togglePassword.textContent = isHidden ? '🙈' : '👁'; // cambia icona
+    });
+  }
+</script>
+    
 </body>
 </html>
