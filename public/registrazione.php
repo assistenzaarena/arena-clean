@@ -202,14 +202,15 @@ $ins->execute([
             urlencode($token)
         );
 
-        // [RIGA] Invio email: in questa fase di sviluppo mostriamo il link a video se non siamo in production.
-        //        Per la produzione, configureremo SMTP e invieremo davvero.
-        if (APP_ENV !== 'production') {
-            $success = "Registrazione ok. Verifica la tua email: $verifyUrl";
-        } else {
-            // TODO: invio email reale (SMTP) con $verifyUrl
-            $success = "Registrazione ok. Controlla la tua email per attivare l'account.";
-        }
+    if (APP_ENV !== 'production') {
+    // Nessun link in chiaro e nessuna email inviata in dev/stage.
+    // L'account resta inattivo finché un admin non lo abilita.
+    $success = "Registrazione ricevuta. L'account verrà attivato da un amministratore.";
+} else {
+    // Quando configurerai l'invio email, qui invierai il link di verifica ($verifyUrl).
+    // Esempio futuro: mail($email, 'Verifica account', "...$verifyUrl...");
+    $success = "Registrazione ok. Controlla la tua email per il link di attivazione.";
+}
     }
 }
 ?>
