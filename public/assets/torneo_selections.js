@@ -18,6 +18,18 @@
   // struttura: { [lifeIndex]: { eventId:String, side:'home'|'away' } }
   var selectedByLife = {};
 
+  // === NUOVO: storage locale per persistenza post-refresh
+  var LS_KEY = 'arena_sel_t' + TOURNAMENT_ID;
+  function loadFromStorage() {
+    try {
+      var txt = localStorage.getItem(LS_KEY);
+      return txt ? (JSON.parse(txt) || {}) : {};
+    } catch (_) { return {}; }
+  }
+  function saveToStorage(map) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(map || {})); } catch (_) {}
+  }
+
   // === NUOVO: applica il flag ✓ sulla squadra della vita corrente
   function updateSelectedMarker() {
     // rimuove eventuali flag precedenti
@@ -68,32 +80,42 @@
     .then(function (r) { return r.text(); })
     .then(function (txt) {
       var js = null; try { js = txt ? JSON.parse(txt) : null; } catch (e) {}
-      if (!js || !js.ok || !Array.isArray(js.items)) return;
-
       // reset locale
       selectedByLife = {};
 
-      js.items.forEach(function (it) {
-        if (typeof it.life_index === 'undefined') return;
+      if (js && js.ok && Array.isArray(js.items)) {
+        js.items.forEach(function (it) {
+          if (typeof it.life_index === 'undefined') return;
 
-        // logo sui cuori (se presente)
-        if (it.logo_url) {
-          attachLogoToHeart(parseInt(it.life_index,10), it.logo_url);
-        }
+          // logo sui cuori (se presente)
+          if (it.logo_url) {
+            attachLogoToHeart(parseInt(it.life_index,10), it.logo_url);
+          }
 
-        // ricostruzione flag persistente se l'API fornisce event_id/side
-        if (it.event_id && it.side) {
-          selectedByLife[parseInt(it.life_index,10)] = {
-            eventId: String(it.event_id),
-            side: String(it.side)  // 'home' | 'away'
-          };
-        }
+          // ricostruzione flag persistente se l'API fornisce event_id/side
+          if (it.event_id && it.side) {
+            selectedByLife[parseInt(it.life_index,10)] = {
+              eventId: String(it.event_id),
+              side: String(it.side)  // 'home' | 'away'
+            };
+          }
+        });
+      }
+
+      // === NUOVO: merge con storage locale (fallback se server non fornisce id/side)
+      var fromLS = loadFromStorage();
+      Object.keys(fromLS).forEach(function(k){
+        if (!selectedByLife[k]) selectedByLife[k] = fromLS[k];
       });
 
       // mostra il flag in base alla vita attuale
       updateSelectedMarker();
     })
-    .catch(function(){ /* silenzioso */ });
+    .catch(function(){
+      // anche in caso di errore server, tenta almeno dalla cache locale
+      selectedByLife = loadFromStorage();
+      updateSelectedMarker();
+    });
   }
 
   // rende richiamabile dall'esterno il ricaricamento dei loghi
@@ -172,6 +194,9 @@
 
         // === NUOVO: aggiorna la mappa persistente e il flag fisso
         selectedByLife[selectedLife] = { eventId: String(eventId), side: String(side) };
+        // salva anche su storage locale (persistenza post-refresh)
+        saveToStorage(selectedByLife);
+
         updateSelectedMarker();
 
         if (window.showMsg) window.showMsg('Scelta salvata', 'Selezione registrata.', 'success');
