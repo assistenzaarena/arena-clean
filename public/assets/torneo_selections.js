@@ -57,6 +57,10 @@
     })
     .catch(function(){ /* silenzioso */ });
   }
+
+  // rende richiamabile dall'esterno il ricaricamento dei loghi
+  window.reloadSelectionsForHearts = loadSelections;
+
   loadSelections();
 
   // Salvataggio selezione al click lato (home/away)
