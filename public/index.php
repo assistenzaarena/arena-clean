@@ -16,24 +16,56 @@ require_once $ROOT . '/header_guest.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/base.css">
   <style>
-    .hero{
+    .hero {
       min-height: calc(100vh - 160px);
-      display:flex; align-items:center; justify-content:center;
-      text-align:center; padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      padding: 32px 16px;
     }
-    .hero h1{ font-size: clamp(28px, 4vw, 56px); margin: 0 0 12px; font-weight: 900; }
-    .hero p{ font-size: clamp(14px, 2vw, 18px); color:#aaa; margin:0; }
+    .hero img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      margin-bottom: 32px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 4vw, 56px);
+      margin: 0 0 16px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: #ddd;
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
+    .hero small {
+      display: block;
+      font-size: 14px;
+      color: #aaa;
+      max-width: 700px;
+      margin: 16px auto 0;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
-<?php
-  
-?>
+
   <div class="hero">
-    <div>
-      <h1>Benvenuti in ARENA</h1>
-      <p>La piattaforma dei tornei. Presto qui vedrai banner e call-to-action.</p>
-    </div>
+    <img src="/assets/home_arena.jpg" alt="Arena Home">
+    <h1>Sarai tu il campione dell’Arena?</h1>
+    <p>Unisciti alla sfida, scegli la tua squadra e sopravvivi turno dopo turno.</p>
+    <small>
+      ARENA è la nuova piattaforma di tornei calcistici a eliminazione. Ogni giornata
+      scegli una squadra diversa: chi resiste fino alla fine vince. Preparati a vivere
+      un’esperienza unica, tra adrenalina, strategia e passione per il calcio.<br><br>
+      Rimani connesso: presto troverai tornei, premi e sfide esclusive.
+    </small>
   </div>
 
 <?php
