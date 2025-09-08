@@ -26,14 +26,14 @@ require_once $ROOT . '/header_guest.php';
       padding: 32px 16px;
     }
     .hero img {
-      max-width: 100%;
+      width: 280px; /* molto più piccola e centrata */
       height: auto;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      margin-bottom: 32px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      margin-bottom: 24px;
     }
     .hero h1 {
-      font-size: clamp(28px, 4vw, 56px);
+      font-size: clamp(28px, 4vw, 48px);
       margin: 0 0 16px;
       font-weight: 900;
       color: #fff;
@@ -48,7 +48,7 @@ require_once $ROOT . '/header_guest.php';
       display: block;
       font-size: 14px;
       color: #aaa;
-      max-width: 700px;
+      max-width: 600px;
       margin: 16px auto 0;
       line-height: 1.6;
     }
