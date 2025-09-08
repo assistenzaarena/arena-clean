@@ -22,7 +22,7 @@
 <li><a href="/cookie-policy.php">Cookie policy</a></li>
 <li><a href="/faq.php">FAQ</a></li>
 <li><a href="/assistenza.php">Assistenza</a></li>
-<li><a href="mailto:abusi@arena.example">Segnalazione abusi</a></li>
+<li><a href="mailto:assistenza.arena@gmail.com">Segnalazione abusi</a></li>
       </ul>
     </nav>
 
