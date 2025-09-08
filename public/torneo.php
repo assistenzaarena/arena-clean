@@ -306,6 +306,15 @@ try {
       100% { box-shadow: 0 0 0 12px rgba(0,192,116,0), 0 0 0 rgba(0,192,116,0); }
     }
 
+    /* stato persistente dopo il flash */
+    .team-side--selected{
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 2px rgba(0,192,116,.55),
+        inset 0 0 0 1px rgba(0,192,116,.15);
+      transition: none; /* resta stabile */
+    }
+
     .life-heart{ cursor:pointer; }
     .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
     .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
