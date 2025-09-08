@@ -186,46 +186,47 @@ try {
 <script>window.CSRF = "<?php echo htmlspecialchars($csrf); ?>";</script>  <!-- ADDED -->
 <style>
 /* … resto invariato … */
-    .torneo-wrap{max-width:1280px; margin:40px auto; padding:0 24px; color:#fff; position:relative;}
-    .torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;}
-    .torneo-title{font-size:24px; font-weight:900;}
-    .btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
-    .btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
-    .btn--warn:hover{background:#c01c21;}
-  
-  /* Pulsante discreto (senza colore pieno) per Disiscriviti */
+.torneo-wrap{max-width:1280px; margin:40px auto; padding:0 24px; color:#fff; position:relative;}
+.torneo-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;}
+.torneo-title{font-size:24px; font-weight:900;}
+.btn{display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer; text-decoration:none;}
+.btn--warn{background:#e62329; border:1px solid #e62329; color:#fff;}
+.btn--warn:hover{background:#c01c21;}
+
+/* Pulsante discreto (senza colore pieno) per Disiscriviti */
 .btn--ghost{
-  background: transparent;                          /* niente riempimento */
-  border: 1px solid rgba(255,255,255,.22);          /* bordo tenue */
-  color: #cfcfcf;                                   /* testo grigio chiaro */
-  font-weight: 700;                                 /* resta leggibile */
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.22);
+  color: #cfcfcf;
+  font-weight: 700;
 }
 .btn--ghost:hover{
-  border-color: rgba(255,255,255,.45);              /* un filo più visibile al hover */
-  color: #fff;                                      /* testo bianco al hover */
-  background: rgba(255,255,255,.04);                /* leggerissima velatura */
+  border-color: rgba(255,255,255,.45);
+  color: #fff;
+  background: rgba(255,255,255,.04);
 }
 
-    /* Overlay popup */
-    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
-    .modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
-    .modal-card h3{margin:0 0 10px;}
-    .modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
+/* Overlay popup */
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
+.modal-card{background:#111; padding:20px; border-radius:8px; max-width:320px; width:100%; color:#fff;}
+.modal-card h3{margin:0 0 10px;}
+.modal-card .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
-    /* ====== STILI CARD EVENTI (aggiornati: VS centrato) ====== */
-    .events-grid{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(320px, 1fr));
-      gap:14px;
-      margin-top:10px;
-    }
-/* Card evento – versione ovale */
+/* ====== STILI CARD EVENTI (aggiornati: VS centrato) ====== */
+.events-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap:14px;
+  margin-top:10px;
+}
+
+/* Card evento – ovale */
 .event-card{
   background: linear-gradient(180deg, #1a1f26 0%, #11161c 100%);
   border: 1px solid rgba(255,255,255,.18);
-  border-radius: 36px;           /* ← più ovale */
-  padding: 18px 20px;            /* ← un filo più ariosa */
-  overflow: hidden;              /* ← rifila gli angoli per un ovale pulito */
+  border-radius: 36px;
+  padding: 18px 20px;
+  overflow: hidden;
 
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -239,101 +240,62 @@ try {
 .event-card:hover{
   background: linear-gradient(180deg, #202734 0%, #151b22 100%);
 }
-    .ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
-    .event-card .ec-team:first-child{ justify-content:flex-start; }
-    .event-card .ec-team:last-child{  justify-content:flex-end;  }
-    .ec-vs{ font-weight:900; color:#c9c9c9; letter-spacing:.04em; text-align:center; min-width:28px; }
-    /* Logo/badge squadra – più chiaro e più “massiccio” */
+
+.ec-team{ display:flex; align-items:center; gap:12px; min-width:0; }
+.event-card .ec-team:first-child{ justify-content:flex-start; }
+.event-card .ec-team:last-child{  justify-content:flex-end;  }
+.ec-vs{ font-weight:900; color:#c9c9c9; letter-spacing:.04em; text-align:center; min-width:28px; }
+
+/* Logo/badge squadra */
 .logo-wrap{
-  width: 44px;                          /* ↑ da 28 → 44 */
-  height: 44px;
-  position: relative;
-  flex: 0 0 44px;
-  border-radius: 9999px;
-  overflow: hidden;
-
-  /* fondo leggermente più chiaro con gradiente soft */
+  width: 44px; height: 44px; position: relative; flex: 0 0 44px; border-radius: 9999px; overflow: hidden;
   background: radial-gradient(90% 90% at 50% 10%, #1f2630 0%, #14181f 100%);
-
-  /* bordo più marcato */
   border: 2px solid rgba(255,255,255,.18);
-
-  /* un filo di sostanza */
-  box-shadow:
-    0 2px 8px rgba(0,0,0,.35),                /* ombra esterna */
-    inset 0 0 0 1px rgba(255,255,255,.06);    /* leggerissimo ring interno */
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+  display:flex; align-items:center; justify-content:center;
 }
-    .team-logo{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  display:block;
-  background:transparent;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,.35));   /* micro glow per staccare dallo sfondo */
+.team-logo{ width:100%; height:100%; object-fit:contain; display:block; background:transparent; filter: drop-shadow(0 0 2px rgba(0,0,0,.35)); }
+.team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
+.team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
+.team-side{ cursor:pointer; position:relative; transition: transform .12s ease, box-shadow .30s ease; }
+
+/* --- FLASH leggero al salvataggio (rimane solo il bagliore, niente bordo verde) --- */
+.team-side--flash{
+  animation: pulseSel .9s ease-out;
 }
-    .team-initials{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background:#2a2f36; border-radius:9999px; }
-    .team-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; color:#e6e6e6; font-weight:800; }
-    .team-side{ cursor:pointer; }
-
-    /* --- Evidenza elegante quando salvo una squadra --- */
-    .event-card .team-side{ position: relative; transition: transform .12s ease, box-shadow .30s ease, border-color .30s ease; }
-
-    .team-side--flash {
-      border-radius: 12px;
-      box-shadow:
-        0 0 0 2px rgba(0,192,116,.55),
-        0 0 18px rgba(0,192,116,.35);
-      transform: scale(0.98);
-      animation: pulseSel .9s ease-out;
-    }
-    .team-side--flash::after {
-      content: '✓';
-      position: absolute;
-      top: -6px; right: -6px;
-      width: 18px; height: 18px;
-      display: flex; align-items:center; justify-content:center;
-      border-radius: 9999px;
-      background:#00c074; color:#04140c;
-      font-weight:900; font-size:11px;
-      box-shadow:0 4px 12px rgba(0,0,0,.35);
-    }
-    @keyframes pulseSel{
-      0%   { box-shadow: 0 0 0 0 rgba(0,192,116,.50), 0 0 18px rgba(0,192,116,.35); }
-      100% { box-shadow: 0 0 0 12px rgba(0,192,116,0), 0 0 0 rgba(0,192,116,0); }
-    }
-
-    /* stato persistente dopo il flash */
-    .team-side--selected{
-      border-radius: 12px;
-      box-shadow:
-        0 0 0 2px rgba(0,192,116,.55),
-        inset 0 0 0 1px rgba(0,192,116,.15);
-      transition: none; /* resta stabile */
-    }
-
-    .life-heart{ cursor:pointer; }
-    .life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
-    .life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
-
-  .team-side.disabled {
-  pointer-events: none;
-  opacity: 0.3;
-  filter: grayscale(100%);
-  cursor: not-allowed;
+@keyframes pulseSel{
+  0%   { box-shadow: 0 0 0 0 rgba(0,192,116,.45), 0 0 18px rgba(0,192,116,.28); }
+  100% { box-shadow: 0 0 0 12px rgba(0,192,116,0),   0 0 0 rgba(0,192,116,0); }
 }
-    @media (max-width: 720px){ .events-grid{ grid-template-columns: 1fr; } }
 
-    /* ====== AGGIUNTA: banner "in attesa" ====== */
-    .notice-wait{background:#262a31;border:1px solid rgba(255,255,255,.15);padding:12px;border-radius:10px;margin:12px 0;color:#c9c9c9;}
-  /* Distanze generali tra le sezioni */
-section{
-  margin-top: 30px;      /* spazio tra i vari blocchi */
-  margin-bottom: 30px;
+/* --- Stato PERSISTENTE: solo il flag ✓ nell’angolo, senza bordo intorno alla squadra --- */
+.team-side--selected::after{
+  content:'✓';
+  position:absolute;
+  top:-6px; right:-6px;
+  width:18px; height:18px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:9999px;
+  background:#00c074; color:#04140c;
+  font-weight:900; font-size:11px;
+  box-shadow:0 4px 12px rgba(0,0,0,.35);
 }
+
+/* Cuori vite */
+.life-heart{ cursor:pointer; }
+.life-heart--active{ outline:2px solid #00c074; border-radius:6px; padding:2px 4px; }
+.life-heart .pick-logo{ width:16px; height:16px; vertical-align:middle; margin-left:6px; }
+
+/* Disabilitazioni */
+.team-side.disabled{ pointer-events:none; opacity:.3; filter:grayscale(100%); cursor:not-allowed; }
+
+@media (max-width: 720px){ .events-grid{ grid-template-columns: 1fr; } }
+
+/* Banner "in attesa" */
+.notice-wait{background:#262a31;border:1px solid rgba(255,255,255,.15);padding:12px;border-radius:10px;margin:12px 0;color:#c9c9c9;}
+
+/* Distanze generali tra le sezioni */
+section{ margin-top:30px; margin-bottom:30px; }
 </style>
 </head>
 <body>
