@@ -8,17 +8,68 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 // [RIGA] Config + PDO
 require_once __DIR__ . '/src/config.php';
 require_once __DIR__ . '/src/db.php';
-// Verifica se le registrazioni sono aperte (da DB: admin_settings.registrations_open)
+// Verifica se le registrazioni sono aperte (flag su DB: admin_settings.registrations_open)
 $regOpen = 1;
 try {
     $st = $pdo->prepare("SELECT setting_value FROM admin_settings WHERE setting_key='registrations_open' LIMIT 1");
     $st->execute();
     $regOpen = (int)($st->fetchColumn() ?? 1);
-} catch (Throwable $e) { $regOpen = 1; }
+} catch (Throwable $e) {
+    $regOpen = 1; // fallback: aperte
+}
 
 if ($regOpen !== 1) {
     http_response_code(503);
-    echo '<h1>Registrazioni sospese</h1><p>Le registrazioni sono momentaneamente disattivate per manutenzione. Riprova più tardi.</p>';
+    ?>
+    <!doctype html>
+    <html lang="it">
+    <head>
+      <meta charset="utf-8">
+      <title>Registrazioni sospese — ARENA</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="/assets/base.css">
+      <link rel="stylesheet" href="/assets/header_login.css">
+      <link rel="stylesheet" href="/assets/login.css?v=7"><!-- riuso layout/card -->
+      <style>
+        .auth{min-height:calc(100vh - 120px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:16px}
+        .msg-card{
+          max-width:640px;width:100%;
+          background:#0f1114;border:1px solid rgba(255,255,255,.12);
+          border-radius:14px;padding:24px;color:#fff;
+          box-shadow:0 16px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+          text-align:center;
+        }
+        .msg-card h1{margin:0 0 10px;font-weight:900;font-size:28px}
+        .msg-card p{margin:0 0 14px;color:#cfd3d8}
+        .btn-row{display:flex;gap:10px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+        .btn-cta{
+          display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 18px;
+          border-radius:9999px;font-weight:900;text-decoration:none;border:0;
+          background:#00c074;color:#fff;box-shadow:0 8px 24px rgba(0,192,116,.28);
+        }
+        .btn-cta:hover{background:#00a862;transform:translateY(-1px)}
+        .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.32)}
+        .btn-ghost:hover{border-color:#fff;transform:translateY(-1px)}
+      </style>
+    </head>
+    <body>
+      <?php require __DIR__ . '/header_login.php'; ?>
+
+      <main class="auth">
+        <div class="msg-card">
+          <h1>Registrazioni sospese</h1>
+          <p>Stiamo effettuando un aggiornamento della piattaforma. Le registrazioni saranno nuovamente disponibili a breve.</p>
+          <div class="btn-row">
+            <a class="btn-cta" href="/">Torna alla Home</a>
+            <a class="btn-cta btn-ghost" href="/login.php">Accedi</a>
+          </div>
+        </div>
+      </main>
+
+      <?php require __DIR__ . '/footer.php'; ?>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
