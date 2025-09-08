@@ -13,7 +13,7 @@
     </div>
 
     <div class="hdr__right" aria-label="Azioni account">
-      <a class="btn btn--primary" href="/registrazione">Registrati</a>
+      <a class="btn btn--primary" href="/registrazione.php">Registrati</a>
       <a class="btn btn--outline" href="/login.php">Login</a>
     </div>
   </div>
