@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare($sql);
 
             // >>> modifica: se infiniti salvo NULL (se la colonna non accetta NULL, usare 0)
-            $slots_value = $slots_infinite ? null : (int)$max_slots;
+            $slots_value = $slots_infinite ? 0 : (int)$max_slots;
 
             $stmt->execute([
                 ':tcode'  => $tournament_code,          // <-- [AGGIUNTA]
