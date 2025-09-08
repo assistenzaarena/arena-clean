@@ -47,6 +47,17 @@ require_once $ROOT . '/header_guest.php';
     .btn--ghost{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.32); }
     .btn--ghost:hover{ border-color:#fff; transform:translateY(-1px); }
 
+    /* HERO IMAGE --------------------------------------------- */
+    .hero-img img{
+      max-width:900px;        /* limite dimensione desktop */
+      width:100%;             /* responsive */
+      height:auto;
+      border-radius:16px;
+      box-shadow:0 10px 28px rgba(0,0,0,.35);
+      margin:40px auto;
+      display:block;
+    }
+
     /* VALUE PROPS ------------------------------------------- */
     .section{padding:36px 0;}
     .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
@@ -100,6 +111,11 @@ require_once $ROOT . '/header_guest.php';
         <a href="/il_gioco.php" class="btn btn--ghost">Scopri come funziona</a>
       </div>
     </div>
+  </section>
+
+  <!-- HERO IMAGE -->
+  <section class="hero-img">
+    <img src="/assets/home/immagine_1.png" alt="Survive. Win. Make History.">
   </section>
 
   <main class="wrap">
