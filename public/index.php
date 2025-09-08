@@ -16,79 +16,81 @@ require_once $ROOT . '/header_guest.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/assets/base.css">
   <style>
+    :root { --gap: 40px; }
+
     .hero {
       text-align: center;
-      padding: 48px 16px;
-    }
-    .hero img {
-      width: 1200px;
-      max-width: 100%; /* su schermi piccoli si ridimensiona */
-      height: auto;     /* mantiene proporzioni */
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      margin: 40px auto;
-      display: block;
-    }
-    .hero h1 {
-      font-size: clamp(28px, 5vw, 56px);
-      margin: 32px 0 16px;
-      font-weight: 900;
-      color: #fff;
-    }
-    .hero p {
-      font-size: clamp(16px, 3vw, 20px);
-      color: #ddd;
-      margin: 0 0 20px;
-      line-height: 1.5;
-    }
-    .hero small {
-      display: block;
-      font-size: 14px;
-      color: #aaa;
-      max-width: 700px;
-      margin: 0 auto 40px;
-      line-height: 1.6;
+      padding: var(--gap) 16px;
     }
 
-    /* Mobile: aumenta spaziatura e adatta font */
-    @media (max-width: 768px) {
-      .hero {
-        padding: 24px 12px;
-      }
-      .hero img {
-        width: 100%; /* prende tutta la larghezza su mobile */
-        border-radius: 8px;
-      }
-      .hero h1 {
-        font-size: 24px;
-      }
-      .hero p {
-        font-size: 16px;
-      }
+    /* wrapper per staccare e limitare la larghezza su desktop */
+    .hero__imgWrap{
+      margin: var(--gap) auto;
+      max-width: 1200px;            /* desktop */
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,.6);
+    }
+
+    /* l'immagine si adatta: 100% su mobile, non si deforma */
+    .hero__img{
+      display:block;
+      width:100%;
+      height:auto;                  /* mantiene proporzioni */
+      object-fit: cover;            /* nel caso venga usata un'altra immagine più alta */
+      background:#0f0f0f;           /* placeholder scuro */
+    }
+
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 56px);
+      margin: 24px 0 12px;
+      font-weight: 900;
+      color:#fff;
+    }
+    .hero p {
+      font-size: clamp(16px, 2.2vw, 20px);
+      color:#ddd;
+      margin:0 0 18px;
+      line-height:1.5;
+    }
+    .hero small {
+      display:block;
+      font-size:14px;
+      color:#aaa;
+      max-width: 700px;
+      margin: 0 auto var(--gap);
+      line-height:1.6;
+    }
+
+    @media (max-width: 768px){
+      :root { --gap: 24px; }
+      .hero__imgWrap{ max-width: 100%; border-radius: 8px; }
     }
   </style>
 </head>
 <body>
 
   <div class="hero">
-    <img src="/assets/arena_1200x400.png" alt="Arena Home">
+    <div class="hero__imgWrap">
+      <img class="hero__img"
+           src="/assets/home_arena.jpg"
+           alt="Arena Home" loading="eager" decoding="async">
+    </div>
+
     <h1>Sarai tu il campione dell’Arena?</h1>
     <p>Unisciti alla sfida, scegli la tua squadra e sopravvivi turno dopo turno.</p>
     <small>
       ARENA è la nuova piattaforma di tornei calcistici a eliminazione. Ogni giornata
       scegli una squadra diversa: chi resiste fino alla fine vince. Preparati a vivere
-      un’esperienza unica, tra adrenalina, strategia e passione per il calcio.
+      un’esperienza unica, tra adrenalina, strategia e passione per il calcio. <br><br>
+      Rimani connesso: presto troverai tornei, premi, classifiche live e sfide esclusive.
     </small>
 
     <h1>🔥 Sfida gli amici. Vinci la gloria. Conquista l’Arena.</h1>
-    <p>
-      Non importa da dove inizi, conta solo come sopravvivi.  
-      L’Arena non perdona, ma premia chi resta in piedi fino all’ultimo.
-    </p>
+    <p>Non conta da dove parti, conta chi resta in piedi. L’Arena premia i coraggiosi.</p>
     <small>
-      Registrati, allenati e preparati: presto arriveranno i tornei ufficiali, ricchi premi,
-      classifiche live e un’esperienza di gioco mai vista prima.  
-      La battaglia calcistica definitiva sta per cominciare.  
+      Accedi o registrati per ricevere aggiornamenti sui prossimi lanci, regolamenti,
+      modalità di gioco e anteprime dei premi. La battaglia calcistica definitiva sta per iniziare.
     </small>
   </div>
 
