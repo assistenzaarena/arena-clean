@@ -8,6 +8,12 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 // [RIGA] Config + PDO
 require_once __DIR__ . '/src/config.php';
 require_once __DIR__ . '/src/db.php';
+$settings = require __DIR__ . '/src/config_settings.php';
+if (empty($settings['registrations_open'])) {
+    http_response_code(503);
+    echo '<h1>Registrazioni sospese</h1><p>Le registrazioni sono momentaneamente disattivate per manutenzione. Riprova più tardi.</p>';
+    exit;
+}
 
 // [RIGA] Variabili di stato per messaggi
 $errors = [];        // array con errori da mostrare sotto il form
