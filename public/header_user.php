@@ -42,10 +42,10 @@ if (!empty($_SESSION['user_id'])) {
 
 <!-- Logo a sinistra -->
 <div class="hdr__left">
-  <div class="logo" aria-label="Logo Arena">
+  <a class="logo" href="/lobby.php" aria-label="Vai alla lobby">
     <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
     <span class="logo__text">ARENA</span>
-  </div>
+  </a>
 </div>
 
     <!-- Azioni a destra -->
