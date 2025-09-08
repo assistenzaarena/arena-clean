@@ -27,8 +27,9 @@
   bar.id = 'mobileAppBar';
 
   const exitHref = '/'; // se preferisci: '/home_guest.php' (metti qui il path reale valido su guest)
+  const brandHref = isUser ? '/lobby.php' : '/'; // <<< MODIFICA: logo → lobby se loggato, home se guest
   bar.innerHTML = `
-    <a class="mBrand" href="/">
+    <a class="mBrand" href="${brandHref}">
       <img src="/assets/logo_arena.png" alt="ARENA"><span>ARENA</span>
     </a>
     <div class="mRight">
