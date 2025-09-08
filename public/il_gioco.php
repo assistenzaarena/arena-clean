@@ -106,7 +106,7 @@ require_once $ROOT . '/header_guest.php';
       <div class="hd"><h2>Panoramica</h2></div>
       <div class="bd">
         <p>L’Arena è un torneo a eliminazione in stile <em>Survivor</em> basato sulle giornate di calcio. In ogni turno scegli una squadra; se soddisfa il requisito del turno, <strong>resti in gioco</strong>. In caso contrario, <strong>perdi una vita</strong> (o vieni eliminato se non hai più vite).</p>
-        <p class="tip">La formula è flessibile: alcuni parametri possono variare a seconda del singolo torneo (vite, gestione pareggio, leghe supportate…). Ogni torneo indica sempre i parametri validi prima dell’iscrizione.</p>
+        <p class="tip">La formula è flessibile: alcuni parametri possono variare a seconda del singolo torneo (vite, numero partecipanti, leghe supportate…). Ogni torneo indica sempre i parametri validi prima dell’iscrizione.</p>
       </div>
     </section>
 
@@ -116,8 +116,8 @@ require_once $ROOT . '/header_guest.php';
       <div class="bd">
         <ul class="rule-list">
           <li><strong>Quota</strong>: paghi l’iscrizione in <b>crediti</b>. Il valore è indicato nella pagina del torneo (<span class="badge">es. 5 crediti</span>).</li>
-          <li><strong>Requisiti</strong>: account verificato, età 18+, accettazione regolamento.</li>
-          <li><strong>Chiusura iscrizioni</strong>: prima dell’inizio della giornata 1 del torneo.</li>
+          <li><strong>Requisiti</strong>: account verificato, accettazione T&C, accettazione regolamento.</li>
+          <li><strong>Chiusura iscrizioni</strong>: prima dell’inizio della Round 1 del torneo.</li>
           <li><strong>Rientri</strong>: <span class="pill">opzionale</span> Se abilitati, puoi rientrare entro un limite di turni pagando una fee. (Vedi dettagli nel torneo specifico.)</li>
         </ul>
       </div>
@@ -135,22 +135,18 @@ require_once $ROOT . '/header_guest.php';
             <ul class="rule-list">
               <li>Ogni turno scegli <strong>una squadra</strong> che gioca in quella giornata.</li>
               <li><strong>Non puoi riutilizzare</strong> la stessa squadra in turni successivi.</li>
-              <li>La scelta si blocca alla chiusura indicata (tipicamente <strong>calcio d’inizio</strong> della partita scelta).</li>
+              <li>La scelta si blocca alla chiusura indicata (tipicamente <strong>5 minuti prima</strong> dell'inizio del primo evento in programma).</li>
             </ul>
           </div>
           <div>
             <h3>Esito del turno</h3>
             <ul class="rule-list">
-              <li><strong>Vittoria</strong> della tua squadra → <b>resti in vita</b>.</li>
-              <li><strong>Sconfitta</strong> → <b>perdi 1 vita</b>.</li>
-              <li><strong>Pareggio</strong> → modalità configurabile:
+              <li><strong>Vittoria</strong> della tua squadra → <b>Resti in vita</b>.</li>
+              <li><strong>Sconfitta o Pareggio</strong> → <b>Perdi la vita</b>.</li>
+              <li><strong></strong> → modalità configurabile:
                 <ul>
-                  <li><span class="pill">Standard</span> pareggio = perdi 1 vita.</li>
-                  <li><span class="pill">Soft</span> pareggio = mezza vita (2 pareggi = 1 vita).</li>
-                  <li><span class="pill">Permissiva</span> pareggio = resti in vita.</li>
                 </ul>
               </li>
-              <li><strong>Vite iniziali</strong>: <span class="pill">configurabile</span> (es. 1–3). A 0 vite → eliminato.</li>
             </ul>
           </div>
         </div>
@@ -165,12 +161,12 @@ require_once $ROOT . '/header_guest.php';
         <ul class="rule-list">
           <li><strong>Una squadra per turno.</strong> Nessun cambio dopo la chiusura.</li>
           <li><strong>Squadre disponibili</strong>: solo quelle indicate nel calendario del torneo.</li>
-          <li><strong>Unicità</strong>: la stessa squadra non può essere selezionata più di una volta dallo stesso giocatore.</li>
+          <li><strong>Unicità</strong>: la stessa squadra non può essere associata più di una volta alla stessa squadra.</li>
           <li><strong>Trasparenza</strong>: orari/turni e risultati provengono da feed ufficiali (es. API di provider sportivi).</li>
           <li><strong>Tiebreak</strong> quando restano più vincitori al termine:
             <ul>
               <li><span class="pill">Jackpot split</span>: il montepremi si divide in parti uguali.</li>
-              <li><span class="pill">Playoff</span>: turni extra finché resta un solo vincitore.</li>
+              <li><span class="pill">Vite</span>: Quando una vita finisce il ciclo delle scelte, il ciclo ricomincia. In caso di impossibilità di scelta per eventi non disponibili, la vita può essere riassociata eccezionalmente a una squadra già scelta.</li>
             </ul>
           </li>
         </ul>
@@ -182,11 +178,10 @@ require_once $ROOT . '/header_guest.php';
       <div class="hd"><h2>Eccezioni & casi particolari</h2></div>
       <div class="bd">
         <ul class="rule-list">
-          <li><strong>Partita rinviata</strong>: se rinviata oltre la finestra del turno, la scelta viene <b>annullata</b> (nessuna vita persa) e la squadra resta disponibile per turni futuri.</li>
-          <li><strong>Partita sospesa/abbandonata</strong>: fa fede il verdetto ufficiale; se null-match, si applica la regola del rinvio.</li>
-          <li><strong>Quote disciplinari</strong>: gol a tavolino/vittoria a tavolino seguono la decisione ufficiale della Lega.</li>
-          <li><strong>Calendario compresso</strong>: se più partite della stessa squadra cadono nello stesso turno, conta la prima che inizia.</li>
-          <li><strong>Errori tecnici</strong>: in caso di malfunzionamenti che impediscono la scelta a più utenti, l’organizzazione può estendere la finestra o azzerare il turno.</li>
+          <li><strong>Partita rinviata</strong>: Se rinviata oltre la finestra del turno, <b>la vita passa il turno</b>.</li>
+          <li><strong>Partita sospesa/abbandonata</strong>: <b>la vita passa il turno</b>.</li>
+          <li><strong>Calendario compresso</strong>: Se più partite vengono rinviate, l'organizzazione ha la facoltà di annullare il round in corso.</li>
+          <li><strong>Errori tecnici</strong>: In caso di malfunzionamenti che impediscono la scelta a più utenti, l’organizzazione può estendere la finestra o azzerare il turno.</li>
         </ul>
       </div>
     </section>
@@ -197,13 +192,13 @@ require_once $ROOT . '/header_guest.php';
       <div class="bd">
         <table class="table">
           <thead>
-            <tr><th>Turno</th><th>Tua scelta</th><th>Risultato</th><th>Regola pareggio</th><th>Vite residue</th></tr>
+            <tr><th>Turno</th><th>Tua scelta</th><th>Risultato</th><th>Scelta effettuata</th><th>Vite residue</th></tr>
           </thead>
           <tbody>
-            <tr><td>1</td><td>Milano FC</td><td>Vittoria</td><td>—</td><td>1 → 1</td></tr>
-            <tr><td>2</td><td>Roma United</td><td>Pareggio</td><td>Standard</td><td>1 → 0 (eliminato)</td></tr>
-            <tr><td>2</td><td>Roma United</td><td>Pareggio</td><td>Soft</td><td>1 → 0.5</td></tr>
-            <tr><td>3</td><td>Torino City</td><td>Sconfitta</td><td>—</td><td>0.5 → 0 (eliminato)</td></tr>
+            <tr><td>1</td><td>Juventus</td><td>Vittoria</td><td>Vittoria</td><td>1 → 1</td></tr>
+            <tr><td>2</td><td>Roma</td><td>Pareggio</td><td>Vittoria</td><td>1 → 0 (eliminato)</td></tr>
+            <tr><td>2</td><td>Inter VS Milan</td><td>Rinviata</td><td>Vittoria Milan</td><td>1 → 1</td></tr>
+            <tr><td>3</td><td>Fiorentina</td><td>Sconfitta</td><td>Vittoria</td><td>1 → 0 (eliminato)</td></tr>
           </tbody>
         </table>
         <p class="tip">I nomi squadra sono d’esempio. Fa fede l’elenco ufficiale squadre/partite del torneo.</p>
@@ -215,7 +210,7 @@ require_once $ROOT . '/header_guest.php';
       <div class="hd"><h2>Premi, classifiche & montepremi</h2></div>
       <div class="bd">
         <ul class="rule-list">
-          <li><strong>Montepremi</strong>: somma delle quote al netto della fee di servizio (<span class="pill">configurabile</span>).</li>
+          <li><strong>Montepremi</strong>: somma delle quote al netto della fee di servizio.</li>
           <li><strong>Assegnazione</strong>:
             <ul>
               <li><span class="pill">Winner-Takes-All</span>: tutto al campione.</li>
@@ -233,8 +228,8 @@ require_once $ROOT . '/header_guest.php';
       <div class="hd"><h2>Fair play, account & sanzioni</h2></div>
       <div class="bd">
         <ul class="rule-list">
-          <li><strong>Un account per persona</strong>. Multi-account = squalifica.</li>
-          <li><strong>Collusione</strong> e condivisione di scelte coordinate per alterare l’esito → sanzioni fino all’esclusione.</li>
+          <li><strong>Un account per persona</strong>. Multi-account = squalifica e ban account.</li>
+          <li><strong>Collusione</strong> e condivisione di scelte coordinate per alterare l’esito → squalifica e ban account.</li>
           <li><strong>Abusi tecnici</strong> (bot, scraping malevolo, exploit) → ban immediato.</li>
           <li><strong>Controversie</strong>: è previsto un canale reclami; decisione finale dell’organizzazione.</li>
         </ul>
@@ -248,17 +243,17 @@ require_once $ROOT . '/header_guest.php';
         <div class="grid-2">
           <div>
             <p><strong>Posso cambiare squadra dopo aver confermato?</strong><br>
-              No, dopo la chiusura del turno la scelta è bloccata.</p>
+              Puoi cambiare squadra fino al lock del round, dopo la chiusura del turno la scelta è bloccata.</p>
             <p><strong>Se dimentico di scegliere?</strong><br>
-              Perdi 1 vita (come sconfitta). Alcuni tornei possono prevedere un “auto-pick” <span class="pill">opzionale</span>.</p>
+              Perdi 1 vita (come sconfitta).
             <p><strong>Vale il risultato ai rigori?</strong><br>
               Se il turno riguarda la gara nei 90’, fa fede il 90’. Se è un turno “coppa” configurato sui passaggi del turno, fa fede il verdetto ufficiale.</p>
           </div>
           <div>
             <p><strong>Cosa succede con partite rinviate?</strong><br>
-              Scelta annullata e squadra riutilizzabile (vedi sezione Eccezioni).</p>
+             (vedi sezione Vite).</p>
             <p><strong>Quante vite ho?</strong><br>
-              Dipende dal torneo (es. 1–3). Controlla sempre la scheda del torneo.</p>
+              Dipende dal torneo. Controlla sempre la scheda del torneo.</p>
             <p><strong>Quando ricevo i premi?</strong><br>
               Dopo la validazione dell’ultimo turno e dei controlli anti-abuso.</p>
           </div>
