@@ -18,14 +18,16 @@ require_once $ROOT . '/header_guest.php';
   <style>
     .hero {
       position: relative;
-      width: 100%;
-      height: 400px; /* altezza fascia gialla */
+      width: 711px;   /* larghezza fissa */
+      height: 400px;  /* altezza fissa */
+      margin: 0 auto; /* per centrare orizzontalmente */
       background: url("/assets/home_arena.jpg") no-repeat center center;
       background-size: cover;
+      border-radius: 8px; /* opzionale, per angoli arrotondati */
     }
     .hero-text {
       text-align: center;
-      padding: 48px 16px;
+      padding: 32px 16px;
     }
     .hero-text h1 {
       font-size: clamp(28px, 4vw, 56px);
