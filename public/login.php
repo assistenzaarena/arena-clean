@@ -127,7 +127,7 @@ require __DIR__ . '/header_login.php';
   <!-- icona occhio -->
   <span id="togglePassword"
         style="position:absolute; right:10px; top:34px; cursor:pointer; color:#aaa; font-size:16px;">
-    👁
+    🐵
   </span>
 </div>
 
