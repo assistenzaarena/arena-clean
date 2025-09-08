@@ -1,0 +1,44 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00c074"/>
+      <stop offset="100%" stop-color="#00a862"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1fe6a2"/>
+      <stop offset="100%" stop-color="#00c074"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background pill -->
+  <rect x="8" y="8" width="144" height="144" rx="24" fill="#14161b" stroke="#222831" stroke-width="2"/>
+
+  <!-- motion streaks -->
+  <g filter="url(#glow)" opacity="0.9">
+    <path d="M26 96 C58 86, 70 84, 96 84" stroke="url(#g2)" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M26 112 C58 100, 74 98, 104 96" stroke="url(#g2)" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.8"/>
+    <path d="M26 128 C64 116, 88 114, 116 112" stroke="url(#g2)" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- stylized bolt -->
+  <g transform="translate(50,26) rotate(-15 30 30)">
+    <path d="M32 4 L12 52 H34 L26 88 L64 36 H40 L52 4 Z"
+          fill="url(#g1)" stroke="#0b241a" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M32 4 L12 52 H34 L26 88 L64 36 H40 L52 4 Z"
+          fill="none" stroke="#56f0bd" stroke-width="1.5" opacity="0.4"/>
+  </g>
+
+  <!-- mini ball (speed cue) -->
+  <g transform="translate(104,102)">
+    <circle r="14" fill="#0f1217" stroke="#303845" stroke-width="3"/>
+    <path d="M0,-12 L8,-6 L5,4 L-5,4 L-8,-6 Z" fill="#f5f6f7"/>
+    <circle r="4" fill="#1d2330"/>
+  </g>
+</svg>
