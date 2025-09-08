@@ -153,7 +153,7 @@ require __DIR__ . '/header_login.php';
     togglePassword.addEventListener('click', () => {
       const isHidden = passwordField.type === 'password';
       passwordField.type = isHidden ? 'text' : 'password';
-      togglePassword.textContent = isHidden ? '🙈' : '👁'; // cambia icona
+      togglePassword.textContent = isHidden ? '🙈' : '🐵'; // cambia icona
     });
   }
 </script>
