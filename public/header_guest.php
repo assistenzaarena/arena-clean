@@ -1,3 +1,8 @@
+<?php
+// Link logo dinamico: guest → "/", loggato → "/lobby.php"
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+$logoHref = !empty($_SESSION['user_id']) ? '/lobby.php' : '/';
+?>
 <!-- Header guest: sfondo nero, logo a sinistra, azioni a destra -->
 <link rel="stylesheet" href="/assets/header_guest.css">
 <link rel="stylesheet" href="/assets/mobile.css?v=1">
@@ -6,10 +11,10 @@
 <header class="hdr" role="banner" aria-label="Intestazione sito">
   <div class="hdr__inner">
     <div class="hdr__left">
-      <div class="logo" aria-label="Logo Arena">
+      <a class="logo" href="<?php echo $logoHref; ?>" aria-label="Vai alla home">
         <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
         <span class="logo__text">ARENA</span>
-      </div>
+      </a>
     </div>
 
     <div class="hdr__right" aria-label="Azioni account">
