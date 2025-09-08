@@ -11,13 +11,13 @@ $avatarChr = mb_strtoupper(mb_substr($username, 0, 1));    // iniziale per l’a
 <header class="hdr" role="banner">
   <div class="hdr__inner">
 
-    <!-- Logo a sinistra -->
-    <div class="hdr__left">
-      <a class="logo" href="/" aria-label="Vai alla home">
-        <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="40" height="40">
-        <span class="logo__text">ARENA</span>
-      </a>
-    </div>
+<!-- Logo a sinistra -->
+<div class="hdr__left">
+  <div class="logo" aria-label="Logo Arena">
+    <img class="logo__img" src="/assets/logo_arena.png" alt="Logo Arena" width="56" height="56">
+    <span class="logo__text">ARENA</span>
+  </div>
+</div>
 
     <!-- Azioni a destra -->
     <div class="hdr__right">
